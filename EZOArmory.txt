@@ -17,4 +17,7 @@ modules/debug.lua
 modules/saved_vars.lua
 modules/zones_trials.lua
 modules/context_tracker.lua
+modules/gear_scanner.lua
+modules/coherence.lua
+modules/kits.lua
 modules/menu.lua
