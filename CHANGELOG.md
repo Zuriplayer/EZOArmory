@@ -2,6 +2,12 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.1.2
+
+- Fix: the "New kit name" field rendered as an unusable tiny box because it had
+  no width. Made it full width so it can be typed into. This also unblocked the
+  kit workflow that depended on naming a kit first.
+
 ## 0.1.1
 
 - Kit management in the settings panel: pick the active role, name a kit, choose

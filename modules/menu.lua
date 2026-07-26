@@ -362,6 +362,7 @@ local function BuildOptions()
                         Runtime().newKitName = tostring(value or "")
                     end,
                     isMultiline = false,
+                    width = "full",
                     default = "",
                 },
                 {
