@@ -362,6 +362,9 @@ local function BuildOptions()
                         Runtime().newKitName = tostring(value or "")
                     end,
                     isMultiline = false,
+                    -- isExtraWide ancla el contenedor a ambos lados y evita el
+                    -- calculo de ancho de LAM que da 0 dentro de un submenu.
+                    isExtraWide = true,
                     width = "full",
                     default = "",
                 },

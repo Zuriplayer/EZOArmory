@@ -2,11 +2,16 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.1.3
+
+- Fix: the "New kit name" field was still a tiny box. Inside a submenu LibAddonMenu
+  computes the editbox width from the parent width, which is zero at build time,
+  so the box collapsed. Setting isExtraWide makes it fill the row regardless.
+
 ## 0.1.2
 
-- Fix: the "New kit name" field rendered as an unusable tiny box because it had
-  no width. Made it full width so it can be typed into. This also unblocked the
-  kit workflow that depended on naming a kit first.
+- Fix attempt: gave the "New kit name" field a full width (insufficient on its
+  own; see 0.1.3).
 
 ## 0.1.1
 
