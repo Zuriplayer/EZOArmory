@@ -2,6 +2,20 @@
 
 All notable changes to EZOArmory are documented here.
 
+## Unreleased
+
+- Design settled (see `docs/concept.md`): kits hold concrete items, gear is
+  swapped automatically or manually per trial, three role profiles per character
+  and a phased UI.
+- Data model reworked around concrete pieces: kits keyed by slot with stable
+  item identity, role profiles, and per-trial assignments with inheritance from
+  a trial default to trash and individual bosses.
+- Coherence engine now validates **per weapon bar** (12 active pieces), handling
+  two-handed weapons as two pieces, and adds duplicated-item, multiple-mythic and
+  availability checks.
+- Gear scanner reports stable item ids and can locate pieces across worn and
+  backpack bags.
+
 ## 0.1.0
 
 Initial scaffold.

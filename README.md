@@ -9,23 +9,31 @@ Part of the EZO addon family.
 
 ## What it does
 
-EZOArmory helps you keep the right build for every trial and every boss:
+EZOArmory manages builds by **composing reusable kits** instead of storing a
+full gear snapshot for every boss:
 
-- **Named set kits** (the core idea): define a kit as a gear set plus the slots
-  it should occupy (for example "Ansuul — 5 body" or "Pearlescent — jewelry +
-  weapons"). Kits are the building blocks of a loadout.
-- **Loadouts**: combine named kits into a full 12-slot build assigned to a trial
-  or a specific boss.
-- **Coherence engine**: validates a loadout and flags inconsistencies — a slot
-  claimed by two different sets, a set asking for more than 5 pieces, unassigned
-  slots — and contrasts it against what you actually have equipped.
+- **Named kits** (the core idea): a kit is a block of concrete pieces, such as
+  "Null Arca — 5 body", "Ansuul — jewelry and weapons", a 2-piece monster set, a
+  mythic or a single loose piece. You define a kit once and reuse it everywhere.
+- **Assign kits per encounter**: each trial has a default set of kits, and you
+  only override the trash or the specific bosses that need something different.
+  Change a kit and every encounter using it updates automatically.
+- **Three role profiles** per character: damage, tank and healer. Kits are shared
+  across the character; the assignments belong to each role.
+- **Automatic or manual gear swap**, chosen per trial.
+- **Coherence engine**: validates a build **per weapon bar** — only 12 pieces
+  count at a time, since armour and jewelry always apply but weapons only count
+  on the active bar. It flags slot conflicts, sets asking for more pieces than
+  they allow, duplicated items, more than one mythic, incomplete bars and pieces
+  that are not currently available to equip.
 - **Trial and boss awareness**: recognises all 14 trials by zone and their
   bosses, and detects boss encounters outside trials.
-- **Champion Point groups**: named CP groups (for example one for pulls, one for
-  bosses, plus a special one).
-- **Skill sets**: named ability layouts for the front and back weapon bars.
-- **Configurable pop-up window** (HUD): shows where you are (trial/boss), which
-  loadout applies and any inconsistencies or reminders.
+- **Champion Point groups** and **skill sets** for the front and back bars.
+- **Configurable pop-up window** (HUD) showing the current context and warnings.
+
+Gear pieces must be in your backpack: moving items out of the bank requires
+direct player interaction and cannot be automated. Skills and Champion Points can
+only be changed out of combat, and Champion Points have an in-game cooldown.
 
 Food and drink are intentionally out of scope.
 

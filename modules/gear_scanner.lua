@@ -1,11 +1,13 @@
--- Lectura del equipo llevado (BAG_WORN) slot a slot, con informacion de set.
+-- Lectura del equipo llevado y localizacion de items concretos.
 --
--- APIs de ESO usadas (verificadas contra uso real en EZOMetter/equipment_sets):
---   GetItemLink(BAG_WORN, equipSlot) -> itemLink
+-- APIs de ESO usadas (verificadas contra uso real en EZOMetter y Wizard's Wardrobe):
+--   GetItemLink(bag, slot) -> itemLink
 --   GetItemLinkSetInfo(itemLink[, equipped]) ->
 --       hasSet, setName, numBonuses, numEquipped, maxEquipped, setId, numPerfectedEquipped
---   GetItemLinkEquipType(itemLink) -> equipType (para detectar armas a dos manos)
---   Constantes EQUIP_SLOT_* y BAG_WORN.
+--   GetItemLinkEquipType(itemLink) -> equipType  (para armas a dos manos)
+--   GetItemUniqueId(bag, slot) + Id64ToString(id) -> identidad estable por instancia
+--   GetBagSize(bag), GetItemName(bag, slot)
+--   Constantes EQUIP_SLOT_*, BAG_WORN, BAG_BACKPACK, EQUIP_TYPE_TWO_HAND
 --
 -- Modulo defensivo: cada global de ESO se comprueba antes de usarse.
 
@@ -14,30 +16,73 @@ EZOArmory.Gear = EZOArmory.Gear or {}
 
 local Gear = EZOArmory.Gear
 
--- Slots conceptuales del personaje, en orden. "category" agrupa para la
--- interfaz y para el motor de coherencia. "const" es el nombre de la constante
--- EQUIP_SLOT_* de ESO, resuelto en tiempo de escaneo desde _G.
+-- Barras de armas. La armadura y la joyeria cuentan en ambas; las armas solo
+-- en la suya. Por eso el maximo real es de 12 piezas activas por barra.
+Gear.BAR_FRONT = "front"
+Gear.BAR_BACK = "back"
+Gear.BARS = { Gear.BAR_FRONT, Gear.BAR_BACK }
+
+-- Slots conceptuales del personaje, en orden estable.
+--   category : armor | jewelry | weapon
+--   bars     : en que barras cuenta esta pieza
+--   pairSlot : slot de mano secundaria asociado (solo en manos principales)
 Gear.SLOT_DEFS = {
-    { key = "head",       const = "EQUIP_SLOT_HEAD",        category = "armor" },
-    { key = "chest",      const = "EQUIP_SLOT_CHEST",       category = "armor" },
-    { key = "shoulders",  const = "EQUIP_SLOT_SHOULDERS",   category = "armor" },
-    { key = "waist",      const = "EQUIP_SLOT_WAIST",       category = "armor" },
-    { key = "hands",      const = "EQUIP_SLOT_HAND",        category = "armor" },
-    { key = "legs",       const = "EQUIP_SLOT_LEGS",        category = "armor" },
-    { key = "feet",       const = "EQUIP_SLOT_FEET",        category = "armor" },
-    { key = "neck",       const = "EQUIP_SLOT_NECK",        category = "jewelry" },
-    { key = "ring1",      const = "EQUIP_SLOT_RING1",       category = "jewelry" },
-    { key = "ring2",      const = "EQUIP_SLOT_RING2",       category = "jewelry" },
-    { key = "main",       const = "EQUIP_SLOT_MAIN_HAND",   category = "weaponFront" },
-    { key = "off",        const = "EQUIP_SLOT_OFF_HAND",    category = "weaponFront" },
-    { key = "backupMain", const = "EQUIP_SLOT_BACKUP_MAIN", category = "weaponBack" },
-    { key = "backupOff",  const = "EQUIP_SLOT_BACKUP_OFF",  category = "weaponBack" },
+    { key = "head",       const = "EQUIP_SLOT_HEAD",        category = "armor",   bars = { front = true, back = true } },
+    { key = "shoulders",  const = "EQUIP_SLOT_SHOULDERS",   category = "armor",   bars = { front = true, back = true } },
+    { key = "chest",      const = "EQUIP_SLOT_CHEST",       category = "armor",   bars = { front = true, back = true } },
+    { key = "waist",      const = "EQUIP_SLOT_WAIST",       category = "armor",   bars = { front = true, back = true } },
+    { key = "hands",      const = "EQUIP_SLOT_HAND",        category = "armor",   bars = { front = true, back = true } },
+    { key = "legs",       const = "EQUIP_SLOT_LEGS",        category = "armor",   bars = { front = true, back = true } },
+    { key = "feet",       const = "EQUIP_SLOT_FEET",        category = "armor",   bars = { front = true, back = true } },
+    { key = "neck",       const = "EQUIP_SLOT_NECK",        category = "jewelry", bars = { front = true, back = true } },
+    { key = "ring1",      const = "EQUIP_SLOT_RING1",       category = "jewelry", bars = { front = true, back = true } },
+    { key = "ring2",      const = "EQUIP_SLOT_RING2",       category = "jewelry", bars = { front = true, back = true } },
+    { key = "main",       const = "EQUIP_SLOT_MAIN_HAND",   category = "weapon",  bars = { front = true }, pairSlot = "off" },
+    { key = "off",        const = "EQUIP_SLOT_OFF_HAND",    category = "weapon",  bars = { front = true } },
+    { key = "backupMain", const = "EQUIP_SLOT_BACKUP_MAIN", category = "weapon",  bars = { back = true }, pairSlot = "backupOff" },
+    { key = "backupOff",  const = "EQUIP_SLOT_BACKUP_OFF",  category = "weapon",  bars = { back = true } },
 }
+
+Gear._defByKey = {}
+for _, def in ipairs(Gear.SLOT_DEFS) do
+    Gear._defByKey[def.key] = def
+end
+
+function Gear.GetSlotDef(slotKey)
+    return Gear._defByKey[slotKey]
+end
+
+-- Slots que cuentan en una barra concreta (siempre 12).
+function Gear.GetBarSlotKeys(bar)
+    local keys = {}
+    for _, def in ipairs(Gear.SLOT_DEFS) do
+        if def.bars[bar] then
+            keys[#keys + 1] = def.key
+        end
+    end
+    return keys
+end
 
 local function ResolveSlotId(const)
     local value = _G[const]
     if type(value) == "number" then
         return value
+    end
+    return nil
+end
+
+-- Identidad estable de una instancia de item.
+function Gear.ReadItemId(bag, slot)
+    if type(GetItemUniqueId) ~= "function" or type(Id64ToString) ~= "function" then
+        return nil
+    end
+    local ok, uniqueId = pcall(GetItemUniqueId, bag, slot)
+    if not ok or uniqueId == nil then
+        return nil
+    end
+    local okStr, asString = pcall(Id64ToString, uniqueId)
+    if okStr and asString and asString ~= "" then
+        return asString
     end
     return nil
 end
@@ -61,7 +106,6 @@ local function ReadSetInfo(itemLink)
     numPerfectedEquipped = tonumber(numPerfectedEquipped) or 0
 
     return {
-        hasSet = true,
         setName = tostring(setName or ""),
         setId = tonumber(setId) or 0,
         numBonuses = tonumber(numBonuses) or 0,
@@ -70,46 +114,52 @@ local function ReadSetInfo(itemLink)
     }
 end
 
-local function ReadEquipType(itemLink)
+function Gear.IsTwoHand(itemLink)
     if not itemLink or itemLink == "" or type(GetItemLinkEquipType) ~= "function" then
-        return nil
+        return false
+    end
+    if type(EQUIP_TYPE_TWO_HAND) ~= "number" then
+        return false
     end
     local ok, equipType = pcall(GetItemLinkEquipType, itemLink)
-    if ok then
-        return equipType
-    end
-    return nil
+    return ok and equipType == EQUIP_TYPE_TWO_HAND
 end
 
-local function IsTwoHandEquipType(equipType)
-    -- EQUIP_TYPE_TWO_HAND es la constante nativa; comparacion defensiva.
-    if type(EQUIP_TYPE_TWO_HAND) == "number" then
-        return equipType == EQUIP_TYPE_TWO_HAND
+-- Describe un item de una bolsa concreta en el formato que guardan los kits.
+function Gear.DescribeItem(bag, slot)
+    if type(GetItemLink) ~= "function" then
+        return nil
     end
-    return false
+    local itemLink = GetItemLink(bag, slot)
+    if not itemLink or itemLink == "" then
+        return nil
+    end
+
+    local info = ReadSetInfo(itemLink)
+    local itemName = ""
+    if type(GetItemName) == "function" then
+        local okName, name = pcall(GetItemName, bag, slot)
+        if okName and name then
+            itemName = tostring(name)
+        end
+    end
+
+    return {
+        itemId = Gear.ReadItemId(bag, slot),
+        itemLink = itemLink,
+        itemName = itemName,
+        setId = info and info.setId or 0,
+        setName = info and info.setName or "",
+        maxEquipped = info and info.maxEquipped or 0,
+        twoHand = Gear.IsTwoHand(itemLink),
+    }
 end
 
--- Escanea el equipo llevado y devuelve un snapshot por slot y agregado por set.
---
--- Estructura devuelta:
---   {
---     slots = {
---       [slotKey] = {
---         key, category, equipSlot, hasItem,
---         itemLink, setId, setName, maxEquipped, numEquipped, twoHand
---       }, ...
---     },
---     bySet = {
---       [setId] = { setId, setName, maxEquipped, slotKeys = { ... }, count }
---     },
---     order = { slotKey, ... }  -- orden estable de SLOT_DEFS
---   }
+-- Escanea el equipo llevado. Devuelve:
+--   { slots = { [slotKey] = { key, category, equipSlot, hasItem, ...descripcion } },
+--     order = { slotKey, ... } }
 function Gear.ScanWorn()
-    local result = { slots = {}, bySet = {}, order = {} }
-
-    if BAG_WORN == nil or type(GetItemLink) ~= "function" then
-        return result
-    end
+    local result = { slots = {}, order = {} }
 
     for _, def in ipairs(Gear.SLOT_DEFS) do
         local equipSlot = ResolveSlotId(def.const)
@@ -118,44 +168,26 @@ function Gear.ScanWorn()
             category = def.category,
             equipSlot = equipSlot,
             hasItem = false,
+            itemId = nil,
             itemLink = nil,
+            itemName = "",
             setId = 0,
             setName = "",
             maxEquipped = 0,
-            numEquipped = 0,
             twoHand = false,
         }
 
-        if equipSlot ~= nil then
-            local itemLink = GetItemLink(BAG_WORN, equipSlot)
-            if itemLink and itemLink ~= "" then
+        if equipSlot ~= nil and BAG_WORN ~= nil then
+            local described = Gear.DescribeItem(BAG_WORN, equipSlot)
+            if described then
                 entry.hasItem = true
-                entry.itemLink = itemLink
-                entry.twoHand = IsTwoHandEquipType(ReadEquipType(itemLink))
-
-                local info = ReadSetInfo(itemLink)
-                if info then
-                    entry.setId = info.setId
-                    entry.setName = info.setName
-                    entry.maxEquipped = info.maxEquipped
-                    entry.numEquipped = info.numEquipped
-
-                    if info.setId ~= 0 then
-                        local agg = result.bySet[info.setId]
-                        if not agg then
-                            agg = {
-                                setId = info.setId,
-                                setName = info.setName,
-                                maxEquipped = info.maxEquipped,
-                                slotKeys = {},
-                                count = 0,
-                            }
-                            result.bySet[info.setId] = agg
-                        end
-                        agg.slotKeys[#agg.slotKeys + 1] = def.key
-                        agg.count = agg.count + 1
-                    end
-                end
+                entry.itemId = described.itemId
+                entry.itemLink = described.itemLink
+                entry.itemName = described.itemName
+                entry.setId = described.setId
+                entry.setName = described.setName
+                entry.maxEquipped = described.maxEquipped
+                entry.twoHand = described.twoHand
             end
         end
 
@@ -166,7 +198,34 @@ function Gear.ScanWorn()
     return result
 end
 
--- Devuelve true si el slot conceptual esta ocupado por un item.
+-- Indice de localizacion de items por identidad, para saber si una pieza esta
+-- disponible y desde donde equiparla.
+--
+-- Solo recorre BAG_WORN y BAG_BACKPACK: el banco no sirve porque mover items
+-- desde alli requiere una accion del jugador (RequestMoveItem es protegida).
+function Gear.BuildItemLocationIndex()
+    local index = {}
+    if type(GetBagSize) ~= "function" then
+        return index
+    end
+
+    local bags = {}
+    if BAG_WORN ~= nil then bags[#bags + 1] = BAG_WORN end
+    if BAG_BACKPACK ~= nil then bags[#bags + 1] = BAG_BACKPACK end
+
+    for _, bag in ipairs(bags) do
+        local size = GetBagSize(bag) or 0
+        for slot = 0, size do
+            local itemId = Gear.ReadItemId(bag, slot)
+            if itemId and index[itemId] == nil then
+                index[itemId] = { bag = bag, slot = slot }
+            end
+        end
+    end
+
+    return index
+end
+
 function Gear.IsSlotFilled(scan, slotKey)
     return scan and scan.slots and scan.slots[slotKey] and scan.slots[slotKey].hasItem == true
 end

@@ -1,120 +1,78 @@
 -- Motor de coherencia (la piedra angular).
 --
 -- Logica pura: no llama a ninguna API de ESO ni toca SavedVariables. Recibe un
--- loadout ya resuelto (lista de kits con sus slots asignados) y devuelve un
--- informe de incoherencias. Tambien puede contrastar el loadout declarado
--- contra el equipo realmente llevado (snapshot de gear_scanner).
+-- conjunto de kits ya resueltos y devuelve un informe.
 --
--- Un "kit" declara que un set concreto debe ocupar unos slots conceptuales:
---   { name = "Ansuul 5 body", setId = 693, setName = "Ansuul's Torment",
---     slots = { "head", "chest", "shoulders", "waist", "hands" }, maxEquipped = 5 }
+-- Un kit declara piezas concretas por slot:
+--   {
+--     name = "Arca Nula 5 ropa",
+--     pieces = {
+--       chest = { itemId = "...", setId = 693, setName = "...", maxEquipped = 5 },
+--       ...
+--     },
+--   }
 --
--- Un "loadout" es un conjunto de kits que en conjunto deberian cubrir la build.
+-- Regla fundamental del juego: solo cuentan 12 piezas a la vez. La armadura (7)
+-- y la joyeria (3) cuentan siempre; las armas solo en su barra. Por eso el
+-- analisis se hace POR BARRA (frontal y trasera), no sobre un unico conjunto.
 
 EZOArmory = EZOArmory or {}
 EZOArmory.Coherence = EZOArmory.Coherence or {}
 
 local Coherence = EZOArmory.Coherence
 
--- Universo canonico de slots de una build completa (14 items). El orden es
--- estable. Se deriva de Gear.SLOT_DEFS si esta disponible; si no, cae a esta
--- lista interna equivalente para que el modulo sea autonomo.
-local FALLBACK_SLOT_KEYS = {
-    "head", "chest", "shoulders", "waist", "hands", "legs", "feet",
-    "neck", "ring1", "ring2",
-    "main", "off", "backupMain", "backupOff",
-}
-
-local function GetCanonicalSlotKeys()
-    if EZOArmory.Gear and EZOArmory.Gear.SLOT_DEFS then
-        local keys = {}
-        for _, def in ipairs(EZOArmory.Gear.SLOT_DEFS) do
-            keys[#keys + 1] = def.key
-        end
-        if #keys > 0 then
-            return keys
-        end
-    end
-    return FALLBACK_SLOT_KEYS
-end
-
-local function BuildSlotLookup(slotKeys)
-    local lookup = {}
-    for _, key in ipairs(slotKeys) do
-        lookup[key] = true
-    end
-    return lookup
-end
-
--- Severidades de las incoherencias.
 Coherence.SEVERITY = {
-    ERROR = "error",     -- rompe la build (conflicto, imposible)
-    WARNING = "warning", -- probablemente no deseado (slot sin asignar)
+    ERROR = "error",     -- rompe la build
+    WARNING = "warning", -- probablemente no deseado
 }
+
+Coherence.PIECES_PER_BAR = 12
+
+-- Un set con maximo de 1 pieza es un mitico; solo se puede llevar uno.
+local MYTHIC_MAX_EQUIPPED = 1
+
+local FALLBACK_BARS = { "front", "back" }
+
+local function GetBars()
+    if EZOArmory.Gear and EZOArmory.Gear.BARS then
+        return EZOArmory.Gear.BARS
+    end
+    return FALLBACK_BARS
+end
+
+local function GetBarSlotKeys(bar)
+    if EZOArmory.Gear and EZOArmory.Gear.GetBarSlotKeys then
+        return EZOArmory.Gear.GetBarSlotKeys(bar)
+    end
+    return {}
+end
+
+local function GetSlotDef(slotKey)
+    if EZOArmory.Gear and EZOArmory.Gear.GetSlotDef then
+        return EZOArmory.Gear.GetSlotDef(slotKey)
+    end
+    return nil
+end
 
 local function AddIssue(issues, issue)
     issues[#issues + 1] = issue
 end
 
--- Analiza un loadout declarativo.
---
--- loadout: { kits = { kit, ... } }  (kits ya resueltos, no ids)
--- options (opcional): {
---     expectedSlots = { slotKey, ... },  -- universo a exigir (default: los 14)
---     defaultMax = 5,                    -- tope de piezas si el kit no trae maxEquipped
--- }
---
--- Devuelve:
---   {
---     ok = boolean,                 -- true si no hay issues de severidad ERROR
---     issues = { {type, severity, ...}, ... },
---     slotAssignment = { [slotKey] = { kitName, setId, setName } },  -- primer kit que reclama el slot
---     unassigned = { slotKey, ... },
---   }
-function Coherence.Analyze(loadout, options)
-    options = options or {}
-    local defaultMax = tonumber(options.defaultMax) or 5
-    local expectedSlots = options.expectedSlots or GetCanonicalSlotKeys()
-    local validSlot = BuildSlotLookup(GetCanonicalSlotKeys())
-
-    local issues = {}
-    local slotAssignment = {}
-    local kits = (loadout and loadout.kits) or {}
+-- Reparte las piezas de todos los kits en un mapa slot -> pieza, detectando
+-- conflictos (dos kits reclamando el mismo slot) e items repetidos.
+local function BuildAssignment(kits, issues)
+    local assignment = {}
+    local itemOwners = {}
 
     for _, kit in ipairs(kits) do
         local kitName = tostring(kit.name or "?")
-        local slots = kit.slots or {}
-        local slotCount = #slots
+        local pieces = kit.pieces or {}
+        local pieceCount = 0
 
-        -- Kit vacio: no asigna ningun slot.
-        if slotCount == 0 then
-            AddIssue(issues, {
-                type = "emptyKit",
-                severity = Coherence.SEVERITY.WARNING,
-                kitName = kitName,
-                setId = kit.setId,
-                setName = kit.setName,
-            })
-        end
+        for slotKey, piece in pairs(pieces) do
+            pieceCount = pieceCount + 1
 
-        -- Set sobreasignado: mas slots que su maximo de piezas.
-        local kitMax = tonumber(kit.maxEquipped)
-        local effectiveMax = kitMax and kitMax > 0 and kitMax or defaultMax
-        if slotCount > effectiveMax then
-            AddIssue(issues, {
-                type = "setOverfill",
-                severity = Coherence.SEVERITY.ERROR,
-                kitName = kitName,
-                setId = kit.setId,
-                setName = kit.setName,
-                assigned = slotCount,
-                maxEquipped = effectiveMax,
-            })
-        end
-
-        -- Recorre los slots del kit: valida y detecta conflictos.
-        for _, slotKey in ipairs(slots) do
-            if not validSlot[slotKey] then
+            if GetSlotDef(slotKey) == nil then
                 AddIssue(issues, {
                     type = "unknownSlot",
                     severity = Coherence.SEVERITY.ERROR,
@@ -122,42 +80,197 @@ function Coherence.Analyze(loadout, options)
                     slot = slotKey,
                 })
             else
-                local existing = slotAssignment[slotKey]
+                local existing = assignment[slotKey]
                 if existing then
                     AddIssue(issues, {
                         type = "slotConflict",
                         severity = Coherence.SEVERITY.ERROR,
                         slot = slotKey,
                         kitName = kitName,
-                        setName = kit.setName,
+                        setName = piece.setName,
                         otherKitName = existing.kitName,
                         otherSetName = existing.setName,
                     })
                 else
-                    slotAssignment[slotKey] = {
+                    assignment[slotKey] = {
                         kitName = kitName,
-                        setId = kit.setId,
-                        setName = kit.setName,
+                        itemId = piece.itemId,
+                        itemName = piece.itemName,
+                        setId = tonumber(piece.setId) or 0,
+                        setName = piece.setName or "",
+                        maxEquipped = tonumber(piece.maxEquipped) or 0,
+                        twoHand = piece.twoHand == true,
                     }
+                end
+
+                -- El mismo item fisico no puede ocupar dos slots a la vez.
+                local itemId = piece.itemId
+                if itemId then
+                    local owner = itemOwners[itemId]
+                    if owner then
+                        AddIssue(issues, {
+                            type = "duplicateItem",
+                            severity = Coherence.SEVERITY.ERROR,
+                            itemId = itemId,
+                            itemName = piece.itemName,
+                            slot = slotKey,
+                            otherSlot = owner,
+                        })
+                    else
+                        itemOwners[itemId] = slotKey
+                    end
                 end
             end
         end
+
+        if pieceCount == 0 then
+            AddIssue(issues, {
+                type = "emptyKit",
+                severity = Coherence.SEVERITY.WARNING,
+                kitName = kitName,
+            })
+        end
     end
 
-    -- Slots sin asignar dentro del universo esperado.
+    return assignment
+end
+
+-- Analiza una barra: cuenta piezas por set, detecta huecos y sobreasignacion.
+local function AnalyzeBar(bar, assignment, issues)
+    local slotKeys = GetBarSlotKeys(bar)
+    local sets = {}
     local unassigned = {}
-    for _, slotKey in ipairs(expectedSlots) do
-        if not slotAssignment[slotKey] then
+    local totalPieces = 0
+    local skip = {}
+
+    -- Primera pasada: un arma a dos manos ocupa su slot y anula el secundario.
+    for _, slotKey in ipairs(slotKeys) do
+        local entry = assignment[slotKey]
+        local def = GetSlotDef(slotKey)
+        if entry and entry.twoHand and def and def.pairSlot then
+            skip[def.pairSlot] = true
+        end
+    end
+
+    for _, slotKey in ipairs(slotKeys) do
+        local entry = assignment[slotKey]
+
+        if entry then
+            -- Un arma a dos manos cuenta como dos piezas del set.
+            local weight = entry.twoHand and 2 or 1
+            totalPieces = totalPieces + weight
+
+            if entry.setId ~= 0 then
+                local bucket = sets[entry.setId]
+                if not bucket then
+                    bucket = {
+                        setId = entry.setId,
+                        setName = entry.setName,
+                        maxEquipped = entry.maxEquipped,
+                        count = 0,
+                        slots = {},
+                    }
+                    sets[entry.setId] = bucket
+                end
+                bucket.count = bucket.count + weight
+                bucket.slots[#bucket.slots + 1] = slotKey
+            end
+        elseif not skip[slotKey] then
             unassigned[#unassigned + 1] = slotKey
             AddIssue(issues, {
                 type = "unassignedSlot",
                 severity = Coherence.SEVERITY.WARNING,
+                bar = bar,
                 slot = slotKey,
             })
         end
     end
 
-    -- ok = sin errores (los warnings no invalidan la build).
+    -- Un set no puede aportar mas piezas de las que admite.
+    for _, bucket in pairs(sets) do
+        if bucket.maxEquipped > 0 and bucket.count > bucket.maxEquipped then
+            AddIssue(issues, {
+                type = "setOverfill",
+                severity = Coherence.SEVERITY.ERROR,
+                bar = bar,
+                setId = bucket.setId,
+                setName = bucket.setName,
+                count = bucket.count,
+                maxEquipped = bucket.maxEquipped,
+            })
+        end
+        bucket.complete = bucket.maxEquipped > 0 and bucket.count >= bucket.maxEquipped
+    end
+
+    if totalPieces < Coherence.PIECES_PER_BAR then
+        AddIssue(issues, {
+            type = "barIncomplete",
+            severity = Coherence.SEVERITY.WARNING,
+            bar = bar,
+            pieces = totalPieces,
+            expected = Coherence.PIECES_PER_BAR,
+        })
+    end
+
+    return {
+        bar = bar,
+        sets = sets,
+        unassigned = unassigned,
+        pieces = totalPieces,
+    }
+end
+
+-- Un unico mitico por personaje (los miticos son sets de 1 pieza).
+local function CheckMythics(assignment, issues)
+    local mythics = {}
+    local seen = {}
+    for slotKey, entry in pairs(assignment) do
+        if entry.maxEquipped == MYTHIC_MAX_EQUIPPED and entry.setId ~= 0 and not seen[entry.setId] then
+            seen[entry.setId] = true
+            mythics[#mythics + 1] = { slot = slotKey, setId = entry.setId, setName = entry.setName }
+        end
+    end
+
+    if #mythics > 1 then
+        AddIssue(issues, {
+            type = "multipleMythics",
+            severity = Coherence.SEVERITY.ERROR,
+            mythics = mythics,
+        })
+    end
+
+    return mythics
+end
+
+-- Analiza un conjunto de kits.
+--
+-- loadout: { kits = { kit, ... } }
+--
+-- Devuelve:
+--   {
+--     ok,                     -- sin incidencias de severidad ERROR
+--     issues,                 -- lista de incidencias
+--     assignment,             -- slot -> pieza asignada
+--     bars = { front = {...}, back = {...} },  -- recuento por barra
+--     mythics,
+--   }
+--
+-- Nota de diseno: que un set no llegue a su maximo en una barra NO se considera
+-- incidencia. Es lo normal (un set de joyeria y armas frontales queda a 3 en la
+-- barra trasera de forma intencionada). El recuento por barra se devuelve como
+-- dato para que la interfaz lo muestre y el jugador juzgue.
+function Coherence.Analyze(loadout)
+    local issues = {}
+    local kits = (loadout and loadout.kits) or {}
+
+    local assignment = BuildAssignment(kits, issues)
+    local mythics = CheckMythics(assignment, issues)
+
+    local bars = {}
+    for _, bar in ipairs(GetBars()) do
+        bars[bar] = AnalyzeBar(bar, assignment, issues)
+    end
+
     local ok = true
     for _, issue in ipairs(issues) do
         if issue.severity == Coherence.SEVERITY.ERROR then
@@ -169,33 +282,52 @@ function Coherence.Analyze(loadout, options)
     return {
         ok = ok,
         issues = issues,
-        slotAssignment = slotAssignment,
-        unassigned = unassigned,
+        assignment = assignment,
+        bars = bars,
+        mythics = mythics,
     }
 end
 
--- Contrasta un loadout declarado contra el equipo realmente llevado.
---
--- analysis: resultado de Coherence.Analyze (para el slotAssignment esperado).
--- scan: snapshot de EZOArmory.Gear.ScanWorn().
---
--- Devuelve { matches = bool, mismatches = { {slot, expectedSetId, expectedSetName,
---   actualSetId, actualSetName}, ... } }.
+-- Comprueba que las piezas del analisis estan disponibles para equipar.
+-- locationIndex viene de EZOArmory.Gear.BuildItemLocationIndex().
+function Coherence.CheckAvailability(analysis, locationIndex)
+    local missing = {}
+    if not analysis or not locationIndex then
+        return { available = false, missing = missing }
+    end
+
+    for slotKey, entry in pairs(analysis.assignment or {}) do
+        if entry.itemId and locationIndex[entry.itemId] == nil then
+            missing[#missing + 1] = {
+                slot = slotKey,
+                itemId = entry.itemId,
+                itemName = entry.itemName,
+                setName = entry.setName,
+            }
+        end
+    end
+
+    return { available = #missing == 0, missing = missing }
+end
+
+-- Contrasta el conjunto declarado contra lo que se lleva puesto ahora mismo.
+-- scan viene de EZOArmory.Gear.ScanWorn().
 function Coherence.CompareToEquipped(analysis, scan)
     local mismatches = {}
     if not analysis or not scan or not scan.slots then
         return { matches = false, mismatches = mismatches }
     end
 
-    for slotKey, expected in pairs(analysis.slotAssignment or {}) do
+    for slotKey, expected in pairs(analysis.assignment or {}) do
         local worn = scan.slots[slotKey]
-        local actualSetId = worn and worn.setId or 0
-        if actualSetId ~= (expected.setId or 0) then
+        local wornItemId = worn and worn.itemId or nil
+        if wornItemId ~= expected.itemId then
             mismatches[#mismatches + 1] = {
                 slot = slotKey,
-                expectedSetId = expected.setId or 0,
-                expectedSetName = expected.setName or "",
-                actualSetId = actualSetId,
+                expectedItemId = expected.itemId,
+                expectedItemName = expected.itemName,
+                expectedSetName = expected.setName,
+                actualItemName = worn and worn.itemName or "",
                 actualSetName = worn and worn.setName or "",
             }
         end
