@@ -2,8 +2,16 @@
 
 All notable changes to EZOArmory are documented here.
 
-## Unreleased
+## 0.1.1
 
+- Kit management in the settings panel: pick the active role, name a kit, choose
+  which equipped slots to capture (body five, head and shoulders, full armour,
+  jewelry, jewelry with front weapons, either weapon bar, or everything) and
+  create it from the gear you are wearing. Saved kits can be listed, inspected
+  and deleted.
+- New **Analyse current gear** action reporting which set bonuses are actually
+  active on each weapon bar, so a set left incomplete on the back bar becomes
+  visible.
 - Design settled (see `docs/concept.md`): kits hold concrete items, gear is
   swapped automatically or manually per trial, three role profiles per character
   and a phased UI.

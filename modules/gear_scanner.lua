@@ -63,6 +63,29 @@ function Gear.GetBarSlotKeys(bar)
     return keys
 end
 
+-- Agrupaciones habituales de slots al crear un kit. Reflejan como se componen
+-- las builds en la practica: 5 de ropa, monster en cabeza y hombros, joyeria
+-- con armas frontales, etc. "slots = nil" significa todo lo que se lleve puesto.
+Gear.SLOT_PRESETS = {
+    { key = "body5",         slots = { "chest", "waist", "hands", "legs", "feet" } },
+    { key = "headShoulders", slots = { "head", "shoulders" } },
+    { key = "armor7",        slots = { "head", "shoulders", "chest", "waist", "hands", "legs", "feet" } },
+    { key = "jewelry3",      slots = { "neck", "ring1", "ring2" } },
+    { key = "jewelryFront5", slots = { "neck", "ring1", "ring2", "main", "off" } },
+    { key = "weaponsFront",  slots = { "main", "off" } },
+    { key = "weaponsBack",   slots = { "backupMain", "backupOff" } },
+    { key = "all",           slots = nil },
+}
+
+function Gear.GetPresetSlots(presetKey)
+    for _, preset in ipairs(Gear.SLOT_PRESETS) do
+        if preset.key == presetKey then
+            return preset.slots
+        end
+    end
+    return nil
+end
+
 local function ResolveSlotId(const)
     local value = _G[const]
     if type(value) == "number" then

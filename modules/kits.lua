@@ -280,6 +280,32 @@ function Kits.ResolveKits(kitIds)
     return { kits = resolved }
 end
 
+-- Construye un conjunto analizable a partir del equipo que se lleva puesto.
+-- Sirve para responder "que bonus tengo activos ahora mismo" sin necesidad de
+-- tener kits ni asignaciones creadas.
+function Kits.BuildLoadoutFromWorn()
+    if not (EZOArmory.Gear and EZOArmory.Gear.ScanWorn) then
+        return { kits = {} }
+    end
+
+    local scan = EZOArmory.Gear.ScanWorn()
+    local pieces = {}
+    for slotKey, entry in pairs(scan.slots) do
+        if entry.hasItem then
+            pieces[slotKey] = {
+                itemId = entry.itemId,
+                itemName = entry.itemName,
+                setId = entry.setId,
+                setName = entry.setName,
+                maxEquipped = entry.maxEquipped,
+                twoHand = entry.twoHand,
+            }
+        end
+    end
+
+    return { kits = { { name = "worn", pieces = pieces } } }
+end
+
 -- Atajo: resuelve y analiza los kits asignados a un objetivo.
 function Kits.AnalyzeTarget(role, trialTag, targetKey)
     local kitIds = Kits.GetAssignment(role, trialTag, targetKey)
