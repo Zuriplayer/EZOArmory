@@ -16,4 +16,5 @@ modules/core.lua
 modules/debug.lua
 modules/saved_vars.lua
 modules/zones_trials.lua
+modules/context_tracker.lua
 modules/menu.lua

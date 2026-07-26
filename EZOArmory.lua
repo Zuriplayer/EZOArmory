@@ -189,6 +189,10 @@ function EZOA:Initialize()
         self.DebugLog("SavedVariables loaded")
     end
 
+    if EZOArmory.Context and EZOArmory.Context.Init then
+        EZOArmory.Context.Init()
+    end
+
     if EZOArmory_Menu and EZOArmory_Menu.Init then
         EZOArmory_Menu.Init()
     end
