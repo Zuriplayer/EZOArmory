@@ -135,6 +135,25 @@ staging antes del boss o entre packs. Es el modelo de WW y funciona. Si se pide
 equipar durante el combate, se encola y se aplica al salir (LibAsync
 `WaitUntil`).
 
+### 4.3.1 Principio de aplicacion idempotente (obligatorio)
+
+**Nunca aplicar algo que ya esta puesto.** Antes de equipar una pieza, asignar
+una habilidad o slotear una estrella de CP, comprobar si ya coincide con lo
+actual y, si coincide, no tocarla.
+
+- **Equipo**: ya implementado. `equip.lua` salta la pieza si el item del slot es
+  el correcto (contador `already`).
+- **Habilidades**: pendiente (Fase 4). No re-slotear una habilidad que ya esta
+  en su barra y posicion.
+- **Puntos de Campeon**: pendiente (Fase 4) y **critico**. Cada cambio de CP
+  arranca ~30 s de cooldown, asi que re-aplicar un CP ya slotteado es un coste
+  real y visible. Comparar el conjunto activo contra el deseado y aplicar solo
+  la diferencia; si no hay diferencia, no hacer nada.
+
+Motivo general: ademas de evitar el cooldown de CP, reduce el trabajo por frame
+de la cola, evita parpadeos y hace el equipado casi instantaneo cuando ya llevas
+casi toda la build.
+
 ### 4.4 Aplicacion por lotes
 
 Equipar 12 piezas no puede hacerse en un solo frame de forma fiable.
