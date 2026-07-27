@@ -72,6 +72,22 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_MSG_EQUIP_NO_LIBASYNC = "Equipping needs the LibAsync add-on. Install it to enable this.",
     EZOARM_MSG_EQUIP_EMPTY = "The selected kit has nothing to equip.",
 
+    EZOARM_OPTION_ASSIGN = "Assignments",
+    EZOARM_OPTION_ASSIGN_HEADER_TOOLTIP = "Assign kits to each trial and target. Assignments belong to the active role. For every trial you set the kits for Trash and for each boss independently; a target can hold one kit with everything or several kits, and you do not have to fill them all. A boss with nothing set falls back to the trial default.",
+    EZOARM_OPTION_ASSIGN_TRIAL = "Trial",
+    EZOARM_OPTION_ASSIGN_TRIAL_TOOLTIP = "Which trial you are setting up.",
+    EZOARM_OPTION_ASSIGN_TARGET = "Target",
+    EZOARM_OPTION_ASSIGN_TARGET_TOOLTIP = "Where in the trial these kits apply: the trial default (used when a target has nothing of its own), Trash, or a specific boss or miniboss.",
+    EZOARM_TARGET_DEFAULT = "Trial default (fallback)",
+    EZOARM_TARGET_TRASH = "Trash",
+    EZOARM_OPTION_ASSIGN_KITS = "Kits for this target",
+    EZOARM_OPTION_ASSIGN_KITS_TOOLTIP = "Pick the kits that make up the build for this target. Selecting none clears it so it inherits the trial default.",
+
+    EZOARM_OPTION_EQUIP_HERE = "Equip for my current location",
+    EZOARM_OPTION_EQUIP_HERE_TOOLTIP = "Equip the kits assigned to where you are right now: the active role's build for the current boss, or the trash build, of the trial you are in. Waits until out of combat.",
+    EZOARM_MSG_EQUIP_NO_TRIAL = "You are not in a trial right now.",
+    EZOARM_MSG_EQUIP_NO_ASSIGNMENT = "No kits assigned for here in <<1>> (and no trial default).",
+
     EZOARM_OPTION_ANALYZE_WORN = "Analyse current gear",
     EZOARM_OPTION_ANALYZE_WORN_TOOLTIP = "Report which set bonuses are actually active on each weapon bar with the gear you are wearing. Only 12 pieces count at a time, so a set spread over jewelry and front weapons will not be complete on the back bar.",
 

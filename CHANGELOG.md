@@ -2,6 +2,19 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.3.0
+
+- Assignments: for the active role, assign kits to each trial and target — the
+  trial default, Trash, and every boss or miniboss independently. A target can
+  hold one kit with everything or several kits, none are mandatory, and a target
+  with nothing of its own inherits the trial default. Kits are picked with a
+  multi-select list.
+- "Equip for my current location" reads where you are (trial and boss from the
+  live context) and equips the assigned build for that spot, or the trash build,
+  waiting until out of combat.
+- The trial catalogue stays self-contained; EZOTools' catalogue is trial-level
+  only (no bosses) and cross-addon reuse is avoided by family policy.
+
 ## 0.2.0
 
 - First equipping support (Phase 2): "Equip selected kit" puts on the pieces of

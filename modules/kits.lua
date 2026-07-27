@@ -366,6 +366,28 @@ function Kits.GetAssignment(role, trialTag, targetKey)
     return nil, nil
 end
 
+-- Devuelve la lista de kitIds guardada EN un objetivo, sin aplicar herencia.
+-- Pensado para editar: refleja lo que hay puesto en ese objetivo concreto (vacio
+-- si hereda del default). Filtra kits que ya no existan.
+function Kits.GetStoredAssignment(role, trialTag, targetKey)
+    local sv = Store()
+    if not sv or not IsValidRole(role) or trialTag == nil or targetKey == nil then
+        return {}
+    end
+    local trial = TrialTable(sv, role, tostring(trialTag), false)
+    local stored = trial and trial[tostring(targetKey)]
+    if type(stored) ~= "table" then
+        return {}
+    end
+    local result = {}
+    for _, kitId in ipairs(stored) do
+        if Kits.GetKit(kitId) then
+            result[#result + 1] = kitId
+        end
+    end
+    return result
+end
+
 -- Modo de equipado por trial: automatico o manual.
 function Kits.SetAutoEquip(role, trialTag, enabled)
     local sv = Store()

@@ -32,6 +32,19 @@ local function Runtime()
     local runtime = EZOArmory.runtime
     runtime.newKitName = runtime.newKitName or ""
     runtime.capturePreset = runtime.capturePreset or "all"
+    -- Asignaciones: trial y objetivo seleccionados en el panel. Por defecto, la
+    -- trial en la que estas ahora (si aplica), o la primera del catalogo.
+    if runtime.selectedTrialTag == nil then
+        local contextTrial = EZOArmory.Context
+            and EZOArmory.Context.GetTrial
+            and EZOArmory.Context.GetTrial()
+        if contextTrial then
+            runtime.selectedTrialTag = contextTrial.tag
+        elseif EZOArmory.Zones and EZOArmory.Zones.TRIALS[1] then
+            runtime.selectedTrialTag = EZOArmory.Zones.TRIALS[1].tag
+        end
+    end
+    runtime.selectedTargetKey = runtime.selectedTargetKey or "default"
     return runtime
 end
 
@@ -98,6 +111,33 @@ local function GetActiveRole()
         return EZOArmory.sv.general.role
     end
     return "dd"
+end
+
+-- ------------------------------------------------------- Asignaciones ------
+
+local ASSIGN_TARGET_DEFAULT = "default"
+
+local function GetTrialChoices()
+    local labels, values = {}, {}
+    for _, trial in ipairs(EZOArmory.Zones.TRIALS) do
+        labels[#labels + 1] = trial.name
+        values[#values + 1] = trial.tag
+    end
+    return labels, values
+end
+
+-- Objetivos de una trial: default (fallback), trash, y cada boss/miniboss.
+local function GetTargetChoices(trialTag)
+    local labels = { GetString(EZOARM_TARGET_DEFAULT), GetString(EZOARM_TARGET_TRASH) }
+    local values = { ASSIGN_TARGET_DEFAULT, EZOArmory.Kits.TARGET_TRASH }
+    local trial = EZOArmory.Zones.GetTrialByTag(trialTag)
+    if trial then
+        for _, boss in ipairs(trial.bosses) do
+            labels[#labels + 1] = boss.name
+            values[#values + 1] = boss.key
+        end
+    end
+    return labels, values
 end
 
 -- ---------------------------------------------------------- Presets kit ----
@@ -245,13 +285,26 @@ local function RefreshKitChoices()
 
 end
 
--- Empuja la lista actualizada al control visible.
---
--- Sin EZOCore el control conserva su "reference" como nombre global y se puede
--- actualizar en el sitio (limpio, sin reconstruir). Bajo EZOCore los controles
--- se renombran, asi que reference queda nil; en ese caso forzamos un rebuild del
--- panel via el servicio family.settings. El rebuild se aplaza un frame para no
--- destruir el control cuyo callback nos esta ejecutando.
+-- Fuerza un rebuild del panel un frame despues. Bajo EZOCore los controles se
+-- renombran y no se pueden actualizar por "reference"; reconstruir es la via
+-- fiable para reflejar cambios de opciones dinamicas (listas, dropdowns
+-- dependientes). Se aplaza para no destruir el control cuyo callback corre ahora.
+local function ForcePanelRebuild()
+    if not (EZOCore and type(EZOCore.GetService) == "function") then
+        return
+    end
+    local settings = EZOCore:GetService("family.settings", 1)
+    if settings and type(settings.RefreshCurrentPanel) == "function" then
+        zo_callLater(function()
+            pcall(function()
+                settings:RefreshCurrentPanel(true)
+            end)
+        end, 50)
+    end
+end
+
+-- Empuja la lista de kits actualizada al control visible. Sin EZOCore se
+-- actualiza en el sitio por "reference"; bajo EZOCore se fuerza el rebuild.
 local function RefreshKitDropdown()
     RefreshKitChoices()
 
@@ -261,16 +314,7 @@ local function RefreshKitDropdown()
         return
     end
 
-    if EZOCore and type(EZOCore.GetService) == "function" then
-        local settings = EZOCore:GetService("family.settings", 1)
-        if settings and type(settings.RefreshCurrentPanel) == "function" then
-            zo_callLater(function()
-                pcall(function()
-                    settings:RefreshCurrentPanel(true)
-                end)
-            end, 50)
-        end
-    end
+    ForcePanelRebuild()
 end
 
 -- ------------------------------------------------------------- Acciones ----
@@ -324,19 +368,13 @@ local function DeleteSelectedKit()
     Print(zo_strformat(GetString(EZOARM_MSG_KIT_DELETED), name))
 end
 
-local function EquipSelectedKit()
-    local runtime = Runtime()
-    local kit = EZOArmory.Kits.GetKit(runtime.selectedKitId)
-    if not kit then
-        Print(GetString(EZOARM_MSG_KIT_NONE_SELECTED))
-        return
-    end
-
+-- Lanza el equipado de una lista de kitIds y reporta el resultado en chat.
+local function EquipKitIds(kitIds)
     EZOArmory.Equip.onQueued = function()
         Print(GetString(EZOARM_MSG_EQUIP_QUEUED))
     end
 
-    EZOArmory.Equip.ApplyKits({ runtime.selectedKitId }, function(state)
+    EZOArmory.Equip.ApplyKits(kitIds, function(state)
         if state.error == "noLibAsync" then
             Print(GetString(EZOARM_MSG_EQUIP_NO_LIBASYNC))
             return
@@ -353,6 +391,39 @@ local function EquipSelectedKit()
                 GetString(EZOARM_MSG_EQUIP_MISSING), table.concat(state.missingNames, ", ")))
         end
     end)
+end
+
+local function EquipSelectedKit()
+    local runtime = Runtime()
+    if not EZOArmory.Kits.GetKit(runtime.selectedKitId) then
+        Print(GetString(EZOARM_MSG_KIT_NONE_SELECTED))
+        return
+    end
+    EquipKitIds({ runtime.selectedKitId })
+end
+
+-- Equipa la asignacion aplicable a donde estas ahora mismo, segun el contexto.
+local function EquipForCurrentLocation()
+    local role = GetActiveRole()
+    local context = EZOArmory.Context and EZOArmory.Context.GetState and EZOArmory.Context.GetState()
+    local trial = context and context.trial
+
+    if not trial then
+        Print(GetString(EZOARM_MSG_EQUIP_NO_TRIAL))
+        return
+    end
+
+    -- Boss conocido -> su objetivo; si no, "trash" (que hereda del default de la
+    -- trial si no tiene asignacion propia).
+    local targetKey = context.matchedBoss and context.matchedBoss.key or EZOArmory.Kits.TARGET_TRASH
+    local kitIds = EZOArmory.Kits.GetAssignment(role, trial.tag, targetKey)
+
+    if not kitIds or #kitIds == 0 then
+        Print(zo_strformat(GetString(EZOARM_MSG_EQUIP_NO_ASSIGNMENT), trial.name))
+        return
+    end
+
+    EquipKitIds(kitIds)
 end
 
 local function ShowSelectedKit()
@@ -432,6 +503,8 @@ end
 local function BuildOptions()
     local roleLabels, roleValues = GetRoleChoices()
     local presetLabels, presetValues = GetCaptureChoices()
+    local trialLabels, trialValues = GetTrialChoices()
+    local targetLabels, targetValues = GetTargetChoices(Runtime().selectedTrialTag)
     RefreshKitChoices()
 
     -- Secciones planas (header + controles). No se usan submenus colapsables:
@@ -489,6 +562,8 @@ local function BuildOptions()
                 if EZOArmory.sv and EZOArmory.sv.general then
                     EZOArmory.sv.general.role = value
                 end
+                -- Las asignaciones son por rol: reconstruye para reflejarlas.
+                ForcePanelRebuild()
             end,
             default = "dd",
         },
@@ -578,6 +653,71 @@ local function BuildOptions()
             name = GetString(EZOARM_OPTION_ANALYZE_WORN),
             tooltip = GetString(EZOARM_OPTION_ANALYZE_WORN_TOOLTIP),
             func = AnalyzeWornGear,
+            width = "full",
+        },
+        CreateInfoHeader(
+            GetString(EZOARM_OPTION_ASSIGN),
+            GetString(EZOARM_OPTION_ASSIGN_HEADER_TOOLTIP)
+        ),
+        {
+            type = "dropdown",
+            name = GetString(EZOARM_OPTION_ASSIGN_TRIAL),
+            tooltip = GetString(EZOARM_OPTION_ASSIGN_TRIAL_TOOLTIP),
+            choices = trialLabels,
+            choicesValues = trialValues,
+            getFunc = function()
+                return Runtime().selectedTrialTag
+            end,
+            setFunc = function(value)
+                local runtime = Runtime()
+                runtime.selectedTrialTag = value
+                runtime.selectedTargetKey = ASSIGN_TARGET_DEFAULT
+                ForcePanelRebuild()
+            end,
+        },
+        {
+            type = "dropdown",
+            name = GetString(EZOARM_OPTION_ASSIGN_TARGET),
+            tooltip = GetString(EZOARM_OPTION_ASSIGN_TARGET_TOOLTIP),
+            choices = targetLabels,
+            choicesValues = targetValues,
+            getFunc = function()
+                return Runtime().selectedTargetKey
+            end,
+            setFunc = function(value)
+                Runtime().selectedTargetKey = value
+                ForcePanelRebuild()
+            end,
+        },
+        {
+            type = "dropdown",
+            name = GetString(EZOARM_OPTION_ASSIGN_KITS),
+            tooltip = GetString(EZOARM_OPTION_ASSIGN_KITS_TOOLTIP),
+            choices = kitChoices,
+            choicesValues = kitChoiceValues,
+            multiSelect = true,
+            getFunc = function()
+                local runtime = Runtime()
+                return EZOArmory.Kits.GetStoredAssignment(
+                    GetActiveRole(), runtime.selectedTrialTag, runtime.selectedTargetKey)
+            end,
+            setFunc = function(values)
+                local runtime = Runtime()
+                if type(values) ~= "table" or #values == 0 then
+                    -- Sin seleccion: quita el override, vuelve a heredar el default.
+                    EZOArmory.Kits.SetAssignment(
+                        GetActiveRole(), runtime.selectedTrialTag, runtime.selectedTargetKey, nil)
+                else
+                    EZOArmory.Kits.SetAssignment(
+                        GetActiveRole(), runtime.selectedTrialTag, runtime.selectedTargetKey, values)
+                end
+            end,
+        },
+        {
+            type = "button",
+            name = GetString(EZOARM_OPTION_EQUIP_HERE),
+            tooltip = GetString(EZOARM_OPTION_EQUIP_HERE_TOOLTIP),
+            func = EquipForCurrentLocation,
             width = "full",
         },
     }

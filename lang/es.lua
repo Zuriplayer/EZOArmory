@@ -72,6 +72,22 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_MSG_EQUIP_NO_LIBASYNC = "El equipado necesita el addon LibAsync. Instalalo para activarlo.",
     EZOARM_MSG_EQUIP_EMPTY = "El kit seleccionado no tiene nada que equipar.",
 
+    EZOARM_OPTION_ASSIGN = "Asignaciones",
+    EZOARM_OPTION_ASSIGN_HEADER_TOOLTIP = "Asigna kits a cada trial y objetivo. Las asignaciones pertenecen al rol activo. Para cada trial defines los kits del Trash y de cada boss de forma independiente; un objetivo puede llevar un solo kit con todo o varios kits, y no hay que rellenarlos todos. Un boss sin nada asignado usa el default de la trial.",
+    EZOARM_OPTION_ASSIGN_TRIAL = "Trial",
+    EZOARM_OPTION_ASSIGN_TRIAL_TOOLTIP = "Que trial estas configurando.",
+    EZOARM_OPTION_ASSIGN_TARGET = "Objetivo",
+    EZOARM_OPTION_ASSIGN_TARGET_TOOLTIP = "Donde de la trial aplican estos kits: el default de la trial (se usa cuando un objetivo no tiene nada propio), el Trash, o un boss o miniboss concreto.",
+    EZOARM_TARGET_DEFAULT = "Default de la trial (respaldo)",
+    EZOARM_TARGET_TRASH = "Trash",
+    EZOARM_OPTION_ASSIGN_KITS = "Kits para este objetivo",
+    EZOARM_OPTION_ASSIGN_KITS_TOOLTIP = "Elige los kits que forman la build de este objetivo. No elegir ninguno lo vacia para que herede el default de la trial.",
+
+    EZOARM_OPTION_EQUIP_HERE = "Equipar para mi ubicacion actual",
+    EZOARM_OPTION_EQUIP_HERE_TOOLTIP = "Equipa los kits asignados a donde estas ahora: la build del rol activo para el boss actual, o la build de trash, de la trial en la que estas. Espera a estar fuera de combate.",
+    EZOARM_MSG_EQUIP_NO_TRIAL = "Ahora mismo no estas en una trial.",
+    EZOARM_MSG_EQUIP_NO_ASSIGNMENT = "No hay kits asignados para aqui en <<1>> (ni default de la trial).",
+
     EZOARM_OPTION_ANALYZE_WORN = "Analizar el equipo actual",
     EZOARM_OPTION_ANALYZE_WORN_TOOLTIP = "Indica que bonus de set tienes realmente activos en cada barra de armas con el equipo que llevas. Solo cuentan 12 piezas a la vez, asi que un set repartido entre joyeria y armas frontales no estara completo en la barra trasera.",
 
