@@ -2,6 +2,13 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.1.8
+
+- Fix: the slot icons did not render. Inline texture markup needs the path
+  without a leading slash, the same form the header help icon already used.
+- Icons now lead the label instead of trailing it, so they survive the text
+  truncation LibAddonMenu applies to long entries.
+
 ## 0.1.7
 
 - Kits and capture options now show the native ESO icons of the slots they

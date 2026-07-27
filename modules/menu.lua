@@ -135,13 +135,17 @@ end
 
 -- Tira de iconos con los slots ocupados, en orden canonico. Es la pista visual
 -- que distingue de un vistazo un kit de cuerpo de uno de joyeria y armas.
+--
+-- Mismo marcado que el icono de ayuda del encabezado (ruta sin barra inicial y
+-- inheritcolor), que es el formato verificado como funcional en este panel.
 local function SlotIcons(slots)
     local ordered = EZOArmory.Gear.SortSlots(slots)
     local parts = {}
     for _, slotKey in ipairs(ordered) do
         local texture = EZOArmory.Gear.GetSlotTexture(slotKey)
         if texture then
-            parts[#parts + 1] = string.format("|t%d:%d:%s|t", ICON_SIZE, ICON_SIZE, texture)
+            parts[#parts + 1] = string.format(
+                "|t%d:%d:%s:inheritcolor|t", ICON_SIZE, ICON_SIZE, texture)
         end
     end
     return table.concat(parts, "")
@@ -183,9 +187,11 @@ local function GetCaptureChoices()
             label = string.format("%s - %s", tostring(entry.name), SlotLabel(entry.slotKey))
         end
 
+        -- Los iconos van delante: LAM recorta el texto largo con puntos
+        -- suspensivos, y al final se perderian justo en los nombres largos.
         local icons = SlotIcons(entry.slots)
         if icons ~= "" then
-            label = label .. "  " .. icons
+            label = icons .. " " .. label
         end
 
         labels[#labels + 1] = label
@@ -207,7 +213,7 @@ local function RefreshKitChoices()
             "%s (%d)", tostring(kit.name), EZOArmory.Kits.CountPieces(kit))
         local icons = SlotIcons(EZOArmory.Kits.GetKitSlots(kit))
         if icons ~= "" then
-            label = label .. "  " .. icons
+            label = icons .. " " .. label
         end
         kitChoices[#kitChoices + 1] = label
         kitChoiceValues[#kitChoiceValues + 1] = kit.id

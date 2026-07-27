@@ -54,21 +54,25 @@ end
 
 -- Iconos nativos de ESO para cada slot. Se usan como pista visual compacta de
 -- donde va cada pieza de un kit.
+--
+-- La ruta va SIN barra inicial: es el formato que acepta el marcado en linea
+-- |tancho:alto:ruta|t de las etiquetas, el mismo que usa el icono de ayuda del
+-- encabezado. Con barra inicial el icono no se dibuja.
 Gear.SLOT_TEXTURES = {
-    head       = "/esoui/art/characterwindow/gearslot_head.dds",
-    shoulders  = "/esoui/art/characterwindow/gearslot_shoulders.dds",
-    chest      = "/esoui/art/characterwindow/gearslot_chest.dds",
-    waist      = "/esoui/art/characterwindow/gearslot_belt.dds",
-    hands      = "/esoui/art/characterwindow/gearslot_hands.dds",
-    legs       = "/esoui/art/characterwindow/gearslot_legs.dds",
-    feet       = "/esoui/art/characterwindow/gearslot_feet.dds",
-    neck       = "/esoui/art/characterwindow/gearslot_neck.dds",
-    ring1      = "/esoui/art/characterwindow/gearslot_ring.dds",
-    ring2      = "/esoui/art/characterwindow/gearslot_ring.dds",
-    main       = "/esoui/art/characterwindow/gearslot_mainhand.dds",
-    off        = "/esoui/art/characterwindow/gearslot_offhand.dds",
-    backupMain = "/esoui/art/characterwindow/gearslot_mainhand.dds",
-    backupOff  = "/esoui/art/characterwindow/gearslot_offhand.dds",
+    head       = "EsoUI/Art/CharacterWindow/gearSlot_head.dds",
+    shoulders  = "EsoUI/Art/CharacterWindow/gearSlot_shoulders.dds",
+    chest      = "EsoUI/Art/CharacterWindow/gearSlot_chest.dds",
+    waist      = "EsoUI/Art/CharacterWindow/gearSlot_belt.dds",
+    hands      = "EsoUI/Art/CharacterWindow/gearSlot_hands.dds",
+    legs       = "EsoUI/Art/CharacterWindow/gearSlot_legs.dds",
+    feet       = "EsoUI/Art/CharacterWindow/gearSlot_feet.dds",
+    neck       = "EsoUI/Art/CharacterWindow/gearSlot_neck.dds",
+    ring1      = "EsoUI/Art/CharacterWindow/gearSlot_ring.dds",
+    ring2      = "EsoUI/Art/CharacterWindow/gearSlot_ring.dds",
+    main       = "EsoUI/Art/CharacterWindow/gearSlot_mainHand.dds",
+    off        = "EsoUI/Art/CharacterWindow/gearSlot_offHand.dds",
+    backupMain = "EsoUI/Art/CharacterWindow/gearSlot_mainHand.dds",
+    backupOff  = "EsoUI/Art/CharacterWindow/gearSlot_offHand.dds",
 }
 
 function Gear.GetSlotTexture(slotKey)
