@@ -63,29 +63,6 @@ function Gear.GetBarSlotKeys(bar)
     return keys
 end
 
--- Agrupaciones habituales de slots al crear un kit. Reflejan como se componen
--- las builds en la practica: 5 de ropa, monster en cabeza y hombros, joyeria
--- con armas frontales, etc. "slots = nil" significa todo lo que se lleve puesto.
-Gear.SLOT_PRESETS = {
-    { key = "body5",         slots = { "chest", "waist", "hands", "legs", "feet" } },
-    { key = "headShoulders", slots = { "head", "shoulders" } },
-    { key = "armor7",        slots = { "head", "shoulders", "chest", "waist", "hands", "legs", "feet" } },
-    { key = "jewelry3",      slots = { "neck", "ring1", "ring2" } },
-    { key = "jewelryFront5", slots = { "neck", "ring1", "ring2", "main", "off" } },
-    { key = "weaponsFront",  slots = { "main", "off" } },
-    { key = "weaponsBack",   slots = { "backupMain", "backupOff" } },
-    { key = "all",           slots = nil },
-}
-
-function Gear.GetPresetSlots(presetKey)
-    for _, preset in ipairs(Gear.SLOT_PRESETS) do
-        if preset.key == presetKey then
-            return preset.slots
-        end
-    end
-    return nil
-end
-
 local function ResolveSlotId(const)
     local value = _G[const]
     if type(value) == "number" then
@@ -251,4 +228,102 @@ end
 
 function Gear.IsSlotFilled(scan, slotKey)
     return scan and scan.slots and scan.slots[slotKey] and scan.slots[slotKey].hasItem == true
+end
+
+-- Construye las entradas del selector de captura a partir del equipo puesto.
+-- Devuelve una lista ordenada de entradas estructuradas (la interfaz compone la
+-- etiqueta localizada):
+--   { kind = "all",  value = "all",            count = <piezas> }
+--   { kind = "set",  value = "set:<setId>",    setId, name, count }
+--   { kind = "slot", value = "slot:<slotKey>", slotKey, name }
+--
+-- Los sets se listan con su numero de piezas equipadas; cada pieza individual
+-- se lista aparte por su nombre para poder capturar un slot suelto.
+function Gear.GetCaptureEntries(scan)
+    scan = scan or Gear.ScanWorn()
+    local entries = {}
+
+    local wornCount = 0
+    local setOrder = {}
+    local sets = {}
+    local pieces = {}
+
+    for _, slotKey in ipairs(scan.order) do
+        local entry = scan.slots[slotKey]
+        if entry and entry.hasItem then
+            wornCount = wornCount + 1
+
+            if entry.setId ~= 0 then
+                local bucket = sets[entry.setId]
+                if not bucket then
+                    bucket = { setId = entry.setId, name = entry.setName, count = 0 }
+                    sets[entry.setId] = bucket
+                    setOrder[#setOrder + 1] = bucket
+                end
+                bucket.count = bucket.count + 1
+            end
+
+            pieces[#pieces + 1] = {
+                kind = "slot",
+                value = "slot:" .. slotKey,
+                slotKey = slotKey,
+                name = entry.itemName ~= "" and entry.itemName or slotKey,
+            }
+        end
+    end
+
+    -- "Todo" primero.
+    entries[#entries + 1] = { kind = "all", value = "all", count = wornCount }
+
+    -- Sets, ordenados por nombre.
+    table.sort(setOrder, function(a, b) return tostring(a.name) < tostring(b.name) end)
+    for _, bucket in ipairs(setOrder) do
+        entries[#entries + 1] = {
+            kind = "set",
+            value = "set:" .. tostring(bucket.setId),
+            setId = bucket.setId,
+            name = bucket.name,
+            count = bucket.count,
+        }
+    end
+
+    -- Piezas individuales, en el orden de los slots (ya vienen asi de pieces).
+    for _, piece in ipairs(pieces) do
+        entries[#entries + 1] = piece
+    end
+
+    return entries
+end
+
+-- Resuelve el valor elegido en el selector a la lista de slots a capturar,
+-- contra el equipo puesto en ese momento.
+function Gear.ResolveCaptureSlots(value, scan)
+    scan = scan or Gear.ScanWorn()
+    local slots = {}
+
+    if value == nil or value == "all" then
+        for _, slotKey in ipairs(scan.order) do
+            if scan.slots[slotKey].hasItem then
+                slots[#slots + 1] = slotKey
+            end
+        end
+        return slots
+    end
+
+    local kind, rest = string.match(tostring(value), "^(%a+):(.+)$")
+    if kind == "slot" then
+        if scan.slots[rest] and scan.slots[rest].hasItem then
+            slots[#slots + 1] = rest
+        end
+    elseif kind == "set" then
+        local setId = tonumber(rest) or 0
+        for _, slotKey in ipairs(scan.order) do
+            local entry = scan.slots[slotKey]
+            if entry.hasItem and entry.setId == setId then
+                slots[#slots + 1] = slotKey
+            end
+        end
+    end
+
+    return slots
 end

@@ -27,14 +27,7 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_OPTION_KIT_NAME_TOOLTIP = "Nombre del kit que vas a capturar, por ejemplo \"Arca Nula 5 ropa\".",
 
     EZOARM_OPTION_KIT_PRESET = "Piezas a capturar",
-    EZOARM_OPTION_KIT_PRESET_TOOLTIP = "Cuales de los slots que llevas puestos se guardan en el nuevo kit.",
-    EZOARM_PRESET_BODY5 = "Ropa (5): pecho, cintura, manos, piernas, pies",
-    EZOARM_PRESET_HEAD_SHOULDERS = "Cabeza y hombros (2)",
-    EZOARM_PRESET_ARMOR7 = "Armadura completa (7)",
-    EZOARM_PRESET_JEWELRY3 = "Joyeria (3)",
-    EZOARM_PRESET_JEWELRY_FRONT5 = "Joyeria y armas frontales (5)",
-    EZOARM_PRESET_WEAPONS_FRONT = "Armas de la barra frontal",
-    EZOARM_PRESET_WEAPONS_BACK = "Armas de la barra trasera",
+    EZOARM_OPTION_KIT_PRESET_TOOLTIP = "Se construye con el equipo que llevas puesto: todo, un set entero con su numero de piezas, o una pieza suelta por su nombre. La lista se actualiza al reabrir el panel o tras capturar un kit.",
     EZOARM_PRESET_ALL = "Todo el equipo puesto",
 
     EZOARM_OPTION_KIT_CAPTURE = "Capturar del equipo puesto",

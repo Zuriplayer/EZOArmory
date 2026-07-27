@@ -2,6 +2,13 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.1.5
+
+- The "Pieces to capture" selector is now built from the gear you are wearing:
+  "everything equipped", each worn set with its piece count and name (for example
+  "Perfected Slivers of the Null Arca (5)"), and every individual piece by name so
+  you can capture a single loose piece. Replaces the previous fixed slot presets.
+
 ## 0.1.4
 
 - Fix: the saved-kit dropdown now updates as soon as a kit is created or deleted.

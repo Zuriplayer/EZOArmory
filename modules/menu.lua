@@ -31,7 +31,7 @@ local function Runtime()
     EZOArmory.runtime = EZOArmory.runtime or {}
     local runtime = EZOArmory.runtime
     runtime.newKitName = runtime.newKitName or ""
-    runtime.capturePreset = runtime.capturePreset or "body5"
+    runtime.capturePreset = runtime.capturePreset or "all"
     return runtime
 end
 
@@ -102,30 +102,21 @@ end
 
 -- ---------------------------------------------------------- Presets kit ----
 
-local PRESET_STRING = {
-    body5 = "EZOARM_PRESET_BODY5",
-    headShoulders = "EZOARM_PRESET_HEAD_SHOULDERS",
-    armor7 = "EZOARM_PRESET_ARMOR7",
-    jewelry3 = "EZOARM_PRESET_JEWELRY3",
-    jewelryFront5 = "EZOARM_PRESET_JEWELRY_FRONT5",
-    weaponsFront = "EZOARM_PRESET_WEAPONS_FRONT",
-    weaponsBack = "EZOARM_PRESET_WEAPONS_BACK",
-    all = "EZOARM_PRESET_ALL",
-}
-
-local function PresetLabel(presetKey)
-    local stringId = _G[PRESET_STRING[presetKey] or ""]
-    if stringId then
-        return GetString(stringId)
-    end
-    return tostring(presetKey)
-end
-
-local function GetPresetChoices()
+-- Construye las opciones del selector de captura leyendo el equipo puesto:
+-- "todo", cada set con su recuento y cada pieza suelta por su nombre.
+local function GetCaptureChoices()
     local labels, values = {}, {}
-    for _, preset in ipairs(EZOArmory.Gear.SLOT_PRESETS) do
-        labels[#labels + 1] = PresetLabel(preset.key)
-        values[#values + 1] = preset.key
+    for _, entry in ipairs(EZOArmory.Gear.GetCaptureEntries()) do
+        local label
+        if entry.kind == "all" then
+            label = string.format("%s (%d)", GetString(EZOARM_PRESET_ALL), entry.count or 0)
+        elseif entry.kind == "set" then
+            label = string.format("%s (%d)", tostring(entry.name), entry.count or 0)
+        else
+            label = tostring(entry.name)
+        end
+        labels[#labels + 1] = label
+        values[#values + 1] = entry.value
     end
     return labels, values
 end
@@ -197,7 +188,7 @@ local function CaptureKit()
         return
     end
 
-    local slots = EZOArmory.Gear.GetPresetSlots(runtime.capturePreset)
+    local slots = EZOArmory.Gear.ResolveCaptureSlots(runtime.capturePreset)
     local id, kit = EZOArmory.Kits.CreateKitFromWorn(name, slots, nil)
     if not id or not kit then
         Print(GetString(EZOARM_MSG_KIT_NO_PIECES))
@@ -307,7 +298,7 @@ end
 
 local function BuildOptions()
     local roleLabels, roleValues = GetRoleChoices()
-    local presetLabels, presetValues = GetPresetChoices()
+    local presetLabels, presetValues = GetCaptureChoices()
     RefreshKitChoices()
 
     -- Secciones planas (header + controles). No se usan submenus colapsables:
@@ -397,7 +388,7 @@ local function BuildOptions()
             setFunc = function(value)
                 Runtime().capturePreset = value
             end,
-            default = "body5",
+            default = "all",
         },
         {
             type = "button",

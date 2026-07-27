@@ -27,14 +27,7 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_OPTION_KIT_NAME_TOOLTIP = "Name for the kit you are about to capture, for example \"Null Arca 5 body\".",
 
     EZOARM_OPTION_KIT_PRESET = "Pieces to capture",
-    EZOARM_OPTION_KIT_PRESET_TOOLTIP = "Which of the slots you are wearing get stored in the new kit.",
-    EZOARM_PRESET_BODY5 = "Body (5): chest, waist, hands, legs, feet",
-    EZOARM_PRESET_HEAD_SHOULDERS = "Head and shoulders (2)",
-    EZOARM_PRESET_ARMOR7 = "Full armour (7)",
-    EZOARM_PRESET_JEWELRY3 = "Jewelry (3)",
-    EZOARM_PRESET_JEWELRY_FRONT5 = "Jewelry and front weapons (5)",
-    EZOARM_PRESET_WEAPONS_FRONT = "Front bar weapons",
-    EZOARM_PRESET_WEAPONS_BACK = "Back bar weapons",
+    EZOARM_OPTION_KIT_PRESET_TOOLTIP = "Built from the gear you are wearing: everything, a whole set with its piece count, or a single piece by name. The list refreshes when the panel is reopened or after capturing a kit.",
     EZOARM_PRESET_ALL = "Everything equipped",
 
     EZOARM_OPTION_KIT_CAPTURE = "Capture from equipped gear",
