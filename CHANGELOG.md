@@ -2,6 +2,14 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.3.2
+
+- Fix: adding a kit to a target did nothing visible. The panel options were
+  registered as a pre-built table, so build-time content (the "Kits assigned
+  here" summary) was frozen and never refreshed; the assignment was saved but
+  not shown. The options are now registered as a function that EZOCore re-runs on
+  each rebuild, so the summary and the other dynamic content update live.
+
 ## 0.3.1
 
 - Fix: a target can now hold more than one kit. The multi-select list only let

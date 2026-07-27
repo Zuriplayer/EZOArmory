@@ -810,10 +810,12 @@ function EZOArmory_Menu.Init()
         registerForDefaults = true,
     }
 
-    local options = BuildOptions()
-
+    -- A EZOCore se le pasa la FUNCION: la re-ejecuta en cada rebuild, asi el
+    -- contenido calculado en build (descripcion de la asignacion, listas) se
+    -- refresca. LAM directo no desenvuelve funciones, asi que ahi se pasa la
+    -- tabla ya construida (su panel no se reconstruye en vivo de todos modos).
     if EZOCore and type(EZOCore.RegisterSettingsPanel) == "function" then
-        local registered = EZOCore:RegisterSettingsPanel(ADDON_NAME, PANEL_ID, panelData, options)
+        local registered = EZOCore:RegisterSettingsPanel(ADDON_NAME, PANEL_ID, panelData, BuildOptions)
         if registered then
             EZOArmory.ezoSettingsRegistered = true
             return
@@ -821,5 +823,5 @@ function EZOArmory_Menu.Init()
     end
 
     EZOArmory._lamPanel = LibAddonMenu2:RegisterAddonPanel(PANEL_ID, panelData)
-    LibAddonMenu2:RegisterOptionControls(PANEL_ID, options)
+    LibAddonMenu2:RegisterOptionControls(PANEL_ID, BuildOptions())
 end
