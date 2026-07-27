@@ -2,6 +2,16 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.1.4
+
+- Fix: the saved-kit dropdown now updates as soon as a kit is created or deleted.
+  Under EZOCore the settings controls are renamed, so the previous in-place
+  refresh silently did nothing; it now refreshes in place when running without
+  EZOCore and forces a panel rebuild through the family.settings service when
+  running under it.
+- Settings sections are now flat (headings instead of collapsible submenus) so a
+  panel rebuild no longer closes the section you are working in.
+
 ## 0.1.3
 
 - Fix: the "New kit name" field was still a tiny box. Inside a submenu LibAddonMenu

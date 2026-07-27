@@ -157,9 +157,33 @@ local function RefreshKitChoices()
         runtime.selectedKitId = kitChoiceValues[1]
     end
 
+end
+
+-- Empuja la lista actualizada al control visible.
+--
+-- Sin EZOCore el control conserva su "reference" como nombre global y se puede
+-- actualizar en el sitio (limpio, sin reconstruir). Bajo EZOCore los controles
+-- se renombran, asi que reference queda nil; en ese caso forzamos un rebuild del
+-- panel via el servicio family.settings. El rebuild se aplaza un frame para no
+-- destruir el control cuyo callback nos esta ejecutando.
+local function RefreshKitDropdown()
+    RefreshKitChoices()
+
     local control = _G[KIT_LIST_REFERENCE]
     if control and type(control.UpdateChoices) == "function" then
         control:UpdateChoices(kitChoices, kitChoiceValues)
+        return
+    end
+
+    if EZOCore and type(EZOCore.GetService) == "function" then
+        local settings = EZOCore:GetService("family.settings", 1)
+        if settings and type(settings.RefreshCurrentPanel) == "function" then
+            zo_callLater(function()
+                pcall(function()
+                    settings:RefreshCurrentPanel(true)
+                end)
+            end, 50)
+        end
     end
 end
 
@@ -189,7 +213,7 @@ local function CaptureKit()
 
     runtime.newKitName = ""
     runtime.selectedKitId = id
-    RefreshKitChoices()
+    RefreshKitDropdown()
     Print(zo_strformat(GetString(EZOARM_MSG_KIT_CREATED), name, pieceCount))
 end
 
@@ -203,7 +227,7 @@ local function DeleteSelectedKit()
 
     local name = tostring(kit.name)
     EZOArmory.Kits.DeleteKit(runtime.selectedKitId)
-    RefreshKitChoices()
+    RefreshKitDropdown()
     Print(zo_strformat(GetString(EZOARM_MSG_KIT_DELETED), name))
 end
 
@@ -286,146 +310,137 @@ local function BuildOptions()
     local presetLabels, presetValues = GetPresetChoices()
     RefreshKitChoices()
 
+    -- Secciones planas (header + controles). No se usan submenus colapsables:
+    -- un rebuild del panel bajo EZOCore recrea los controles y colapsaria los
+    -- submenus, cerrando la seccion en la que estas trabajando.
     return {
+        CreateInfoHeader(
+            GetString(EZOARM_OPTION_GENERAL),
+            GetString(EZOARM_OPTION_GENERAL_HEADER_TOOLTIP)
+        ),
         {
-            type = "submenu",
-            name = GetString(EZOARM_OPTION_GENERAL),
-            controls = {
-                CreateInfoHeader(
-                    GetString(EZOARM_OPTION_GENERAL),
-                    GetString(EZOARM_OPTION_GENERAL_HEADER_TOOLTIP)
-                ),
-                {
-                    type = "dropdown",
-                    name = GetString(EZOARM_OPTION_LANGUAGE),
-                    tooltip = GetString(EZOARM_OPTION_LANGUAGE_TOOLTIP),
-                    choices = GetLanguageChoices(),
-                    getFunc = function()
-                        return LanguageValueToLabel(GetConfiguredLanguage())
-                    end,
-                    setFunc = function(label)
-                        local value = LabelToLanguageValue(label)
-                        if EZOArmory.sv and EZOArmory.sv.general then
-                            EZOArmory.sv.general.language = value
-                        end
-                        EZOArmory.ApplyLanguagePreference(value)
-                    end,
-                    disabled = function()
-                        return IsLanguageLocked() == true
-                    end,
-                    default = LanguageValueToLabel("auto"),
-                },
-                {
-                    type = "checkbox",
-                    name = GetString(EZOARM_OPTION_DEBUG_MODE),
-                    tooltip = GetString(EZOARM_OPTION_DEBUG_MODE_TOOLTIP),
-                    getFunc = function()
-                        return EZOArmory.IsDebugModeEnabled()
-                    end,
-                    setFunc = function(value)
-                        EZOArmory.SetDebugModeEnabled(value == true)
-                    end,
-                    default = false,
-                },
-            },
+            type = "dropdown",
+            name = GetString(EZOARM_OPTION_LANGUAGE),
+            tooltip = GetString(EZOARM_OPTION_LANGUAGE_TOOLTIP),
+            choices = GetLanguageChoices(),
+            getFunc = function()
+                return LanguageValueToLabel(GetConfiguredLanguage())
+            end,
+            setFunc = function(label)
+                local value = LabelToLanguageValue(label)
+                if EZOArmory.sv and EZOArmory.sv.general then
+                    EZOArmory.sv.general.language = value
+                end
+                EZOArmory.ApplyLanguagePreference(value)
+            end,
+            disabled = function()
+                return IsLanguageLocked() == true
+            end,
+            default = LanguageValueToLabel("auto"),
         },
         {
-            type = "submenu",
-            name = GetString(EZOARM_OPTION_KITS),
-            controls = {
-                CreateInfoHeader(
-                    GetString(EZOARM_OPTION_KITS),
-                    GetString(EZOARM_OPTION_KITS_HEADER_TOOLTIP)
-                ),
-                {
-                    type = "dropdown",
-                    name = GetString(EZOARM_OPTION_ROLE),
-                    tooltip = GetString(EZOARM_OPTION_ROLE_TOOLTIP),
-                    choices = roleLabels,
-                    choicesValues = roleValues,
-                    getFunc = GetActiveRole,
-                    setFunc = function(value)
-                        if EZOArmory.sv and EZOArmory.sv.general then
-                            EZOArmory.sv.general.role = value
-                        end
-                    end,
-                    default = "dd",
-                },
-                {
-                    type = "editbox",
-                    name = GetString(EZOARM_OPTION_KIT_NAME),
-                    tooltip = GetString(EZOARM_OPTION_KIT_NAME_TOOLTIP),
-                    getFunc = function()
-                        return Runtime().newKitName
-                    end,
-                    setFunc = function(value)
-                        Runtime().newKitName = tostring(value or "")
-                    end,
-                    isMultiline = false,
-                    -- isExtraWide ancla el contenedor a ambos lados y evita el
-                    -- calculo de ancho de LAM que da 0 dentro de un submenu.
-                    isExtraWide = true,
-                    width = "full",
-                    default = "",
-                },
-                {
-                    type = "dropdown",
-                    name = GetString(EZOARM_OPTION_KIT_PRESET),
-                    tooltip = GetString(EZOARM_OPTION_KIT_PRESET_TOOLTIP),
-                    choices = presetLabels,
-                    choicesValues = presetValues,
-                    getFunc = function()
-                        return Runtime().capturePreset
-                    end,
-                    setFunc = function(value)
-                        Runtime().capturePreset = value
-                    end,
-                    default = "body5",
-                },
-                {
-                    type = "button",
-                    name = GetString(EZOARM_OPTION_KIT_CAPTURE),
-                    tooltip = GetString(EZOARM_OPTION_KIT_CAPTURE_TOOLTIP),
-                    func = CaptureKit,
-                    width = "full",
-                },
-                {
-                    type = "dropdown",
-                    reference = KIT_LIST_REFERENCE,
-                    name = GetString(EZOARM_OPTION_KIT_LIST),
-                    tooltip = GetString(EZOARM_OPTION_KIT_LIST_TOOLTIP),
-                    choices = kitChoices,
-                    choicesValues = kitChoiceValues,
-                    getFunc = function()
-                        return Runtime().selectedKitId
-                    end,
-                    setFunc = function(value)
-                        Runtime().selectedKitId = value
-                    end,
-                },
-                {
-                    type = "button",
-                    name = GetString(EZOARM_OPTION_KIT_SHOW),
-                    tooltip = GetString(EZOARM_OPTION_KIT_SHOW_TOOLTIP),
-                    func = ShowSelectedKit,
-                    width = "half",
-                },
-                {
-                    type = "button",
-                    name = GetString(EZOARM_OPTION_KIT_DELETE),
-                    tooltip = GetString(EZOARM_OPTION_KIT_DELETE_TOOLTIP),
-                    func = DeleteSelectedKit,
-                    isDangerous = true,
-                    width = "half",
-                },
-                {
-                    type = "button",
-                    name = GetString(EZOARM_OPTION_ANALYZE_WORN),
-                    tooltip = GetString(EZOARM_OPTION_ANALYZE_WORN_TOOLTIP),
-                    func = AnalyzeWornGear,
-                    width = "full",
-                },
-            },
+            type = "checkbox",
+            name = GetString(EZOARM_OPTION_DEBUG_MODE),
+            tooltip = GetString(EZOARM_OPTION_DEBUG_MODE_TOOLTIP),
+            getFunc = function()
+                return EZOArmory.IsDebugModeEnabled()
+            end,
+            setFunc = function(value)
+                EZOArmory.SetDebugModeEnabled(value == true)
+            end,
+            default = false,
+        },
+        CreateInfoHeader(
+            GetString(EZOARM_OPTION_KITS),
+            GetString(EZOARM_OPTION_KITS_HEADER_TOOLTIP)
+        ),
+        {
+            type = "dropdown",
+            name = GetString(EZOARM_OPTION_ROLE),
+            tooltip = GetString(EZOARM_OPTION_ROLE_TOOLTIP),
+            choices = roleLabels,
+            choicesValues = roleValues,
+            getFunc = GetActiveRole,
+            setFunc = function(value)
+                if EZOArmory.sv and EZOArmory.sv.general then
+                    EZOArmory.sv.general.role = value
+                end
+            end,
+            default = "dd",
+        },
+        {
+            type = "editbox",
+            name = GetString(EZOARM_OPTION_KIT_NAME),
+            tooltip = GetString(EZOARM_OPTION_KIT_NAME_TOOLTIP),
+            getFunc = function()
+                return Runtime().newKitName
+            end,
+            setFunc = function(value)
+                Runtime().newKitName = tostring(value or "")
+            end,
+            isMultiline = false,
+            -- isExtraWide ancla el contenedor a ambos lados y evita el calculo
+            -- de ancho de LAM que da 0 y colapsa el campo.
+            isExtraWide = true,
+            width = "full",
+            default = "",
+        },
+        {
+            type = "dropdown",
+            name = GetString(EZOARM_OPTION_KIT_PRESET),
+            tooltip = GetString(EZOARM_OPTION_KIT_PRESET_TOOLTIP),
+            choices = presetLabels,
+            choicesValues = presetValues,
+            getFunc = function()
+                return Runtime().capturePreset
+            end,
+            setFunc = function(value)
+                Runtime().capturePreset = value
+            end,
+            default = "body5",
+        },
+        {
+            type = "button",
+            name = GetString(EZOARM_OPTION_KIT_CAPTURE),
+            tooltip = GetString(EZOARM_OPTION_KIT_CAPTURE_TOOLTIP),
+            func = CaptureKit,
+            width = "full",
+        },
+        {
+            type = "dropdown",
+            reference = KIT_LIST_REFERENCE,
+            name = GetString(EZOARM_OPTION_KIT_LIST),
+            tooltip = GetString(EZOARM_OPTION_KIT_LIST_TOOLTIP),
+            choices = kitChoices,
+            choicesValues = kitChoiceValues,
+            getFunc = function()
+                return Runtime().selectedKitId
+            end,
+            setFunc = function(value)
+                Runtime().selectedKitId = value
+            end,
+        },
+        {
+            type = "button",
+            name = GetString(EZOARM_OPTION_KIT_SHOW),
+            tooltip = GetString(EZOARM_OPTION_KIT_SHOW_TOOLTIP),
+            func = ShowSelectedKit,
+            width = "half",
+        },
+        {
+            type = "button",
+            name = GetString(EZOARM_OPTION_KIT_DELETE),
+            tooltip = GetString(EZOARM_OPTION_KIT_DELETE_TOOLTIP),
+            func = DeleteSelectedKit,
+            isDangerous = true,
+            width = "half",
+        },
+        {
+            type = "button",
+            name = GetString(EZOARM_OPTION_ANALYZE_WORN),
+            tooltip = GetString(EZOARM_OPTION_ANALYZE_WORN_TOOLTIP),
+            func = AnalyzeWornGear,
+            width = "full",
         },
     }
 end
