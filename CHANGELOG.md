@@ -2,6 +2,18 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.1.7
+
+- Kits and capture options now show the native ESO icons of the slots they
+  occupy, so a body kit and a jewelry-and-weapons kit of the same set are told
+  apart at a glance.
+- Kits captured in bulk are named after the set's key word plus where it sits
+  ("Null Arca - armour"), keeping two kits of the same set distinct. Repeated
+  names are numbered instead of skipped, so no capture is lost silently.
+- The capture list no longer repeats the individual pieces of a set that is
+  already offered whole. Only genuinely loose items are listed: mythics, weapons
+  with no set, and sets you are wearing a single piece of.
+
 ## 0.1.6
 
 - The capture selector now shows where each option's pieces are: a compact

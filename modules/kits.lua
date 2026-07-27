@@ -142,33 +142,70 @@ function Kits.KeywordFromSetName(setName)
     return name
 end
 
--- Crea de una vez un kit por cada set que se lleva puesto, con nombre de palabra
--- clave. Salta los sets que ya tengan un kit con ese mismo nombre para no
--- duplicar al reejecutar. Devuelve (creados, saltados).
-function Kits.CaptureAllSets(role)
+-- Devuelve los slots de un kit ordenados canonicamente.
+function Kits.GetKitSlots(kit)
+    local slots = {}
+    for slotKey in pairs(kit and kit.pieces or {}) do
+        slots[#slots + 1] = slotKey
+    end
+    if EZOArmory.Gear and EZOArmory.Gear.SortSlots then
+        return EZOArmory.Gear.SortSlots(slots)
+    end
+    table.sort(slots)
+    return slots
+end
+
+-- Nombre libre: si "base" ya existe, prueba "base 2", "base 3"...
+function Kits.UniqueKitName(base, taken)
+    base = tostring(base or "kit")
+    taken = taken or {}
+    if not taken[base] then
+        return base
+    end
+    local index = 2
+    while taken[base .. " " .. index] do
+        index = index + 1
+    end
+    return base .. " " .. index
+end
+
+-- Crea de una vez un kit por cada set (de dos o mas piezas) que se lleva puesto.
+--
+-- nameBuilder(setName, slots) es opcional y permite que la capa de interfaz
+-- componga un nombre localizado con la ubicacion, por ejemplo
+-- "Null Arca - joyeria + armas". Sin el, se usa solo la palabra clave.
+--
+-- Los nombres repetidos se numeran en vez de saltarse, para no perder capturas
+-- en silencio. Devuelve (creados, omitidos).
+function Kits.CaptureAllSets(role, nameBuilder)
     if not (EZOArmory.Gear and EZOArmory.Gear.GetCaptureEntries) then
         return 0, 0
     end
 
-    local existing = {}
+    local taken = {}
     for _, kit in ipairs(Kits.ListKits()) do
-        existing[tostring(kit.name)] = true
+        taken[tostring(kit.name)] = true
     end
 
     local created, skipped = 0, 0
     for _, entry in ipairs(EZOArmory.Gear.GetCaptureEntries()) do
         if entry.kind == "set" then
-            local name = Kits.KeywordFromSetName(entry.name)
-            if existing[name] then
-                skipped = skipped + 1
-            else
-                local id = Kits.CreateKitFromWorn(name, entry.slots, role)
-                if id then
-                    created = created + 1
-                    existing[name] = true
-                else
-                    skipped = skipped + 1
+            local base
+            if type(nameBuilder) == "function" then
+                local ok, built = pcall(nameBuilder, entry.name, entry.slots)
+                if ok and built and built ~= "" then
+                    base = built
                 end
+            end
+            base = base or Kits.KeywordFromSetName(entry.name)
+
+            local name = Kits.UniqueKitName(base, taken)
+            local id = Kits.CreateKitFromWorn(name, entry.slots, role)
+            if id then
+                created = created + 1
+                taken[name] = true
+            else
+                skipped = skipped + 1
             end
         end
     end

@@ -52,6 +52,77 @@ function Gear.GetSlotDef(slotKey)
     return Gear._defByKey[slotKey]
 end
 
+-- Iconos nativos de ESO para cada slot. Se usan como pista visual compacta de
+-- donde va cada pieza de un kit.
+Gear.SLOT_TEXTURES = {
+    head       = "/esoui/art/characterwindow/gearslot_head.dds",
+    shoulders  = "/esoui/art/characterwindow/gearslot_shoulders.dds",
+    chest      = "/esoui/art/characterwindow/gearslot_chest.dds",
+    waist      = "/esoui/art/characterwindow/gearslot_belt.dds",
+    hands      = "/esoui/art/characterwindow/gearslot_hands.dds",
+    legs       = "/esoui/art/characterwindow/gearslot_legs.dds",
+    feet       = "/esoui/art/characterwindow/gearslot_feet.dds",
+    neck       = "/esoui/art/characterwindow/gearslot_neck.dds",
+    ring1      = "/esoui/art/characterwindow/gearslot_ring.dds",
+    ring2      = "/esoui/art/characterwindow/gearslot_ring.dds",
+    main       = "/esoui/art/characterwindow/gearslot_mainhand.dds",
+    off        = "/esoui/art/characterwindow/gearslot_offhand.dds",
+    backupMain = "/esoui/art/characterwindow/gearslot_mainhand.dds",
+    backupOff  = "/esoui/art/characterwindow/gearslot_offhand.dds",
+}
+
+function Gear.GetSlotTexture(slotKey)
+    return Gear.SLOT_TEXTURES[slotKey]
+end
+
+-- Categoria de un slot a efectos de pista: armor, jewelry, weaponsFront o
+-- weaponsBack. Devuelve nil si el slot no existe.
+function Gear.GetSlotCategory(slotKey)
+    local def = Gear._defByKey[slotKey]
+    if not def then return nil end
+    if def.category == "armor" or def.category == "jewelry" then
+        return def.category
+    end
+    if def.bars and def.bars.back then
+        return "weaponsBack"
+    end
+    return "weaponsFront"
+end
+
+Gear.CATEGORY_ORDER = { "armor", "jewelry", "weaponsFront", "weaponsBack" }
+
+-- Categorias presentes en una lista de slots, en orden canonico.
+function Gear.GetCategoryKeys(slots)
+    local present = {}
+    for _, slotKey in ipairs(slots or {}) do
+        local category = Gear.GetSlotCategory(slotKey)
+        if category then present[category] = true end
+    end
+    local keys = {}
+    for _, category in ipairs(Gear.CATEGORY_ORDER) do
+        if present[category] then
+            keys[#keys + 1] = category
+        end
+    end
+    return keys
+end
+
+-- Ordena una lista de slots segun el orden canonico de SLOT_DEFS.
+function Gear.SortSlots(slots)
+    local rank = {}
+    for index, def in ipairs(Gear.SLOT_DEFS) do
+        rank[def.key] = index
+    end
+    local sorted = {}
+    for _, slotKey in ipairs(slots or {}) do
+        sorted[#sorted + 1] = slotKey
+    end
+    table.sort(sorted, function(a, b)
+        return (rank[a] or 99) < (rank[b] or 99)
+    end)
+    return sorted
+end
+
 -- Slots que cuentan en una barra concreta (siempre 12).
 function Gear.GetBarSlotKeys(bar)
     local keys = {}
@@ -233,65 +304,90 @@ end
 -- Construye las entradas del selector de captura a partir del equipo puesto.
 -- Devuelve una lista ordenada de entradas estructuradas (la interfaz compone la
 -- etiqueta localizada):
---   { kind = "all",  value = "all",            count = <piezas> }
---   { kind = "set",  value = "set:<setId>",    setId, name, count }
---   { kind = "slot", value = "slot:<slotKey>", slotKey, name }
+--   { kind = "all",  value = "all",            count, slots }
+--   { kind = "set",  value = "set:<setId>",    setId, name, count, slots }
+--   { kind = "slot", value = "slot:<slotKey>", slotKey, name, slots }
 --
--- Los sets se listan con su numero de piezas equipadas; cada pieza individual
--- se lista aparte por su nombre para poder capturar un slot suelto.
+-- Un set con dos o mas piezas equipadas se ofrece como una sola entrada y sus
+-- piezas NO se listan por separado: capturar el set entero es lo util. Solo se
+-- listan como sueltas las piezas que realmente lo son: miticos, armas sin set y
+-- sets de los que se lleva una unica pieza.
 function Gear.GetCaptureEntries(scan)
     scan = scan or Gear.ScanWorn()
     local entries = {}
 
-    local wornCount = 0
+    local wornSlots = {}
     local setOrder = {}
     local sets = {}
-    local pieces = {}
 
     for _, slotKey in ipairs(scan.order) do
         local entry = scan.slots[slotKey]
         if entry and entry.hasItem then
-            wornCount = wornCount + 1
+            wornSlots[#wornSlots + 1] = slotKey
 
             if entry.setId ~= 0 then
                 local bucket = sets[entry.setId]
                 if not bucket then
-                    bucket = { setId = entry.setId, name = entry.setName, count = 0, slots = {} }
+                    bucket = { setId = entry.setId, name = entry.setName, slots = {} }
                     sets[entry.setId] = bucket
                     setOrder[#setOrder + 1] = bucket
                 end
-                bucket.count = bucket.count + 1
                 bucket.slots[#bucket.slots + 1] = slotKey
             end
-
-            pieces[#pieces + 1] = {
-                kind = "slot",
-                value = "slot:" .. slotKey,
-                slotKey = slotKey,
-                name = entry.itemName ~= "" and entry.itemName or slotKey,
-            }
         end
     end
 
     -- "Todo" primero.
-    entries[#entries + 1] = { kind = "all", value = "all", count = wornCount }
+    entries[#entries + 1] = {
+        kind = "all",
+        value = "all",
+        count = #wornSlots,
+        slots = wornSlots,
+    }
 
-    -- Sets, ordenados por nombre.
-    table.sort(setOrder, function(a, b) return tostring(a.name) < tostring(b.name) end)
+    -- Sets con dos o mas piezas, ordenados por nombre.
+    local multiPieceSets = {}
     for _, bucket in ipairs(setOrder) do
+        if #bucket.slots >= 2 then
+            multiPieceSets[#multiPieceSets + 1] = bucket
+        end
+    end
+    table.sort(multiPieceSets, function(a, b) return tostring(a.name) < tostring(b.name) end)
+
+    local coveredBySet = {}
+    for _, bucket in ipairs(multiPieceSets) do
+        for _, slotKey in ipairs(bucket.slots) do
+            coveredBySet[slotKey] = true
+        end
         entries[#entries + 1] = {
             kind = "set",
             value = "set:" .. tostring(bucket.setId),
             setId = bucket.setId,
             name = bucket.name,
-            count = bucket.count,
+            count = #bucket.slots,
             slots = bucket.slots,
         }
     end
 
-    -- Piezas individuales, en el orden de los slots (ya vienen asi de pieces).
-    for _, piece in ipairs(pieces) do
-        entries[#entries + 1] = piece
+    -- Piezas realmente sueltas: lo que no forma parte de un set de varias.
+    for _, slotKey in ipairs(wornSlots) do
+        if not coveredBySet[slotKey] then
+            local entry = scan.slots[slotKey]
+            local label = entry.setName
+            if label == nil or label == "" then
+                label = entry.itemName
+            end
+            if label == nil or label == "" then
+                label = slotKey
+            end
+            entries[#entries + 1] = {
+                kind = "slot",
+                value = "slot:" .. slotKey,
+                slotKey = slotKey,
+                name = label,
+                slots = { slotKey },
+            }
+        end
     end
 
     return entries

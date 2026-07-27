@@ -54,7 +54,7 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_OPTION_KIT_CAPTURE_TOOLTIP = "Create a kit from the pieces you are wearing right now, limited to the selection above.",
 
     EZOARM_OPTION_KIT_CAPTURE_ALL = "Capture every worn set as a kit",
-    EZOARM_OPTION_KIT_CAPTURE_ALL_TOOLTIP = "Create one kit per set you are wearing in a single step, each named after the set's key word (for example \"Null Arca\"). The full set name is kept inside the kit. Sets that already have a kit with the same name are skipped, so it is safe to run again.",
+    EZOARM_OPTION_KIT_CAPTURE_ALL_TOOLTIP = "Create one kit per set you are wearing in a single step. Each kit is named after the set's key word plus where it sits, for example \"Null Arca - armour\", so the same set used in different slots stays distinct. The full set name is kept inside the kit. Repeated names are numbered rather than skipped.",
     EZOARM_MSG_KITS_CAPTURED_ALL = "Created <<1>> kits, skipped <<2>>.",
 
     EZOARM_OPTION_KIT_LIST = "Saved kits",

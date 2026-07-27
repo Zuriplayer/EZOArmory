@@ -125,46 +125,52 @@ local CATEGORY_STRING = {
     weaponsFront = "EZOARM_CAT_WEAPONS_FRONT",
     weaponsBack = "EZOARM_CAT_WEAPONS_BACK",
 }
-local CATEGORY_ORDER = { "armor", "jewelry", "weaponsFront", "weaponsBack" }
+
+local ICON_SIZE = 20
 
 local function SlotLabel(slotKey)
     local sid = _G[SLOT_LABEL_STRING[slotKey] or ""]
     return sid and GetString(sid) or tostring(slotKey)
 end
 
--- Categoria de un slot para la pista compacta de los sets.
-local function SlotCategory(slotKey)
-    local def = EZOArmory.Gear.GetSlotDef(slotKey)
-    if not def then return nil end
-    if def.category == "armor" or def.category == "jewelry" then
-        return def.category
+-- Tira de iconos con los slots ocupados, en orden canonico. Es la pista visual
+-- que distingue de un vistazo un kit de cuerpo de uno de joyeria y armas.
+local function SlotIcons(slots)
+    local ordered = EZOArmory.Gear.SortSlots(slots)
+    local parts = {}
+    for _, slotKey in ipairs(ordered) do
+        local texture = EZOArmory.Gear.GetSlotTexture(slotKey)
+        if texture then
+            parts[#parts + 1] = string.format("|t%d:%d:%s|t", ICON_SIZE, ICON_SIZE, texture)
+        end
     end
-    if def.bars and def.bars.back then
-        return "weaponsBack"
-    end
-    return "weaponsFront"
+    return table.concat(parts, "")
 end
 
--- Pista compacta de donde va un set: categorias presentes, en orden canonico.
+-- Pista textual compacta de donde va un kit: categorias presentes.
 local function CategoryHint(slots)
-    local present = {}
-    for _, slotKey in ipairs(slots or {}) do
-        local cat = SlotCategory(slotKey)
-        if cat then present[cat] = true end
-    end
     local parts = {}
-    for _, cat in ipairs(CATEGORY_ORDER) do
-        if present[cat] then
-            local sid = _G[CATEGORY_STRING[cat] or ""]
-            parts[#parts + 1] = sid and GetString(sid) or cat
-        end
+    for _, category in ipairs(EZOArmory.Gear.GetCategoryKeys(slots)) do
+        local sid = _G[CATEGORY_STRING[category] or ""]
+        parts[#parts + 1] = sid and GetString(sid) or category
     end
     return table.concat(parts, " + ")
 end
 
+-- Nombre sugerido al capturar: palabra clave del set mas su ubicacion, para que
+-- dos kits del mismo set en sitios distintos no se confundan.
+local function BuildKitName(setName, slots)
+    local keyword = EZOArmory.Kits.KeywordFromSetName(setName)
+    local hint = CategoryHint(slots)
+    if hint == "" then
+        return keyword
+    end
+    return string.format("%s - %s", keyword, hint)
+end
+
 -- Construye las opciones del selector de captura leyendo el equipo puesto:
--- "todo", cada set con su recuento y su ubicacion, y cada pieza suelta con su
--- slot para saber donde va (y desambiguar los dos anillos o las armas).
+-- "todo", cada set de dos o mas piezas, y solo las piezas realmente sueltas
+-- (miticos, armas sin set, sets de los que llevas una unica pieza).
 local function GetCaptureChoices()
     local labels, values = {}, {}
     for _, entry in ipairs(EZOArmory.Gear.GetCaptureEntries()) do
@@ -172,15 +178,16 @@ local function GetCaptureChoices()
         if entry.kind == "all" then
             label = string.format("%s (%d)", GetString(EZOARM_PRESET_ALL), entry.count or 0)
         elseif entry.kind == "set" then
-            local hint = CategoryHint(entry.slots)
-            if hint ~= "" then
-                label = string.format("%s (%d) - %s", tostring(entry.name), entry.count or 0, hint)
-            else
-                label = string.format("%s (%d)", tostring(entry.name), entry.count or 0)
-            end
+            label = string.format("%s (%d)", tostring(entry.name), entry.count or 0)
         else
             label = string.format("%s - %s", tostring(entry.name), SlotLabel(entry.slotKey))
         end
+
+        local icons = SlotIcons(entry.slots)
+        if icons ~= "" then
+            label = label .. "  " .. icons
+        end
+
         labels[#labels + 1] = label
         values[#values + 1] = entry.value
     end
@@ -196,8 +203,13 @@ local function RefreshKitChoices()
     for index = #kitChoiceValues, 1, -1 do kitChoiceValues[index] = nil end
 
     for _, kit in ipairs(EZOArmory.Kits.ListKits()) do
-        kitChoices[#kitChoices + 1] = string.format(
+        local label = string.format(
             "%s (%d)", tostring(kit.name), EZOArmory.Kits.CountPieces(kit))
+        local icons = SlotIcons(EZOArmory.Kits.GetKitSlots(kit))
+        if icons ~= "" then
+            label = label .. "  " .. icons
+        end
+        kitChoices[#kitChoices + 1] = label
         kitChoiceValues[#kitChoiceValues + 1] = kit.id
     end
 
@@ -276,7 +288,7 @@ end
 
 local function CaptureAllSets()
     local role = GetActiveRole()
-    local created, skipped = EZOArmory.Kits.CaptureAllSets(role)
+    local created, skipped = EZOArmory.Kits.CaptureAllSets(role, BuildKitName)
     RefreshKitDropdown()
     Print(zo_strformat(GetString(EZOARM_MSG_KITS_CAPTURED_ALL), created, skipped))
 end
