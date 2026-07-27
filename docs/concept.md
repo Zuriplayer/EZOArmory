@@ -172,9 +172,44 @@ Ambas requieren verificacion adicional en UESP antes de implementarse.
 2. **Fase 2 — equipado.** Cola de aplicacion, verificacion de disponibilidad en
    mochila, modo automatico/manual por trial.
 3. **Fase 3 — ventana propia.** Rejilla de 12 slots, listado de kits, matriz
-   trial/boss con herencia.
+   trial/boss con herencia. Incluye la capa de revisiones (ver 6.1).
 4. **Fase 4 — habilidades y CP.** Kits de habilidades por barra y grupos de CP,
    con las restricciones de la seccion 4.3.
+
+## 6.1 Revisiones de la ventana (Fase 3)
+
+La ventana debe hacer varias revisiones antes de dar por bueno un loadout. La
+mayoria ya existen en el motor `coherence.lua`; la ventana solo tiene que
+mostrarlas (color por slot, aviso por set, resumen por barra). Estado actual:
+
+| Revision | Motor | En la ventana |
+|---|---|---|
+| Dos kits pisan la misma posicion (`slotConflict`) | Hecho | Pendiente de pintar |
+| Un set pide mas piezas de las que admite (`setOverfill`) | Hecho | Pendiente |
+| Slot sin asignar (`unassignedSlot`) | Hecho | Pendiente |
+| Barra que no suma 12 (`barIncomplete`) | Hecho | Pendiente |
+| Mismo item fisico en dos kits (`duplicateItem`) | Hecho | Pendiente |
+| Mas de un mitico (`multipleMythics`) | Hecho | Pendiente |
+| Slot desconocido / kit vacio (`unknownSlot`, `emptyKit`) | Hecho | Pendiente |
+| Pieza no disponible en mochila (`CheckAvailability`) | Hecho | Pendiente |
+| Contraste con lo que se lleva puesto (`CompareToEquipped`) | Hecho | Pendiente |
+| Recuento por set y por barra (5/5 frontal, 3/5 trasera) | Hecho (dato) | Mostrar como semaforo |
+
+Revisiones nuevas a anadir en esta fase (aun no en el motor):
+
+- **Set que no completa su bonus en ninguna barra**: hoy el recuento incompleto
+  por barra se trata como dato (a veces es intencionado). Un set que no llega a
+  su maximo en ninguna de las dos barras suele ser un error real y merece aviso
+  propio.
+- **Monster set fuera de cabeza/hombros**: coherencia de posicion especifica.
+- **Segundo mitico o segundo monster** por reglas del juego (parcialmente
+  cubierto por `multipleMythics`; falta el caso monster).
+- **Aviso visual de pieza suelta que deja hueco**: una sola pieza de un set de 2
+  (monster a medias) marcada como incompleta.
+
+La ventana presenta el resultado como codigo de color por slot (ok / conflicto /
+vacio / incompleto) y una linea de resumen por barra, reutilizando
+`Coherence.Analyze` sin duplicar logica.
 
 ## 7. Decisiones tomadas
 
