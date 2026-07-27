@@ -2,6 +2,16 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.1.6
+
+- The capture selector now shows where each option's pieces are: a compact
+  category hint for sets (for example "armour" or "jewelry + weapons") and the
+  exact slot for individual pieces, which also tells the two rings apart.
+- New "Capture every worn set as a kit" button: creates one kit per set you are
+  wearing in a single step, each named after the set's key word (for example
+  "Null Arca" from "Perfected Slivers of the Null Arca"), keeping the full set
+  name inside the kit. Sets that already have a kit with that name are skipped.
+
 ## 0.1.5
 
 - The "Pieces to capture" selector is now built from the gear you are wearing:

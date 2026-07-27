@@ -256,11 +256,12 @@ function Gear.GetCaptureEntries(scan)
             if entry.setId ~= 0 then
                 local bucket = sets[entry.setId]
                 if not bucket then
-                    bucket = { setId = entry.setId, name = entry.setName, count = 0 }
+                    bucket = { setId = entry.setId, name = entry.setName, count = 0, slots = {} }
                     sets[entry.setId] = bucket
                     setOrder[#setOrder + 1] = bucket
                 end
                 bucket.count = bucket.count + 1
+                bucket.slots[#bucket.slots + 1] = slotKey
             end
 
             pieces[#pieces + 1] = {
@@ -284,6 +285,7 @@ function Gear.GetCaptureEntries(scan)
             setId = bucket.setId,
             name = bucket.name,
             count = bucket.count,
+            slots = bucket.slots,
         }
     end
 

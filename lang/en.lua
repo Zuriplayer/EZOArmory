@@ -30,8 +30,32 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_OPTION_KIT_PRESET_TOOLTIP = "Built from the gear you are wearing: everything, a whole set with its piece count, or a single piece by name. The list refreshes when the panel is reopened or after capturing a kit.",
     EZOARM_PRESET_ALL = "Everything equipped",
 
+    EZOARM_SLOT_HEAD = "Head",
+    EZOARM_SLOT_SHOULDERS = "Shoulders",
+    EZOARM_SLOT_CHEST = "Chest",
+    EZOARM_SLOT_WAIST = "Waist",
+    EZOARM_SLOT_HANDS = "Hands",
+    EZOARM_SLOT_LEGS = "Legs",
+    EZOARM_SLOT_FEET = "Feet",
+    EZOARM_SLOT_NECK = "Necklace",
+    EZOARM_SLOT_RING1 = "Ring 1",
+    EZOARM_SLOT_RING2 = "Ring 2",
+    EZOARM_SLOT_MAIN = "Main hand",
+    EZOARM_SLOT_OFF = "Off hand",
+    EZOARM_SLOT_BACKUP_MAIN = "Main hand (back)",
+    EZOARM_SLOT_BACKUP_OFF = "Off hand (back)",
+
+    EZOARM_CAT_ARMOR = "armour",
+    EZOARM_CAT_JEWELRY = "jewelry",
+    EZOARM_CAT_WEAPONS_FRONT = "weapons",
+    EZOARM_CAT_WEAPONS_BACK = "weapons (back)",
+
     EZOARM_OPTION_KIT_CAPTURE = "Capture from equipped gear",
     EZOARM_OPTION_KIT_CAPTURE_TOOLTIP = "Create a kit from the pieces you are wearing right now, limited to the selection above.",
+
+    EZOARM_OPTION_KIT_CAPTURE_ALL = "Capture every worn set as a kit",
+    EZOARM_OPTION_KIT_CAPTURE_ALL_TOOLTIP = "Create one kit per set you are wearing in a single step, each named after the set's key word (for example \"Null Arca\"). The full set name is kept inside the kit. Sets that already have a kit with the same name are skipped, so it is safe to run again.",
+    EZOARM_MSG_KITS_CAPTURED_ALL = "Created <<1>> kits, skipped <<2>>.",
 
     EZOARM_OPTION_KIT_LIST = "Saved kits",
     EZOARM_OPTION_KIT_LIST_TOOLTIP = "Select a saved kit. The number in brackets is how many pieces it holds.",

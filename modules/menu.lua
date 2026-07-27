@@ -102,8 +102,69 @@ end
 
 -- ---------------------------------------------------------- Presets kit ----
 
+local SLOT_LABEL_STRING = {
+    head = "EZOARM_SLOT_HEAD",
+    shoulders = "EZOARM_SLOT_SHOULDERS",
+    chest = "EZOARM_SLOT_CHEST",
+    waist = "EZOARM_SLOT_WAIST",
+    hands = "EZOARM_SLOT_HANDS",
+    legs = "EZOARM_SLOT_LEGS",
+    feet = "EZOARM_SLOT_FEET",
+    neck = "EZOARM_SLOT_NECK",
+    ring1 = "EZOARM_SLOT_RING1",
+    ring2 = "EZOARM_SLOT_RING2",
+    main = "EZOARM_SLOT_MAIN",
+    off = "EZOARM_SLOT_OFF",
+    backupMain = "EZOARM_SLOT_BACKUP_MAIN",
+    backupOff = "EZOARM_SLOT_BACKUP_OFF",
+}
+
+local CATEGORY_STRING = {
+    armor = "EZOARM_CAT_ARMOR",
+    jewelry = "EZOARM_CAT_JEWELRY",
+    weaponsFront = "EZOARM_CAT_WEAPONS_FRONT",
+    weaponsBack = "EZOARM_CAT_WEAPONS_BACK",
+}
+local CATEGORY_ORDER = { "armor", "jewelry", "weaponsFront", "weaponsBack" }
+
+local function SlotLabel(slotKey)
+    local sid = _G[SLOT_LABEL_STRING[slotKey] or ""]
+    return sid and GetString(sid) or tostring(slotKey)
+end
+
+-- Categoria de un slot para la pista compacta de los sets.
+local function SlotCategory(slotKey)
+    local def = EZOArmory.Gear.GetSlotDef(slotKey)
+    if not def then return nil end
+    if def.category == "armor" or def.category == "jewelry" then
+        return def.category
+    end
+    if def.bars and def.bars.back then
+        return "weaponsBack"
+    end
+    return "weaponsFront"
+end
+
+-- Pista compacta de donde va un set: categorias presentes, en orden canonico.
+local function CategoryHint(slots)
+    local present = {}
+    for _, slotKey in ipairs(slots or {}) do
+        local cat = SlotCategory(slotKey)
+        if cat then present[cat] = true end
+    end
+    local parts = {}
+    for _, cat in ipairs(CATEGORY_ORDER) do
+        if present[cat] then
+            local sid = _G[CATEGORY_STRING[cat] or ""]
+            parts[#parts + 1] = sid and GetString(sid) or cat
+        end
+    end
+    return table.concat(parts, " + ")
+end
+
 -- Construye las opciones del selector de captura leyendo el equipo puesto:
--- "todo", cada set con su recuento y cada pieza suelta por su nombre.
+-- "todo", cada set con su recuento y su ubicacion, y cada pieza suelta con su
+-- slot para saber donde va (y desambiguar los dos anillos o las armas).
 local function GetCaptureChoices()
     local labels, values = {}, {}
     for _, entry in ipairs(EZOArmory.Gear.GetCaptureEntries()) do
@@ -111,9 +172,14 @@ local function GetCaptureChoices()
         if entry.kind == "all" then
             label = string.format("%s (%d)", GetString(EZOARM_PRESET_ALL), entry.count or 0)
         elseif entry.kind == "set" then
-            label = string.format("%s (%d)", tostring(entry.name), entry.count or 0)
+            local hint = CategoryHint(entry.slots)
+            if hint ~= "" then
+                label = string.format("%s (%d) - %s", tostring(entry.name), entry.count or 0, hint)
+            else
+                label = string.format("%s (%d)", tostring(entry.name), entry.count or 0)
+            end
         else
-            label = tostring(entry.name)
+            label = string.format("%s - %s", tostring(entry.name), SlotLabel(entry.slotKey))
         end
         labels[#labels + 1] = label
         values[#values + 1] = entry.value
@@ -206,6 +272,13 @@ local function CaptureKit()
     runtime.selectedKitId = id
     RefreshKitDropdown()
     Print(zo_strformat(GetString(EZOARM_MSG_KIT_CREATED), name, pieceCount))
+end
+
+local function CaptureAllSets()
+    local role = GetActiveRole()
+    local created, skipped = EZOArmory.Kits.CaptureAllSets(role)
+    RefreshKitDropdown()
+    Print(zo_strformat(GetString(EZOARM_MSG_KITS_CAPTURED_ALL), created, skipped))
 end
 
 local function DeleteSelectedKit()
@@ -395,6 +468,13 @@ local function BuildOptions()
             name = GetString(EZOARM_OPTION_KIT_CAPTURE),
             tooltip = GetString(EZOARM_OPTION_KIT_CAPTURE_TOOLTIP),
             func = CaptureKit,
+            width = "full",
+        },
+        {
+            type = "button",
+            name = GetString(EZOARM_OPTION_KIT_CAPTURE_ALL),
+            tooltip = GetString(EZOARM_OPTION_KIT_CAPTURE_ALL_TOOLTIP),
+            func = CaptureAllSets,
             width = "full",
         },
         {

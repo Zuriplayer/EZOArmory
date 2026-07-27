@@ -116,6 +116,66 @@ function Kits.CreateKitFromWorn(name, slotKeys, role)
     return Kits.CreateKit(name, pieces, role)
 end
 
+-- Extrae una palabra clave corta del nombre completo de un set, quitando la
+-- parafernalia habitual. Ej: "Perfected Slivers of the Null Arca" -> "Null Arca".
+-- Es una heuristica pensada para nombres en ingles; si no reconoce el patron
+-- devuelve el nombre tal cual (el nombre completo se conserva en las piezas).
+function Kits.KeywordFromSetName(setName)
+    local name = tostring(setName or "")
+    -- Quita el prefijo de calidad perfeccionada (EN/ES).
+    name = name:gsub("^[Pp]erfected%s+", "")
+    name = name:gsub("^[Pp]erfeccionad[oa]s?%s+", "")
+    -- Se queda con lo que va tras el ultimo " of the " o " of ".
+    local afterOfThe = name:match(".* of the (.+)$")
+    if afterOfThe and afterOfThe ~= "" then
+        name = afterOfThe
+    else
+        local afterOf = name:match(".* of (.+)$")
+        if afterOf and afterOf ~= "" then
+            name = afterOf
+        end
+    end
+    name = name:gsub("^%s+", ""):gsub("%s+$", "")
+    if name == "" then
+        return tostring(setName or "")
+    end
+    return name
+end
+
+-- Crea de una vez un kit por cada set que se lleva puesto, con nombre de palabra
+-- clave. Salta los sets que ya tengan un kit con ese mismo nombre para no
+-- duplicar al reejecutar. Devuelve (creados, saltados).
+function Kits.CaptureAllSets(role)
+    if not (EZOArmory.Gear and EZOArmory.Gear.GetCaptureEntries) then
+        return 0, 0
+    end
+
+    local existing = {}
+    for _, kit in ipairs(Kits.ListKits()) do
+        existing[tostring(kit.name)] = true
+    end
+
+    local created, skipped = 0, 0
+    for _, entry in ipairs(EZOArmory.Gear.GetCaptureEntries()) do
+        if entry.kind == "set" then
+            local name = Kits.KeywordFromSetName(entry.name)
+            if existing[name] then
+                skipped = skipped + 1
+            else
+                local id = Kits.CreateKitFromWorn(name, entry.slots, role)
+                if id then
+                    created = created + 1
+                    existing[name] = true
+                else
+                    skipped = skipped + 1
+                end
+            end
+        end
+    end
+
+    return created, skipped
+end
+
 function Kits.GetKit(id)
     local sv = Store()
     if not sv or id == nil then return nil end

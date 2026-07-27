@@ -30,8 +30,32 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_OPTION_KIT_PRESET_TOOLTIP = "Se construye con el equipo que llevas puesto: todo, un set entero con su numero de piezas, o una pieza suelta por su nombre. La lista se actualiza al reabrir el panel o tras capturar un kit.",
     EZOARM_PRESET_ALL = "Todo el equipo puesto",
 
+    EZOARM_SLOT_HEAD = "Cabeza",
+    EZOARM_SLOT_SHOULDERS = "Hombros",
+    EZOARM_SLOT_CHEST = "Pecho",
+    EZOARM_SLOT_WAIST = "Cintura",
+    EZOARM_SLOT_HANDS = "Manos",
+    EZOARM_SLOT_LEGS = "Piernas",
+    EZOARM_SLOT_FEET = "Pies",
+    EZOARM_SLOT_NECK = "Collar",
+    EZOARM_SLOT_RING1 = "Anillo 1",
+    EZOARM_SLOT_RING2 = "Anillo 2",
+    EZOARM_SLOT_MAIN = "Arma principal",
+    EZOARM_SLOT_OFF = "Arma secundaria",
+    EZOARM_SLOT_BACKUP_MAIN = "Arma principal (T)",
+    EZOARM_SLOT_BACKUP_OFF = "Arma secundaria (T)",
+
+    EZOARM_CAT_ARMOR = "armadura",
+    EZOARM_CAT_JEWELRY = "joyeria",
+    EZOARM_CAT_WEAPONS_FRONT = "armas",
+    EZOARM_CAT_WEAPONS_BACK = "armas (T)",
+
     EZOARM_OPTION_KIT_CAPTURE = "Capturar del equipo puesto",
     EZOARM_OPTION_KIT_CAPTURE_TOOLTIP = "Crea un kit con las piezas que llevas ahora mismo, limitado a la seleccion de arriba.",
+
+    EZOARM_OPTION_KIT_CAPTURE_ALL = "Capturar cada set puesto como kit",
+    EZOARM_OPTION_KIT_CAPTURE_ALL_TOOLTIP = "Crea de una vez un kit por cada set que llevas puesto, cada uno con la palabra clave del set como nombre (por ejemplo \"Null Arca\"). El nombre completo del set se conserva dentro del kit. Los sets que ya tengan un kit con ese mismo nombre se saltan, asi que es seguro repetir.",
+    EZOARM_MSG_KITS_CAPTURED_ALL = "Creados <<1>> kits, saltados <<2>>.",
 
     EZOARM_OPTION_KIT_LIST = "Kits guardados",
     EZOARM_OPTION_KIT_LIST_TOOLTIP = "Selecciona un kit guardado. El numero entre parentesis son las piezas que contiene.",
