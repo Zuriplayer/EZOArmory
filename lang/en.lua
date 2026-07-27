@@ -64,6 +64,14 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_OPTION_KIT_SHOW = "Show selected kit",
     EZOARM_OPTION_KIT_SHOW_TOOLTIP = "Print the pieces stored in the selected kit.",
 
+    EZOARM_OPTION_KIT_EQUIP = "Equip selected kit",
+    EZOARM_OPTION_KIT_EQUIP_TOOLTIP = "Put on the pieces of the selected kit. Gear can only be changed out of combat, so if you are fighting it waits and equips the moment combat ends. Pieces must be in your backpack; anything in the bank is reported as missing.",
+    EZOARM_MSG_EQUIP_QUEUED = "In combat: EZOArmory will equip the kit as soon as you are out of combat.",
+    EZOARM_MSG_EQUIP_DONE = "Equipped <<1>>, already on <<2>>, missing <<3>>.",
+    EZOARM_MSG_EQUIP_MISSING = "Not available in your backpack: <<1>>.",
+    EZOARM_MSG_EQUIP_NO_LIBASYNC = "Equipping needs the LibAsync add-on. Install it to enable this.",
+    EZOARM_MSG_EQUIP_EMPTY = "The selected kit has nothing to equip.",
+
     EZOARM_OPTION_ANALYZE_WORN = "Analyse current gear",
     EZOARM_OPTION_ANALYZE_WORN_TOOLTIP = "Report which set bonuses are actually active on each weapon bar with the gear you are wearing. Only 12 pieces count at a time, so a set spread over jewelry and front weapons will not be complete on the back bar.",
 

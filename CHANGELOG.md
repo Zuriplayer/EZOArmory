@@ -2,6 +2,18 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.2.0
+
+- First equipping support (Phase 2): "Equip selected kit" puts on the pieces of
+  the selected kit. The addon now acts, not just analyses.
+- Gear can only be changed out of combat, so if you are fighting the equip is
+  queued and applied the moment combat ends (via LibAsync). Pieces are located in
+  worn gear and backpack; anything in the bank is reported as missing, since
+  moving from the bank needs direct player interaction.
+- Reports what was equipped, what was already on, and what could not be found.
+- LibAsync added as an optional add-on; equipping is disabled with a clear
+  message if it is not installed, while the rest of the addon keeps working.
+
 ## 0.1.10
 
 - Kit and capture icons now use each item's real, full-colour inventory icon

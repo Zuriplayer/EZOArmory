@@ -113,11 +113,15 @@ trial.
 
 ### 4.3 Limites reales de velocidad
 
-Esto es lo mas importante para el uso en end game:
+Esto es lo mas importante para el uso en end game. **Correccion respecto a una
+version anterior de este documento: el equipo tampoco se cambia en combate.**
+Verificado contra Wizard's Wardrobe, que condiciona TODOS los cambios a
+`WW.IsReadyToSwap() = not IsUnitInCombat("player") and not IsUnitDeadOrReincarnating("player")`
+y hace `WaitUntil(IsReadyToSwap)` antes de cada `EquipItem`.
 
 | Que se cambia | En combate | Coste |
 |---|---|---|
-| **Equipo** | Si | Rapido, es lo unico realmente agil |
+| **Equipo** | **No** | Rapido fuera de combate; `EquipItem` no es protegida |
 | **Habilidades** | **No** | Solo fuera de combate |
 | **Puntos de Campeon** | **No** | Fuera de combate **y ~30 s de cooldown** |
 
@@ -125,9 +129,11 @@ El cooldown de CP (`EVENT_CHAMPION_PURCHASE_RESULT`, ~31 s en WW) hace que la
 idea de "un grupo de CP para pulls y otro para bosses" **no sea viable entre
 pulls rapidos**. Es realista por fase larga o por boss, no por cada trash.
 
-Conclusion de diseno: el **equipo** es la parte que puede ir en automatico. Las
-habilidades y los CP deben tratarse como cambios preparatorios (antes del pull),
-no reactivos.
+Conclusion de diseno: **nada se cambia en combate**. El equipado (y las
+habilidades y CP) debe hacerse en la ventana breve fuera de combate: en el
+staging antes del boss o entre packs. Es el modelo de WW y funciona. Si se pide
+equipar durante el combate, se encola y se aplica al salir (LibAsync
+`WaitUntil`).
 
 ### 4.4 Aplicacion por lotes
 

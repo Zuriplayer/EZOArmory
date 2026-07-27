@@ -332,6 +332,40 @@ function Gear.IsSlotFilled(scan, slotKey)
     return scan and scan.slots and scan.slots[slotKey] and scan.slots[slotKey].hasItem == true
 end
 
+-- Constante EQUIP_SLOT_* asociada a un slot conceptual, para EquipItem.
+function Gear.GetEquipSlotId(slotKey)
+    local def = Gear._defByKey[slotKey]
+    if not def then return nil end
+    local value = _G[def.const]
+    if type(value) == "number" then
+        return value
+    end
+    return nil
+end
+
+-- Localiza un item por su identidad estable, en equipo puesto y mochila (no en
+-- el banco: mover desde alli requiere accion del jugador). Devuelve {bag, slot}
+-- o nil. Recorre primero el equipo puesto, para detectar "ya lo llevas".
+function Gear.FindItemById(itemId)
+    if itemId == nil or type(GetBagSize) ~= "function" then
+        return nil
+    end
+
+    local bags = {}
+    if BAG_WORN ~= nil then bags[#bags + 1] = BAG_WORN end
+    if BAG_BACKPACK ~= nil then bags[#bags + 1] = BAG_BACKPACK end
+
+    for _, bag in ipairs(bags) do
+        local size = GetBagSize(bag) or 0
+        for slot = 0, size do
+            if Gear.ReadItemId(bag, slot) == itemId then
+                return { bag = bag, slot = slot }
+            end
+        end
+    end
+    return nil
+end
+
 -- Construye las entradas del selector de captura a partir del equipo puesto.
 -- Devuelve una lista ordenada de entradas estructuradas (la interfaz compone la
 -- etiqueta localizada):

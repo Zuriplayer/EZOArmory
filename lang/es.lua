@@ -64,6 +64,14 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_OPTION_KIT_SHOW = "Ver el kit seleccionado",
     EZOARM_OPTION_KIT_SHOW_TOOLTIP = "Muestra las piezas guardadas en el kit seleccionado.",
 
+    EZOARM_OPTION_KIT_EQUIP = "Equipar el kit seleccionado",
+    EZOARM_OPTION_KIT_EQUIP_TOOLTIP = "Ponte las piezas del kit seleccionado. El equipo solo se puede cambiar fuera de combate, asi que si estas luchando espera y lo equipa en cuanto sales de combate. Las piezas deben estar en la mochila; lo que este en el banco se avisa como no disponible.",
+    EZOARM_MSG_EQUIP_QUEUED = "En combate: EZOArmory equipara el kit en cuanto salgas de combate.",
+    EZOARM_MSG_EQUIP_DONE = "Equipadas <<1>>, ya puestas <<2>>, no disponibles <<3>>.",
+    EZOARM_MSG_EQUIP_MISSING = "No disponibles en la mochila: <<1>>.",
+    EZOARM_MSG_EQUIP_NO_LIBASYNC = "El equipado necesita el addon LibAsync. Instalalo para activarlo.",
+    EZOARM_MSG_EQUIP_EMPTY = "El kit seleccionado no tiene nada que equipar.",
+
     EZOARM_OPTION_ANALYZE_WORN = "Analizar el equipo actual",
     EZOARM_OPTION_ANALYZE_WORN_TOOLTIP = "Indica que bonus de set tienes realmente activos en cada barra de armas con el equipo que llevas. Solo cuentan 12 piezas a la vez, asi que un set repartido entre joyeria y armas frontales no estara completo en la barra trasera.",
 

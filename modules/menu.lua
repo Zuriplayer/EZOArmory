@@ -324,6 +324,37 @@ local function DeleteSelectedKit()
     Print(zo_strformat(GetString(EZOARM_MSG_KIT_DELETED), name))
 end
 
+local function EquipSelectedKit()
+    local runtime = Runtime()
+    local kit = EZOArmory.Kits.GetKit(runtime.selectedKitId)
+    if not kit then
+        Print(GetString(EZOARM_MSG_KIT_NONE_SELECTED))
+        return
+    end
+
+    EZOArmory.Equip.onQueued = function()
+        Print(GetString(EZOARM_MSG_EQUIP_QUEUED))
+    end
+
+    EZOArmory.Equip.ApplyKits({ runtime.selectedKitId }, function(state)
+        if state.error == "noLibAsync" then
+            Print(GetString(EZOARM_MSG_EQUIP_NO_LIBASYNC))
+            return
+        end
+        if state.error == "empty" then
+            Print(GetString(EZOARM_MSG_EQUIP_EMPTY))
+            return
+        end
+
+        Print(zo_strformat(
+            GetString(EZOARM_MSG_EQUIP_DONE), state.equipped, state.already, state.missing))
+        if state.missing > 0 and #state.missingNames > 0 then
+            Print(zo_strformat(
+                GetString(EZOARM_MSG_EQUIP_MISSING), table.concat(state.missingNames, ", ")))
+        end
+    end)
+end
+
 local function ShowSelectedKit()
     local runtime = Runtime()
     local kit = EZOArmory.Kits.GetKit(runtime.selectedKitId)
@@ -519,6 +550,13 @@ local function BuildOptions()
             setFunc = function(value)
                 Runtime().selectedKitId = value
             end,
+        },
+        {
+            type = "button",
+            name = GetString(EZOARM_OPTION_KIT_EQUIP),
+            tooltip = GetString(EZOARM_OPTION_KIT_EQUIP_TOOLTIP),
+            func = EquipSelectedKit,
+            width = "full",
         },
         {
             type = "button",
