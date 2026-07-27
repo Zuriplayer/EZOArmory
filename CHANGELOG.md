@@ -2,6 +2,13 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.3.1
+
+- Fix: a target can now hold more than one kit. The multi-select list only let
+  one through, so assigning is now done by picking a kit in Saved kits and using
+  Add / Remove buttons, with the current kits shown under the target. Clear
+  empties the target so it inherits the trial default again.
+
 ## 0.3.0
 
 - Assignments: for the active role, assign kits to each trial and target — the

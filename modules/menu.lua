@@ -426,6 +426,70 @@ local function EquipForCurrentLocation()
     EquipKitIds(kitIds)
 end
 
+-- Kits actualmente asignados al objetivo seleccionado (sin herencia).
+local function CurrentTargetKitIds()
+    local runtime = Runtime()
+    return EZOArmory.Kits.GetStoredAssignment(
+        GetActiveRole(), runtime.selectedTrialTag, runtime.selectedTargetKey)
+end
+
+-- Resumen legible de los kits del objetivo actual, para mostrarlo en el panel.
+local function CurrentTargetSummary()
+    local ids = CurrentTargetKitIds()
+    if #ids == 0 then
+        return GetString(EZOARM_MSG_ASSIGN_EMPTY)
+    end
+    local names = {}
+    for _, id in ipairs(ids) do
+        local kit = EZOArmory.Kits.GetKit(id)
+        if kit then
+            names[#names + 1] = tostring(kit.name)
+        end
+    end
+    return table.concat(names, ", ")
+end
+
+local function AddSelectedKitToTarget()
+    local runtime = Runtime()
+    if not EZOArmory.Kits.GetKit(runtime.selectedKitId) then
+        Print(GetString(EZOARM_MSG_KIT_NONE_SELECTED))
+        return
+    end
+    local ids = CurrentTargetKitIds()
+    for _, id in ipairs(ids) do
+        if id == runtime.selectedKitId then
+            return -- ya esta
+        end
+    end
+    ids[#ids + 1] = runtime.selectedKitId
+    EZOArmory.Kits.SetAssignment(
+        GetActiveRole(), runtime.selectedTrialTag, runtime.selectedTargetKey, ids)
+    ForcePanelRebuild()
+end
+
+local function RemoveSelectedKitFromTarget()
+    local runtime = Runtime()
+    if not runtime.selectedKitId then return end
+    local ids = CurrentTargetKitIds()
+    local kept = {}
+    for _, id in ipairs(ids) do
+        if id ~= runtime.selectedKitId then
+            kept[#kept + 1] = id
+        end
+    end
+    EZOArmory.Kits.SetAssignment(
+        GetActiveRole(), runtime.selectedTrialTag, runtime.selectedTargetKey,
+        #kept > 0 and kept or nil)
+    ForcePanelRebuild()
+end
+
+local function ClearTarget()
+    local runtime = Runtime()
+    EZOArmory.Kits.SetAssignment(
+        GetActiveRole(), runtime.selectedTrialTag, runtime.selectedTargetKey, nil)
+    ForcePanelRebuild()
+end
+
 local function ShowSelectedKit()
     local runtime = Runtime()
     local kit = EZOArmory.Kits.GetKit(runtime.selectedKitId)
@@ -690,28 +754,31 @@ local function BuildOptions()
             end,
         },
         {
-            type = "dropdown",
-            name = GetString(EZOARM_OPTION_ASSIGN_KITS),
-            tooltip = GetString(EZOARM_OPTION_ASSIGN_KITS_TOOLTIP),
-            choices = kitChoices,
-            choicesValues = kitChoiceValues,
-            multiSelect = true,
-            getFunc = function()
-                local runtime = Runtime()
-                return EZOArmory.Kits.GetStoredAssignment(
-                    GetActiveRole(), runtime.selectedTrialTag, runtime.selectedTargetKey)
-            end,
-            setFunc = function(values)
-                local runtime = Runtime()
-                if type(values) ~= "table" or #values == 0 then
-                    -- Sin seleccion: quita el override, vuelve a heredar el default.
-                    EZOArmory.Kits.SetAssignment(
-                        GetActiveRole(), runtime.selectedTrialTag, runtime.selectedTargetKey, nil)
-                else
-                    EZOArmory.Kits.SetAssignment(
-                        GetActiveRole(), runtime.selectedTrialTag, runtime.selectedTargetKey, values)
-                end
-            end,
+            type = "description",
+            title = GetString(EZOARM_OPTION_ASSIGN_CURRENT),
+            text = CurrentTargetSummary(),
+        },
+        {
+            type = "button",
+            name = GetString(EZOARM_OPTION_ASSIGN_ADD),
+            tooltip = GetString(EZOARM_OPTION_ASSIGN_ADD_TOOLTIP),
+            func = AddSelectedKitToTarget,
+            width = "half",
+        },
+        {
+            type = "button",
+            name = GetString(EZOARM_OPTION_ASSIGN_REMOVE),
+            tooltip = GetString(EZOARM_OPTION_ASSIGN_REMOVE_TOOLTIP),
+            func = RemoveSelectedKitFromTarget,
+            width = "half",
+        },
+        {
+            type = "button",
+            name = GetString(EZOARM_OPTION_ASSIGN_CLEAR),
+            tooltip = GetString(EZOARM_OPTION_ASSIGN_CLEAR_TOOLTIP),
+            func = ClearTarget,
+            isDangerous = true,
+            width = "half",
         },
         {
             type = "button",
