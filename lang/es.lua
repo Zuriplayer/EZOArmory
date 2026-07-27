@@ -53,8 +53,8 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_OPTION_KIT_CAPTURE = "Capturar del equipo puesto",
     EZOARM_OPTION_KIT_CAPTURE_TOOLTIP = "Crea un kit con las piezas que llevas ahora mismo, limitado a la seleccion de arriba.",
 
-    EZOARM_OPTION_KIT_CAPTURE_ALL = "Capturar cada set puesto como kit",
-    EZOARM_OPTION_KIT_CAPTURE_ALL_TOOLTIP = "Crea de una vez un kit por cada set que llevas puesto. Cada kit se nombra con la palabra clave del set mas donde va, por ejemplo \"Null Arca - armadura\", asi el mismo set usado en sitios distintos no se confunde. El nombre completo del set se conserva dentro del kit. Los nombres repetidos se numeran en vez de saltarse.",
+    EZOARM_OPTION_KIT_CAPTURE_ALL = "Capturar todo lo puesto como kits",
+    EZOARM_OPTION_KIT_CAPTURE_ALL_TOOLTIP = "Crea de una vez kits con todo lo que llevas puesto: uno por cada set de varias piezas, y ademas uno por cada pieza suelta (miticos, armas sin set, o una sola pieza de un set como una cabeza de Slimecraw). Cada kit se nombra con su palabra clave mas donde va, por ejemplo \"Null Arca - armadura\" o \"Slimecraw - Cabeza\", asi el mismo set en sitios distintos no se confunde. El nombre completo se conserva dentro del kit y los nombres repetidos se numeran en vez de saltarse.",
     EZOARM_MSG_KITS_CAPTURED_ALL = "Creados <<1>> kits, saltados <<2>>.",
 
     EZOARM_OPTION_KIT_LIST = "Kits guardados",

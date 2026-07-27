@@ -53,8 +53,8 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_OPTION_KIT_CAPTURE = "Capture from equipped gear",
     EZOARM_OPTION_KIT_CAPTURE_TOOLTIP = "Create a kit from the pieces you are wearing right now, limited to the selection above.",
 
-    EZOARM_OPTION_KIT_CAPTURE_ALL = "Capture every worn set as a kit",
-    EZOARM_OPTION_KIT_CAPTURE_ALL_TOOLTIP = "Create one kit per set you are wearing in a single step. Each kit is named after the set's key word plus where it sits, for example \"Null Arca - armour\", so the same set used in different slots stays distinct. The full set name is kept inside the kit. Repeated names are numbered rather than skipped.",
+    EZOARM_OPTION_KIT_CAPTURE_ALL = "Capture everything worn as kits",
+    EZOARM_OPTION_KIT_CAPTURE_ALL_TOOLTIP = "Create kits from everything you are wearing in a single step: one per multi-piece set, plus one for each loose piece (mythics, setless weapons, or a single piece of a set such as a Slimecraw head). Each kit is named after its key word plus where it sits, for example \"Null Arca - armour\" or \"Slimecraw - Head\", so the same set used in different slots stays distinct. The full name is kept inside the kit and repeated names are numbered rather than skipped.",
     EZOARM_MSG_KITS_CAPTURED_ALL = "Created <<1>> kits, skipped <<2>>.",
 
     EZOARM_OPTION_KIT_LIST = "Saved kits",

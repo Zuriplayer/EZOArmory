@@ -169,11 +169,14 @@ function Kits.UniqueKitName(base, taken)
     return base .. " " .. index
 end
 
--- Crea de una vez un kit por cada set (de dos o mas piezas) que se lleva puesto.
+-- Crea de una vez un kit por cada bloque que se lleva puesto: cada set de dos o
+-- mas piezas y ademas cada pieza suelta (miticos, armas sin set, o una sola
+-- pieza de un set). No crea el kit de "todo el equipo".
 --
--- nameBuilder(setName, slots) es opcional y permite que la capa de interfaz
+-- nameBuilder(name, slots) es opcional y permite que la capa de interfaz
 -- componga un nombre localizado con la ubicacion, por ejemplo
--- "Null Arca - joyeria + armas". Sin el, se usa solo la palabra clave.
+-- "Null Arca - joyeria + armas" o "Slimecraw - Cabeza". Sin el, se usa solo la
+-- palabra clave.
 --
 -- Los nombres repetidos se numeran en vez de saltarse, para no perder capturas
 -- en silencio. Devuelve (creados, omitidos).
@@ -189,7 +192,7 @@ function Kits.CaptureAllSets(role, nameBuilder)
 
     local created, skipped = 0, 0
     for _, entry in ipairs(EZOArmory.Gear.GetCaptureEntries()) do
-        if entry.kind == "set" then
+        if entry.kind == "set" or entry.kind == "slot" then
             local base
             if type(nameBuilder) == "function" then
                 local ok, built = pcall(nameBuilder, entry.name, entry.slots)

@@ -138,14 +138,18 @@ end
 --
 -- Mismo marcado que el icono de ayuda del encabezado (ruta sin barra inicial y
 -- inheritcolor), que es el formato verificado como funcional en este panel.
+local ICON_COLOR = "FFFFFF"
+
 local function SlotIcons(slots)
     local ordered = EZOArmory.Gear.SortSlots(slots)
     local parts = {}
     for _, slotKey in ipairs(ordered) do
         local texture = EZOArmory.Gear.GetSlotTexture(slotKey)
         if texture then
+            -- Fuerza el icono a blanco: con inheritcolor sin mas hereda el color
+            -- atenuado del texto del desplegable y apenas se ve.
             parts[#parts + 1] = string.format(
-                "|t%d:%d:%s:inheritcolor|t", ICON_SIZE, ICON_SIZE, texture)
+                "|c%s|t%d:%d:%s:inheritcolor|t|r", ICON_COLOR, ICON_SIZE, ICON_SIZE, texture)
         end
     end
     return table.concat(parts, "")
@@ -162,11 +166,17 @@ local function CategoryHint(slots)
 end
 
 -- Nombre sugerido al capturar: palabra clave del set mas su ubicacion, para que
--- dos kits del mismo set en sitios distintos no se confundan.
+-- dos kits del mismo set en sitios distintos no se confundan. Para una pieza
+-- unica se usa el slot exacto (mas claro que la categoria).
 local function BuildKitName(setName, slots)
     local keyword = EZOArmory.Kits.KeywordFromSetName(setName)
-    local hint = CategoryHint(slots)
-    if hint == "" then
+    local hint
+    if slots and #slots == 1 then
+        hint = SlotLabel(slots[1])
+    else
+        hint = CategoryHint(slots)
+    end
+    if hint == nil or hint == "" then
         return keyword
     end
     return string.format("%s - %s", keyword, hint)

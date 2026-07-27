@@ -2,6 +2,14 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.1.9
+
+- Slot icons are now drawn white so they stand out, instead of inheriting the
+  dimmed dropdown text colour.
+- "Capture everything worn as kits" now also captures loose pieces (mythics,
+  setless weapons, a single piece of a set), not only multi-piece sets. Single
+  pieces are named with their exact slot, for example "Slimecraw - Head".
+
 ## 0.1.8
 
 - Fix: the slot icons did not render. Inline texture markup needs the path
