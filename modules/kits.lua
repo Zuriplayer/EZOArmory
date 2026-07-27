@@ -51,6 +51,7 @@ local function CopyPiece(piece)
     return {
         itemId = piece.itemId and tostring(piece.itemId) or nil,
         itemName = tostring(piece.itemName or ""),
+        icon = tostring(piece.icon or ""),
         setId = tonumber(piece.setId) or 0,
         setName = tostring(piece.setName or ""),
         maxEquipped = tonumber(piece.maxEquipped) or 0,
@@ -105,6 +106,7 @@ function Kits.CreateKitFromWorn(name, slotKeys, role)
             pieces[slotKey] = {
                 itemId = worn.itemId,
                 itemName = worn.itemName,
+                icon = worn.icon,
                 setId = worn.setId,
                 setName = worn.setName,
                 maxEquipped = worn.maxEquipped,
@@ -153,6 +155,18 @@ function Kits.GetKitSlots(kit)
     end
     table.sort(slots)
     return slots
+end
+
+-- Iconos reales de las piezas de un kit, en orden canonico de slot.
+function Kits.GetKitIcons(kit)
+    local icons = {}
+    for _, slotKey in ipairs(Kits.GetKitSlots(kit)) do
+        local piece = kit.pieces and kit.pieces[slotKey]
+        if piece and piece.icon and piece.icon ~= "" then
+            icons[#icons + 1] = piece.icon
+        end
+    end
+    return icons
 end
 
 -- Nombre libre: si "base" ya existe, prueba "base 2", "base 3"...

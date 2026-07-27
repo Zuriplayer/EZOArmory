@@ -126,7 +126,8 @@ local CATEGORY_STRING = {
     weaponsBack = "EZOARM_CAT_WEAPONS_BACK",
 }
 
-local ICON_SIZE = 20
+local ICON_SIZE = 24
+local ICON_MAX = 6
 
 local function SlotLabel(slotKey)
     local sid = _G[SLOT_LABEL_STRING[slotKey] or ""]
@@ -138,19 +139,19 @@ end
 --
 -- Mismo marcado que el icono de ayuda del encabezado (ruta sin barra inicial y
 -- inheritcolor), que es el formato verificado como funcional en este panel.
-local ICON_COLOR = "FFFFFF"
-
-local function SlotIcons(slots)
-    local ordered = EZOArmory.Gear.SortSlots(slots)
+-- Tira con los iconos reales de los items (a todo color), como pista visual.
+-- Se usan los iconos de item y no las siluetas de slot porque estas son grises
+-- y el tinte de color en ESO solo multiplica: no se pueden aclarar.
+--
+-- Las rutas de GetItemLinkIcon llevan barra inicial, que el marcado en linea
+-- |t|t no acepta; se quita. Se limita el numero de iconos para no empujar el
+-- nombre fuera del desplegable.
+local function IconStrip(iconPaths)
     local parts = {}
-    for _, slotKey in ipairs(ordered) do
-        local texture = EZOArmory.Gear.GetSlotTexture(slotKey)
-        if texture then
-            -- Fuerza el icono a blanco: con inheritcolor sin mas hereda el color
-            -- atenuado del texto del desplegable y apenas se ve.
-            parts[#parts + 1] = string.format(
-                "|c%s|t%d:%d:%s:inheritcolor|t|r", ICON_COLOR, ICON_SIZE, ICON_SIZE, texture)
-        end
+    for index, path in ipairs(iconPaths or {}) do
+        if index > ICON_MAX then break end
+        local clean = tostring(path):gsub("^/", "")
+        parts[#parts + 1] = string.format("|t%d:%d:%s|t", ICON_SIZE, ICON_SIZE, clean)
     end
     return table.concat(parts, "")
 end
@@ -199,7 +200,7 @@ local function GetCaptureChoices()
 
         -- Los iconos van delante: LAM recorta el texto largo con puntos
         -- suspensivos, y al final se perderian justo en los nombres largos.
-        local icons = SlotIcons(entry.slots)
+        local icons = IconStrip(entry.icons)
         if icons ~= "" then
             label = icons .. " " .. label
         end
@@ -221,7 +222,7 @@ local function RefreshKitChoices()
     for _, kit in ipairs(EZOArmory.Kits.ListKits()) do
         local label = string.format(
             "%s (%d)", tostring(kit.name), EZOArmory.Kits.CountPieces(kit))
-        local icons = SlotIcons(EZOArmory.Kits.GetKitSlots(kit))
+        local icons = IconStrip(EZOArmory.Kits.GetKitIcons(kit))
         if icons ~= "" then
             label = icons .. " " .. label
         end

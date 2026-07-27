@@ -111,6 +111,22 @@ function Gear.GetCategoryKeys(slots)
     return keys
 end
 
+-- Iconos reales de los items en unos slots dados, en orden canonico. Se usan
+-- como pista visual a todo color (los iconos de slot son siluetas grises que no
+-- se pueden aclarar por tinte).
+function Gear.IconsForSlots(scan, slots)
+    local icons = {}
+    if not scan then return icons end
+    local ordered = Gear.SortSlots(slots)
+    for _, slotKey in ipairs(ordered) do
+        local entry = scan.slots[slotKey]
+        if entry and entry.icon and entry.icon ~= "" then
+            icons[#icons + 1] = entry.icon
+        end
+    end
+    return icons
+end
+
 -- Ordena una lista de slots segun el orden canonico de SLOT_DEFS.
 function Gear.SortSlots(slots)
     local rank = {}
@@ -219,10 +235,19 @@ function Gear.DescribeItem(bag, slot)
         end
     end
 
+    local icon = ""
+    if type(GetItemLinkIcon) == "function" then
+        local okIcon, iconPath = pcall(GetItemLinkIcon, itemLink)
+        if okIcon and iconPath and iconPath ~= "" then
+            icon = tostring(iconPath)
+        end
+    end
+
     return {
         itemId = Gear.ReadItemId(bag, slot),
         itemLink = itemLink,
         itemName = itemName,
+        icon = icon,
         setId = info and info.setId or 0,
         setName = info and info.setName or "",
         maxEquipped = info and info.maxEquipped or 0,
@@ -246,6 +271,7 @@ function Gear.ScanWorn()
             itemId = nil,
             itemLink = nil,
             itemName = "",
+            icon = "",
             setId = 0,
             setName = "",
             maxEquipped = 0,
@@ -259,6 +285,7 @@ function Gear.ScanWorn()
                 entry.itemId = described.itemId
                 entry.itemLink = described.itemLink
                 entry.itemName = described.itemName
+                entry.icon = described.icon
                 entry.setId = described.setId
                 entry.setName = described.setName
                 entry.maxEquipped = described.maxEquipped
@@ -370,6 +397,7 @@ function Gear.GetCaptureEntries(scan)
             name = bucket.name,
             count = #bucket.slots,
             slots = bucket.slots,
+            icons = Gear.IconsForSlots(scan, bucket.slots),
         }
     end
 
@@ -390,6 +418,7 @@ function Gear.GetCaptureEntries(scan)
                 slotKey = slotKey,
                 name = label,
                 slots = { slotKey },
+                icons = Gear.IconsForSlots(scan, { slotKey }),
             }
         end
     end

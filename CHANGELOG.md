@@ -2,6 +2,13 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.1.10
+
+- Kit and capture icons now use each item's real, full-colour inventory icon
+  instead of the grey slot silhouettes. The silhouette textures cannot be
+  brightened (colour markup only multiplies), so they always looked dim; item
+  icons are naturally bright and also identify the piece.
+
 ## 0.1.9
 
 - Slot icons are now drawn white so they stand out, instead of inheriting the
