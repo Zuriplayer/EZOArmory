@@ -35,8 +35,10 @@ full gear snapshot for every boss:
 - **One-step capture** of everything: gear sets, loose pieces, skill bars and
   Champion stars, each into its own section, never duplicating an existing kit.
 - **Its own window**, opened with a keybind or `/ezoarmory`, showing the current
-  trial and boss. It is being built to hold the kit lists, the twelve-slot grid
-  with coherence colours, the per-boss assignments and hover tooltips.
+  trial and boss. It browses gear, skill and Champion Point kits with real
+  native tooltips on hover (the same tooltip you get in your inventory), and
+  lets you equip or delete a selected kit. The twelve-slot grid and the
+  per-boss assignments are still being built here.
 
 Gear pieces must be in your backpack: moving items out of the bank requires
 direct player interaction and cannot be automated. Skills and Champion Points can

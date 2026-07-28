@@ -11,7 +11,13 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_MSG_INIT = "EZOArmory loaded. Type /ezoarmory to open the window.",
 
     EZOARM_WINDOW_CONTEXT_NONE = "Not in a trial",
-    EZOARM_WINDOW_PLACEHOLDER = "The kit lists, the twelve-slot grid and the per-boss assignments are being built here.\n\nFor now use Settings > EZO > EZOArmory.",
+
+    EZOARM_WINDOW_TAB_GEAR = "Gear kits",
+    EZOARM_WINDOW_TAB_SKILLS = "Skill kits",
+    EZOARM_WINDOW_TAB_CP = "CP kits",
+    EZOARM_WINDOW_KIT_COUNT = "<<1>> kit(s)",
+    EZOARM_WINDOW_NO_KITS = "No kits in this category yet. Capture some from Settings > EZO > EZOArmory.",
+    EZOARM_WINDOW_TOOLTIP_NOT_AVAILABLE = "Not currently available in your bags.",
 
     EZOARM_OPTION_GENERAL = "General",
     EZOARM_OPTION_GENERAL_HEADER_TOOLTIP = "Core EZOArmory options: language and diagnostics.",

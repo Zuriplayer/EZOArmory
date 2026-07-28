@@ -38,9 +38,10 @@ guardar una foto completa del equipo para cada boss:
   habilidades y estrellas de Campeon, cada cosa en su seccion, sin duplicar
   nunca un kit existente.
 - **Ventana propia**, que se abre con una tecla o con `/ezoarmory`, y muestra la
-  trial y el boss actuales. Se esta construyendo para alojar las listas de kits,
-  la rejilla de doce slots con colores de coherencia, las asignaciones por boss y
-  los tooltips al pasar el cursor.
+  trial y el boss actuales. Navega los kits de equipo, habilidades y Puntos de
+  Campeon con tooltips nativos reales al pasar el cursor (el mismo tooltip que
+  ves en tu inventario), y permite equipar o borrar el kit seleccionado. La
+  rejilla de doce slots y las asignaciones por boss se siguen construyendo aqui.
 
 Las piezas deben estar en la mochila: sacar items del banco requiere
 interaccion directa del jugador y no se puede automatizar. Las habilidades y los

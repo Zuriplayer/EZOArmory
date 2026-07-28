@@ -2,6 +2,22 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.7.0
+
+- The window now has real content: three category tabs (Gear kits, Skill kits,
+  CP kits) with a scrollable list. Replaces the placeholder text.
+- Real hover tooltips, not the LAM text-markup workaround: hovering a gear
+  piece's icon shows the actual native item tooltip (resolved live from your
+  bags, so it reflects the item's current state), and hovering a kit's name
+  shows a composed summary (every piece, both skill bars with their weapon, or
+  every Champion star).
+- Click a row to select it; Equip and Delete buttons appear for the selection
+  (Equip only for gear kits, reusing the existing equip engine).
+- Champion Point star icons are not shown per star: no verified ESO API for a
+  per-star icon texture was found, so CP kit rows are text-only with the
+  hover summary. Ability icons per skill slot (beyond the weapon icons already
+  shown) are left for a later pass if useful.
+
 ## 0.6.2
 
 - Fix: the "EZOArmory" keybind category never appeared in Controls. The action

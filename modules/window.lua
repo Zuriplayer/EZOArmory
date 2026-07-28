@@ -177,12 +177,9 @@ function Window.Create()
     body:SetAnchor(BOTTOMRIGHT, w, BOTTOMRIGHT, -12, -12)
     Window.body = body
 
-    local placeholder = WM:CreateControl(nil, body, CT_LABEL)
-    placeholder:SetFont("ZoFontGame")
-    placeholder:SetColor(0.7, 0.7, 0.75, 1)
-    placeholder:SetAnchor(TOPLEFT, body, TOPLEFT, 0, 0)
-    placeholder:SetText(GetString(EZOARM_WINDOW_PLACEHOLDER))
-    Window.placeholder = placeholder
+    if EZOArmory.WindowKits and EZOArmory.WindowKits.Create then
+        EZOArmory.WindowKits.Create(body)
+    end
 
     Window.control = w
     return w
@@ -200,6 +197,10 @@ function Window.Show()
     Window.requestedVisible = true
     Window.RefreshContext()
     Window.RefreshVisibility()
+    if EZOArmory.WindowKits and EZOArmory.WindowKits.Refresh then
+        -- Refleja cambios hechos por el panel LAM mientras la ventana estaba cerrada.
+        EZOArmory.WindowKits.Refresh()
+    end
 
     -- El raton hace falta para interactuar con la ventana.
     if SCENE_MANAGER and type(SCENE_MANAGER.SetInUIMode) == "function" then
