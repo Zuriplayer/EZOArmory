@@ -2,6 +2,21 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.5.0
+
+- Skill kits: capture both action bars (five abilities plus ultimate each) into
+  their own kit space, separate from gear kits. Each skill kit stores the
+  weapons you were holding, shown as front/back bar icons in the list, since
+  abilities depend on the weapon type. Optional name; unnamed captures become
+  Skills 1, Skills 2...
+- Champion Point kits: capture the twelve slotted Champion stars, with optional
+  or automatic naming (CP 1, CP 2...). Two captures with the same stars in a
+  different order count as the same kit.
+- "Capture everything worn as kits" now also captures the current skill bars and
+  Champion stars, each into its own section.
+- Deduplication by real content applies to all three kinds: identical gear,
+  identical bars or identical stars are skipped and reported, never duplicated.
+
 ## 0.4.2
 
 - New "Equip this target's kits" button: equips the build assigned to the trial

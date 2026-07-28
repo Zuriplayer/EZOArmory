@@ -28,7 +28,12 @@ full gear snapshot for every boss:
   that are not currently available to equip.
 - **Trial and boss awareness**: recognises all 14 trials by zone and their
   bosses, and detects boss encounters outside trials.
-- **Champion Point groups** and **skill sets** for the front and back bars.
+- **Skill kits**: memorise both action bars together with the weapons they were
+  captured with (shown as front/back bar icons), kept apart from gear kits.
+- **Champion Point kits**: memorise the twelve slotted Champion stars; two
+  captures with the same stars count as the same kit.
+- **One-step capture** of everything: gear sets, loose pieces, skill bars and
+  Champion stars, each into its own section, never duplicating an existing kit.
 - **Configurable pop-up window** (HUD) showing the current context and warnings.
 
 Gear pieces must be in your backpack: moving items out of the bank requires

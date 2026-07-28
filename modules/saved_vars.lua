@@ -20,11 +20,10 @@ function EZOArmory.savedVars.Init()
         -- equipado. Los rellena kits.lua bajo demanda.
         profiles = {},
         -- Contadores de identificadores incrementales.
-        seq = { kit = 0 },
-        -- Grupos de Champion Points con nombre (pulls, bosses, especial).
-        cpGroups = {},
-        -- Slots de habilidades con nombre para barra principal/secundaria.
-        skillSets = {},
+        seq = { kit = 0, skillKit = 0, cpKit = 0 },
+        -- Kits de habilidades (modules/skills.lua) y de CP (modules/champion.lua).
+        skillKits = {},
+        cpKits = {},
         -- Ventana emergente (HUD). Posicion y aspecto.
         window = {
             enabled = true,
@@ -51,7 +50,12 @@ function EZOArmory.savedVars.Init()
     EZOArmory.sv.profiles = EZOArmory.sv.profiles or defaults.profiles
     EZOArmory.sv.seq = EZOArmory.sv.seq or defaults.seq
     EZOArmory.sv.seq.kit = tonumber(EZOArmory.sv.seq.kit) or 0
-    EZOArmory.sv.cpGroups = EZOArmory.sv.cpGroups or defaults.cpGroups
-    EZOArmory.sv.skillSets = EZOArmory.sv.skillSets or defaults.skillSets
+    EZOArmory.sv.seq.skillKit = tonumber(EZOArmory.sv.seq.skillKit) or 0
+    EZOArmory.sv.seq.cpKit = tonumber(EZOArmory.sv.seq.cpKit) or 0
+    EZOArmory.sv.skillKits = EZOArmory.sv.skillKits or defaults.skillKits
+    EZOArmory.sv.cpKits = EZOArmory.sv.cpKits or defaults.cpKits
+    -- Limpieza de placeholders antiguos que nunca llegaron a usarse.
+    EZOArmory.sv.cpGroups = nil
+    EZOArmory.sv.skillSets = nil
     EZOArmory.sv.window = EZOArmory.sv.window or defaults.window
 end

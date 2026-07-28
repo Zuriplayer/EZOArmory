@@ -29,8 +29,14 @@ guardar una foto completa del equipo para cada boss:
   barras incompletas y piezas que no estan disponibles para equipar.
 - **Consciencia de trial y boss**: reconoce las 14 trials por zona y sus bosses,
   y detecta encuentros con boss fuera de las trials.
-- **Grupos de Puntos de Campeon** y **conjuntos de habilidades** para la barra
-  frontal y la trasera.
+- **Kits de habilidades**: memorizan las dos barras de accion junto con las
+  armas con las que se capturaron (mostradas como iconos de barra frontal y
+  trasera), separados de los kits de equipo.
+- **Kits de Puntos de Campeon**: memorizan las doce estrellas de Campeon
+  slotteadas; dos capturas con las mismas estrellas cuentan como el mismo kit.
+- **Captura en un paso** de todo: sets de equipo, piezas sueltas, barras de
+  habilidades y estrellas de Campeon, cada cosa en su seccion, sin duplicar
+  nunca un kit existente.
 - **Ventana emergente configurable** (HUD) con el contexto actual y los avisos.
 
 Las piezas deben estar en la mochila: sacar items del banco requiere

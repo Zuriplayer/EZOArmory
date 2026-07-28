@@ -374,11 +374,190 @@ local function CaptureKit()
     Print(zo_strformat(GetString(EZOARM_MSG_KIT_CREATED), name, pieceCount))
 end
 
+-- Nombre automatico unico dentro de una lista de kits existentes.
+local function AutoName(baseStringId, listFn)
+    local taken = {}
+    for _, kit in ipairs(listFn()) do
+        taken[tostring(kit.name)] = true
+    end
+    local base = GetString(baseStringId)
+    local index = 1
+    while taken[base .. " " .. index] do
+        index = index + 1
+    end
+    return base .. " " .. index
+end
+
 local function CaptureAllSets()
     local role = GetActiveRole()
     local created, skipped = EZOArmory.Kits.CaptureAllSets(role, BuildKitName)
+
+    -- Tambien captura las barras de habilidades y los CP actuales, cada uno en
+    -- su propio espacio, con nombre automatico y sin duplicar.
+    local skillId, _, skillReason = EZOArmory.Skills.CreateKitFromCurrent(
+        AutoName(EZOARM_AUTONAME_SKILLS, EZOArmory.Skills.ListKits))
+    if skillId then
+        created = created + 1
+    elseif skillReason == "duplicate" then
+        skipped = skipped + 1
+    end
+
+    local cpId, _, cpReason = EZOArmory.Champion.CreateKitFromCurrent(
+        AutoName(EZOARM_AUTONAME_CP, EZOArmory.Champion.ListKits))
+    if cpId then
+        created = created + 1
+    elseif cpReason == "duplicate" then
+        skipped = skipped + 1
+    end
+
     RefreshKitDropdown()
+    ForcePanelRebuild()
     Print(zo_strformat(GetString(EZOARM_MSG_KITS_CAPTURED_ALL), created, skipped))
+end
+
+-- ------------------------------------------------- Kits de habilidades -----
+
+local function SkillKitLabel(kit)
+    local label = string.format(
+        "%s (%d)", tostring(kit.name), EZOArmory.Skills.CountAbilities(kit))
+    local weaponIcons = {}
+    local front = EZOArmory.Skills.GetWeaponIcon(kit, EZOArmory.Skills.HOTBAR_FRONT)
+    local back = EZOArmory.Skills.GetWeaponIcon(kit, EZOArmory.Skills.HOTBAR_BACK)
+    if front then weaponIcons[#weaponIcons + 1] = front end
+    if back then weaponIcons[#weaponIcons + 1] = back end
+    local icons = IconStrip(weaponIcons)
+    if icons ~= "" then
+        label = icons .. " " .. label
+    end
+    return label
+end
+
+local function GetSkillKitChoices()
+    local labels, values = {}, {}
+    for _, kit in ipairs(EZOArmory.Skills.ListKits()) do
+        labels[#labels + 1] = SkillKitLabel(kit)
+        values[#values + 1] = kit.id
+    end
+    return labels, values
+end
+
+local function CaptureSkillKit()
+    local runtime = Runtime()
+    local name = tostring(runtime.newSkillKitName or "")
+    if name == "" then
+        name = AutoName(EZOARM_AUTONAME_SKILLS, EZOArmory.Skills.ListKits)
+    end
+
+    local id, kit, reason = EZOArmory.Skills.CreateKitFromCurrent(name)
+    if reason == "duplicate" and kit then
+        runtime.selectedSkillKitId = kit.id
+        Print(zo_strformat(GetString(EZOARM_MSG_SKILL_KIT_DUPLICATE), tostring(kit.name)))
+        return
+    end
+    if reason == "empty" or not id then
+        Print(GetString(EZOARM_MSG_SKILL_KIT_EMPTY))
+        return
+    end
+
+    runtime.newSkillKitName = ""
+    runtime.selectedSkillKitId = id
+    ForcePanelRebuild()
+    Print(zo_strformat(GetString(EZOARM_MSG_SKILL_KIT_CREATED), name))
+end
+
+local function ShowSelectedSkillKit()
+    local runtime = Runtime()
+    local kit = EZOArmory.Skills.GetKit(runtime.selectedSkillKitId)
+    if not kit then
+        Print(GetString(EZOARM_MSG_KIT_NONE_SELECTED))
+        return
+    end
+
+    local function BarLine(hotbar, barStringId)
+        local names = EZOArmory.Skills.GetBarAbilityNames(kit, hotbar)
+        local weapons = kit.weapons or {}
+        local ref = (hotbar == EZOArmory.Skills.HOTBAR_BACK) and weapons.backupMain or weapons.main
+        local weaponName = ref and ref.itemName or "-"
+        Print(string.format("%s [%s]: %s",
+            GetString(barStringId), tostring(weaponName), table.concat(names, ", ")))
+    end
+
+    Print(tostring(kit.name) .. ":")
+    BarLine(EZOArmory.Skills.HOTBAR_FRONT, EZOARM_MSG_BAR_FRONT)
+    BarLine(EZOArmory.Skills.HOTBAR_BACK, EZOARM_MSG_BAR_BACK)
+end
+
+local function DeleteSelectedSkillKit()
+    local runtime = Runtime()
+    local kit = EZOArmory.Skills.GetKit(runtime.selectedSkillKitId)
+    if not kit then
+        Print(GetString(EZOARM_MSG_KIT_NONE_SELECTED))
+        return
+    end
+    local name = tostring(kit.name)
+    EZOArmory.Skills.DeleteKit(runtime.selectedSkillKitId)
+    ForcePanelRebuild()
+    Print(zo_strformat(GetString(EZOARM_MSG_SKILL_KIT_DELETED), name))
+end
+
+-- --------------------------------------------------------- Kits de CP ------
+
+local function GetCpKitChoices()
+    local labels, values = {}, {}
+    for _, kit in ipairs(EZOArmory.Champion.ListKits()) do
+        labels[#labels + 1] = string.format(
+            "%s (%d)", tostring(kit.name), EZOArmory.Champion.CountStars(kit))
+        values[#values + 1] = kit.id
+    end
+    return labels, values
+end
+
+local function CaptureCpKit()
+    local runtime = Runtime()
+    local name = tostring(runtime.newCpKitName or "")
+    if name == "" then
+        name = AutoName(EZOARM_AUTONAME_CP, EZOArmory.Champion.ListKits)
+    end
+
+    local id, kit, reason = EZOArmory.Champion.CreateKitFromCurrent(name)
+    if reason == "duplicate" and kit then
+        runtime.selectedCpKitId = kit.id
+        Print(zo_strformat(GetString(EZOARM_MSG_CP_KIT_DUPLICATE), tostring(kit.name)))
+        return
+    end
+    if reason == "empty" or not id then
+        Print(GetString(EZOARM_MSG_CP_KIT_EMPTY))
+        return
+    end
+
+    runtime.newCpKitName = ""
+    runtime.selectedCpKitId = id
+    ForcePanelRebuild()
+    Print(zo_strformat(GetString(EZOARM_MSG_CP_KIT_CREATED), name))
+end
+
+local function ShowSelectedCpKit()
+    local runtime = Runtime()
+    local kit = EZOArmory.Champion.GetKit(runtime.selectedCpKitId)
+    if not kit then
+        Print(GetString(EZOARM_MSG_KIT_NONE_SELECTED))
+        return
+    end
+    local names = EZOArmory.Champion.GetStarNames(kit)
+    Print(string.format("%s: %s", tostring(kit.name), table.concat(names, ", ")))
+end
+
+local function DeleteSelectedCpKit()
+    local runtime = Runtime()
+    local kit = EZOArmory.Champion.GetKit(runtime.selectedCpKitId)
+    if not kit then
+        Print(GetString(EZOARM_MSG_KIT_NONE_SELECTED))
+        return
+    end
+    local name = tostring(kit.name)
+    EZOArmory.Champion.DeleteKit(runtime.selectedCpKitId)
+    ForcePanelRebuild()
+    Print(zo_strformat(GetString(EZOARM_MSG_CP_KIT_DELETED), name))
 end
 
 local function DeleteSelectedKit()
@@ -636,6 +815,8 @@ local function BuildOptions()
     local trialLabels, trialValues = GetTrialChoices()
     local targetLabels, targetValues = GetTargetChoices(Runtime().selectedTrialTag)
     local assignKitLabels, assignKitValues = GetAssignKitChoices()
+    local skillKitLabels, skillKitValues = GetSkillKitChoices()
+    local cpKitLabels, cpKitValues = GetCpKitChoices()
     RefreshKitChoices()
 
     -- Secciones planas (header + controles). No se usan submenus colapsables:
@@ -801,6 +982,114 @@ local function BuildOptions()
             tooltip = GetString(EZOARM_OPTION_ANALYZE_WORN_TOOLTIP),
             func = AnalyzeWornGear,
             width = "full",
+        },
+        CreateInfoHeader(
+            GetString(EZOARM_OPTION_SKILL_KITS),
+            GetString(EZOARM_OPTION_SKILL_KITS_HEADER_TOOLTIP)
+        ),
+        {
+            type = "editbox",
+            name = GetString(EZOARM_OPTION_SKILL_KIT_NAME),
+            tooltip = GetString(EZOARM_OPTION_SKILL_KIT_NAME_TOOLTIP),
+            getFunc = function()
+                return Runtime().newSkillKitName or ""
+            end,
+            setFunc = function(value)
+                Runtime().newSkillKitName = tostring(value or "")
+            end,
+            isMultiline = false,
+            isExtraWide = true,
+            width = "full",
+            default = "",
+        },
+        {
+            type = "button",
+            name = GetString(EZOARM_OPTION_SKILL_KIT_CAPTURE),
+            tooltip = GetString(EZOARM_OPTION_SKILL_KIT_CAPTURE_TOOLTIP),
+            func = CaptureSkillKit,
+            width = "full",
+        },
+        {
+            type = "dropdown",
+            name = GetString(EZOARM_OPTION_SKILL_KIT_LIST),
+            tooltip = GetString(EZOARM_OPTION_SKILL_KIT_LIST_TOOLTIP),
+            choices = skillKitLabels,
+            choicesValues = skillKitValues,
+            getFunc = function()
+                return Runtime().selectedSkillKitId
+            end,
+            setFunc = function(value)
+                Runtime().selectedSkillKitId = value
+            end,
+        },
+        {
+            type = "button",
+            name = GetString(EZOARM_OPTION_KIT_SHOW),
+            tooltip = GetString(EZOARM_OPTION_SKILL_KIT_SHOW_TOOLTIP),
+            func = ShowSelectedSkillKit,
+            width = "half",
+        },
+        {
+            type = "button",
+            name = GetString(EZOARM_OPTION_KIT_DELETE),
+            tooltip = GetString(EZOARM_OPTION_SKILL_KIT_DELETE_TOOLTIP),
+            func = DeleteSelectedSkillKit,
+            isDangerous = true,
+            width = "half",
+        },
+        CreateInfoHeader(
+            GetString(EZOARM_OPTION_CP_KITS),
+            GetString(EZOARM_OPTION_CP_KITS_HEADER_TOOLTIP)
+        ),
+        {
+            type = "editbox",
+            name = GetString(EZOARM_OPTION_CP_KIT_NAME),
+            tooltip = GetString(EZOARM_OPTION_CP_KIT_NAME_TOOLTIP),
+            getFunc = function()
+                return Runtime().newCpKitName or ""
+            end,
+            setFunc = function(value)
+                Runtime().newCpKitName = tostring(value or "")
+            end,
+            isMultiline = false,
+            isExtraWide = true,
+            width = "full",
+            default = "",
+        },
+        {
+            type = "button",
+            name = GetString(EZOARM_OPTION_CP_KIT_CAPTURE),
+            tooltip = GetString(EZOARM_OPTION_CP_KIT_CAPTURE_TOOLTIP),
+            func = CaptureCpKit,
+            width = "full",
+        },
+        {
+            type = "dropdown",
+            name = GetString(EZOARM_OPTION_CP_KIT_LIST),
+            tooltip = GetString(EZOARM_OPTION_CP_KIT_LIST_TOOLTIP),
+            choices = cpKitLabels,
+            choicesValues = cpKitValues,
+            getFunc = function()
+                return Runtime().selectedCpKitId
+            end,
+            setFunc = function(value)
+                Runtime().selectedCpKitId = value
+            end,
+        },
+        {
+            type = "button",
+            name = GetString(EZOARM_OPTION_KIT_SHOW),
+            tooltip = GetString(EZOARM_OPTION_CP_KIT_SHOW_TOOLTIP),
+            func = ShowSelectedCpKit,
+            width = "half",
+        },
+        {
+            type = "button",
+            name = GetString(EZOARM_OPTION_KIT_DELETE),
+            tooltip = GetString(EZOARM_OPTION_CP_KIT_DELETE_TOOLTIP),
+            func = DeleteSelectedCpKit,
+            isDangerous = true,
+            width = "half",
         },
         CreateInfoHeader(
             GetString(EZOARM_OPTION_ASSIGN),
