@@ -2,6 +2,14 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.5.1
+
+- Automatic names for single armour pieces now include the armour weight, so a
+  light and a medium head of the same set become "Slimecraw - Head (light)" and
+  "Slimecraw - Head (medium)" instead of a numbered pair. The weight also shows
+  in the capture selector, and pieces now store their armour type for the
+  upcoming window tooltips.
+
 ## 0.5.0
 
 - Skill kits: capture both action bars (five abilities plus ultimate each) into

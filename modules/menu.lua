@@ -222,14 +222,32 @@ local function CategoryHint(slots)
     return table.concat(parts, " + ")
 end
 
+local ARMOR_TYPE_STRING = {}
+if ARMORTYPE_LIGHT then ARMOR_TYPE_STRING[ARMORTYPE_LIGHT] = "EZOARM_ARMOR_LIGHT" end
+if ARMORTYPE_MEDIUM then ARMOR_TYPE_STRING[ARMORTYPE_MEDIUM] = "EZOARM_ARMOR_MEDIUM" end
+if ARMORTYPE_HEAVY then ARMOR_TYPE_STRING[ARMORTYPE_HEAVY] = "EZOARM_ARMOR_HEAVY" end
+
+local function ArmorTypeLabel(armorType)
+    local sid = _G[ARMOR_TYPE_STRING[armorType] or ""]
+    if sid then
+        return GetString(sid)
+    end
+    return nil
+end
+
 -- Nombre sugerido al capturar: palabra clave del set mas su ubicacion, para que
 -- dos kits del mismo set en sitios distintos no se confundan. Para una pieza
--- unica se usa el slot exacto (mas claro que la categoria).
-local function BuildKitName(setName, slots)
+-- unica se usa el slot exacto y, si es armadura, su peso (asi una cabeza ligera
+-- y una media del mismo set no acaban con el mismo nombre numerado).
+local function BuildKitName(setName, slots, entry)
     local keyword = EZOArmory.Kits.KeywordFromSetName(setName)
     local hint
     if slots and #slots == 1 then
         hint = SlotLabel(slots[1])
+        local armorLabel = entry and ArmorTypeLabel(entry.armorType)
+        if armorLabel then
+            hint = string.format("%s (%s)", hint, armorLabel)
+        end
     else
         hint = CategoryHint(slots)
     end
@@ -252,6 +270,10 @@ local function GetCaptureChoices()
             label = string.format("%s (%d)", tostring(entry.name), entry.count or 0)
         else
             label = string.format("%s - %s", tostring(entry.name), SlotLabel(entry.slotKey))
+            local armorLabel = ArmorTypeLabel(entry.armorType)
+            if armorLabel then
+                label = string.format("%s (%s)", label, armorLabel)
+            end
         end
 
         -- Los iconos van delante: LAM recorta el texto largo con puntos

@@ -52,6 +52,7 @@ local function CopyPiece(piece)
         itemId = piece.itemId and tostring(piece.itemId) or nil,
         itemName = tostring(piece.itemName or ""),
         icon = tostring(piece.icon or ""),
+        armorType = tonumber(piece.armorType),
         setId = tonumber(piece.setId) or 0,
         setName = tostring(piece.setName or ""),
         maxEquipped = tonumber(piece.maxEquipped) or 0,
@@ -152,6 +153,7 @@ function Kits.CreateKitFromWorn(name, slotKeys, role)
                 itemId = worn.itemId,
                 itemName = worn.itemName,
                 icon = worn.icon,
+                armorType = worn.armorType,
                 setId = worn.setId,
                 setName = worn.setName,
                 maxEquipped = worn.maxEquipped,
@@ -259,7 +261,7 @@ function Kits.CaptureAllSets(role, nameBuilder)
         if entry.kind == "set" or entry.kind == "slot" then
             local base
             if type(nameBuilder) == "function" then
-                local ok, built = pcall(nameBuilder, entry.name, entry.slots)
+                local ok, built = pcall(nameBuilder, entry.name, entry.slots, entry)
                 if ok and built and built ~= "" then
                     base = built
                 end

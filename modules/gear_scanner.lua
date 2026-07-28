@@ -226,6 +226,14 @@ function Gear.DescribeItem(bag, slot)
         return nil
     end
 
+    local armorType = nil
+    if type(GetItemLinkArmorType) == "function" then
+        local okArmor, value = pcall(GetItemLinkArmorType, itemLink)
+        if okArmor and value ~= nil and value ~= ARMORTYPE_NONE then
+            armorType = value
+        end
+    end
+
     local info = ReadSetInfo(itemLink)
     local itemName = ""
     if type(GetItemName) == "function" then
@@ -248,6 +256,7 @@ function Gear.DescribeItem(bag, slot)
         itemLink = itemLink,
         itemName = itemName,
         icon = icon,
+        armorType = armorType,
         setId = info and info.setId or 0,
         setName = info and info.setName or "",
         maxEquipped = info and info.maxEquipped or 0,
@@ -272,6 +281,7 @@ function Gear.ScanWorn()
             itemLink = nil,
             itemName = "",
             icon = "",
+            armorType = nil,
             setId = 0,
             setName = "",
             maxEquipped = 0,
@@ -286,6 +296,7 @@ function Gear.ScanWorn()
                 entry.itemLink = described.itemLink
                 entry.itemName = described.itemName
                 entry.icon = described.icon
+                entry.armorType = described.armorType
                 entry.setId = described.setId
                 entry.setName = described.setName
                 entry.maxEquipped = described.maxEquipped
@@ -453,6 +464,7 @@ function Gear.GetCaptureEntries(scan)
                 name = label,
                 slots = { slotKey },
                 icons = Gear.IconsForSlots(scan, { slotKey }),
+                armorType = entry.armorType,
             }
         end
     end

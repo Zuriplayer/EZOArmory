@@ -47,6 +47,10 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_SLOT_BACKUP_MAIN = "Arma principal (T)",
     EZOARM_SLOT_BACKUP_OFF = "Arma secundaria (T)",
 
+    EZOARM_ARMOR_LIGHT = "ligera",
+    EZOARM_ARMOR_MEDIUM = "media",
+    EZOARM_ARMOR_HEAVY = "pesada",
+
     EZOARM_CAT_ARMOR = "armadura",
     EZOARM_CAT_JEWELRY = "joyeria",
     EZOARM_CAT_WEAPONS_FRONT = "armas",

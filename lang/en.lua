@@ -47,6 +47,10 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_SLOT_BACKUP_MAIN = "Main hand (back)",
     EZOARM_SLOT_BACKUP_OFF = "Off hand (back)",
 
+    EZOARM_ARMOR_LIGHT = "light",
+    EZOARM_ARMOR_MEDIUM = "medium",
+    EZOARM_ARMOR_HEAVY = "heavy",
+
     EZOARM_CAT_ARMOR = "armour",
     EZOARM_CAT_JEWELRY = "jewelry",
     EZOARM_CAT_WEAPONS_FRONT = "weapons",
