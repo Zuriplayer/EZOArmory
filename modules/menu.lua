@@ -429,6 +429,21 @@ local function EquipSelectedKit()
     EquipKitIds({ runtime.selectedKitId })
 end
 
+-- Equipa la asignacion del objetivo seleccionado en el panel (con herencia).
+-- No depende de donde estes: sirve para probar y para forzar una build.
+local function EquipSelectedTarget()
+    local runtime = Runtime()
+    local kitIds = EZOArmory.Kits.GetAssignment(
+        GetActiveRole(), runtime.selectedTrialTag, runtime.selectedTargetKey)
+    if not kitIds or #kitIds == 0 then
+        local trial = EZOArmory.Zones.GetTrialByTag(runtime.selectedTrialTag)
+        Print(zo_strformat(GetString(EZOARM_MSG_EQUIP_NO_ASSIGNMENT),
+            trial and trial.name or tostring(runtime.selectedTrialTag)))
+        return
+    end
+    EquipKitIds(kitIds)
+end
+
 -- Equipa la asignacion aplicable a donde estas ahora mismo, segun el contexto.
 local function EquipForCurrentLocation()
     local role = GetActiveRole()
@@ -855,10 +870,9 @@ local function BuildOptions()
         },
         {
             type = "button",
-            name = GetString(EZOARM_OPTION_ASSIGN_CLEAR),
-            tooltip = GetString(EZOARM_OPTION_ASSIGN_CLEAR_TOOLTIP),
-            func = ClearTarget,
-            isDangerous = true,
+            name = GetString(EZOARM_OPTION_EQUIP_TARGET),
+            tooltip = GetString(EZOARM_OPTION_EQUIP_TARGET_TOOLTIP),
+            func = EquipSelectedTarget,
             width = "half",
         },
         {
@@ -866,6 +880,14 @@ local function BuildOptions()
             name = GetString(EZOARM_OPTION_EQUIP_HERE),
             tooltip = GetString(EZOARM_OPTION_EQUIP_HERE_TOOLTIP),
             func = EquipForCurrentLocation,
+            width = "half",
+        },
+        {
+            type = "button",
+            name = GetString(EZOARM_OPTION_ASSIGN_CLEAR),
+            tooltip = GetString(EZOARM_OPTION_ASSIGN_CLEAR_TOOLTIP),
+            func = ClearTarget,
+            isDangerous = true,
             width = "half",
         },
     }

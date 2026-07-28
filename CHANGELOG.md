@@ -2,6 +2,16 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.4.2
+
+- New "Equip this target's kits" button: equips the build assigned to the trial
+  and target selected in the panel, wherever you are. "Equip for my current
+  location" only works inside a trial (it reads where you actually are), which
+  made it look broken when pressed elsewhere.
+- Together with EZOCore 0.1.20, the settings panel no longer jumps back to the
+  top when adding or removing kits: the scroll position is preserved across the
+  forced rebuild.
+
 ## 0.4.1
 
 - Capturing no longer creates duplicate kits. A capture is compared against

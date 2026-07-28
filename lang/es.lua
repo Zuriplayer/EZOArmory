@@ -94,6 +94,8 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_OPTION_ASSIGN_CLEAR = "Vaciar este objetivo",
     EZOARM_OPTION_ASSIGN_CLEAR_TOOLTIP = "Quita todos los kits de este objetivo para que vuelva a heredar el default de la trial.",
 
+    EZOARM_OPTION_EQUIP_TARGET = "Equipar los kits de este objetivo",
+    EZOARM_OPTION_EQUIP_TARGET_TOOLTIP = "Equipa los kits asignados a la trial y objetivo seleccionados arriba, estes donde estes. Util para probar y para prepararte antes de entrar.",
     EZOARM_OPTION_EQUIP_HERE = "Equipar para mi ubicacion actual",
     EZOARM_OPTION_EQUIP_HERE_TOOLTIP = "Equipa los kits asignados a donde estas ahora: la build del rol activo para el boss actual, o la build de trash, de la trial en la que estas. Espera a estar fuera de combate.",
     EZOARM_MSG_EQUIP_NO_TRIAL = "Ahora mismo no estas en una trial.",
