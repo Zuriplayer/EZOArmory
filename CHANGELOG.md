@@ -2,6 +2,14 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.7.1
+
+- Fix: kit row names with no fixed height or single-line mode would word-wrap
+  and overflow into the row below, since rows sit at fixed positions rather
+  than a chained layout. A long name overlapped the next row's icons and text,
+  making the list look scrambled. Names now use a fixed row height and
+  single-line ellipsis truncation, matching the standard ESO list-row pattern.
+
 ## 0.7.0
 
 - The window now has real content: three category tabs (Gear kits, Skill kits,

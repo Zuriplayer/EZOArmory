@@ -122,6 +122,11 @@ local function CreateRow(parent, index)
     name:SetFont("ZoFontGame")
     name:SetColor(0.92, 0.92, 0.95, 1)
     name:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    -- Una sola linea con "..." si no cabe. Sin esto y sin altura fija, un
+    -- nombre largo hace word-wrap a varias lineas y se desborda fuera de la
+    -- fila (posiciones Y absolutas, no encadenadas), solapando la de abajo.
+    name:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+    name:SetHeight(ROW_HEIGHT)
     name:SetAnchor(LEFT, row, LEFT, 6, 0)
     name:SetAnchor(RIGHT, row, RIGHT, -6, 0)
     name:SetMouseEnabled(true)
