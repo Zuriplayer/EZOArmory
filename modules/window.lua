@@ -138,7 +138,11 @@ function Window.Create()
         w:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
     end
     w:SetHidden(true)
-    w:SetMovable(false)
+    -- Movable de forma permanente, como el patron oficial de ZOS para arrastrar
+    -- una TopLevelControl desde un control hijo (ver performancemeter.xml:
+    -- movable="true" fijo, el hijo solo llama StartMoving/StopMovingOrResizing
+    -- sobre el padre). No se alterna por clic.
+    w:SetMovable(true)
     w:SetMouseEnabled(true)
     w:SetClampedToScreen(true)
 
@@ -152,16 +156,18 @@ function Window.Create()
     Window.header = header
 
     -- Solo se arrastra desde la cabecera, para no mover la ventana al
-    -- interactuar con el contenido.
+    -- interactuar con el contenido. Patron oficial ZOS: el hijo (header) llama
+    -- StartMoving/StopMovingOrResizing sobre el padre (w), que ya es movable de
+    -- forma permanente.
     header:SetMouseEnabled(true)
     header:SetHandler("OnMouseDown", function(_, button)
         if button ~= MOUSE_BUTTON_INDEX_LEFT then return end
-        w:SetMovable(true)
+        if EZOArmory.DebugLog then EZOArmory.DebugLog("Window header mousedown, starting move") end
         w:StartMoving()
     end)
-    header:SetHandler("OnMouseUp", function()
+    header:SetHandler("OnMouseUp", function(_, button)
+        if button ~= MOUSE_BUTTON_INDEX_LEFT then return end
         w:StopMovingOrResizing()
-        w:SetMovable(false)
         Window.SavePosition()
     end)
 

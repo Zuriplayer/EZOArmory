@@ -2,6 +2,15 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.6.1
+
+- Fix: the window could not be dragged. It toggled the window's movable flag on
+  every mouse-down/mouse-up instead of leaving it permanently movable, unlike
+  the pattern ZOS itself uses for a child control dragging its parent
+  (`performancemeter.xml`: `movable="true"` set once, the child only calls
+  `StartMoving`/`StopMovingOrResizing` on the parent). The window is now
+  movable from creation and the header just starts/stops the drag.
+
 ## 0.6.0
 
 - EZOArmory now has its own window, opened with a keybind (bind "Open EZOArmory"
