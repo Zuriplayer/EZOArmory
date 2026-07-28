@@ -87,6 +87,51 @@ end
 
 -- Captura un kit desde el equipo que se lleva puesto ahora mismo.
 -- slotKeys: lista de slots a capturar. Si se omite, captura todos los ocupados.
+-- Identidad de una pieza para comparar kits: la instancia concreta del item.
+-- Con itemId disponible se usa ese; si no, el itemLink como respaldo.
+local function PieceIdentity(piece)
+    if piece == nil then return nil end
+    if piece.itemId and piece.itemId ~= "" then
+        return "id:" .. tostring(piece.itemId)
+    end
+    if piece.itemLink and piece.itemLink ~= "" then
+        return "link:" .. tostring(piece.itemLink)
+    end
+    return nil
+end
+
+-- Dos conjuntos de piezas son el mismo kit si cubren exactamente los mismos
+-- slots y en cada slot esta la misma instancia de item.
+function Kits.PiecesEqual(a, b)
+    a = a or {}
+    b = b or {}
+    for slotKey, piece in pairs(a) do
+        if PieceIdentity(piece) ~= PieceIdentity(b[slotKey]) then
+            return false
+        end
+    end
+    for slotKey in pairs(b) do
+        if a[slotKey] == nil then
+            return false
+        end
+    end
+    return true
+end
+
+-- Busca un kit existente con exactamente las mismas piezas. Devuelve el kit o nil.
+function Kits.FindKitByPieces(pieces)
+    local sv = Store()
+    if not sv then return nil end
+    for _, kit in pairs(sv.kits) do
+        if Kits.PiecesEqual(kit.pieces, pieces) then
+            return kit
+        end
+    end
+    return nil
+end
+
+-- Crea un kit desde el equipo puesto. Si ya existe un kit con exactamente las
+-- mismas piezas, NO crea un duplicado: devuelve (nil, kitExistente, "duplicate").
 function Kits.CreateKitFromWorn(name, slotKeys, role)
     if not (EZOArmory.Gear and EZOArmory.Gear.ScanWorn) then
         return nil
@@ -113,6 +158,11 @@ function Kits.CreateKitFromWorn(name, slotKeys, role)
                 twoHand = worn.twoHand,
             }
         end
+    end
+
+    local existing = Kits.FindKitByPieces(pieces)
+    if existing and next(pieces) ~= nil then
+        return nil, existing, "duplicate"
     end
 
     return Kits.CreateKit(name, pieces, role)

@@ -2,6 +2,15 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.4.1
+
+- Capturing no longer creates duplicate kits. A capture is compared against
+  existing kits by real content — the exact item instances in the exact slots —
+  and if an identical kit exists nothing is created: single capture tells you
+  which kit already holds those pieces (and selects it), and capture-everything
+  counts it as skipped. Kits with the same name but genuinely different pieces
+  are still allowed and numbered.
+
 ## 0.4.0
 
 - Automatic role detection: the active profile (damage, tank or healer) now

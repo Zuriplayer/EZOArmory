@@ -56,7 +56,7 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_OPTION_KIT_CAPTURE_TOOLTIP = "Crea un kit con las piezas que llevas ahora mismo, limitado a la seleccion de arriba.",
 
     EZOARM_OPTION_KIT_CAPTURE_ALL = "Capturar todo lo puesto como kits",
-    EZOARM_OPTION_KIT_CAPTURE_ALL_TOOLTIP = "Crea de una vez kits con todo lo que llevas puesto: uno por cada set de varias piezas, y ademas uno por cada pieza suelta (miticos, armas sin set, o una sola pieza de un set como una cabeza de Slimecraw). Cada kit se nombra con su palabra clave mas donde va, por ejemplo \"Null Arca - armadura\" o \"Slimecraw - Cabeza\", asi el mismo set en sitios distintos no se confunde. El nombre completo se conserva dentro del kit y los nombres repetidos se numeran en vez de saltarse.",
+    EZOARM_OPTION_KIT_CAPTURE_ALL_TOOLTIP = "Crea de una vez kits con todo lo que llevas puesto: uno por cada set de varias piezas, y ademas uno por cada pieza suelta (miticos, armas sin set, o una sola pieza de un set como una cabeza de Slimecraw). Cada kit se nombra con su palabra clave mas donde va, por ejemplo \"Null Arca - armadura\" o \"Slimecraw - Cabeza\". Un kit solo se salta cuando ya existe otro con exactamente las mismas piezas, asi repetir la captura nunca crea duplicados; un kit con el mismo nombre pero piezas distintas se numera.",
     EZOARM_MSG_KITS_CAPTURED_ALL = "Creados <<1>> kits, saltados <<2>>.",
 
     EZOARM_OPTION_KIT_LIST = "Kits guardados",
@@ -106,6 +106,7 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_MSG_KIT_NEED_NAME = "Ponle antes un nombre al kit.",
     EZOARM_MSG_KIT_NO_PIECES = "No se ha capturado nada. Comprueba que llevas puestos los slots seleccionados.",
     EZOARM_MSG_KIT_CREATED = "Kit creado: <<1>> (<<2>> piezas).",
+    EZOARM_MSG_KIT_DUPLICATE = "No se ha creado: el kit <<1>> ya contiene exactamente estas piezas.",
     EZOARM_MSG_KIT_DELETED = "Kit eliminado: <<1>>.",
     EZOARM_MSG_KIT_NONE_SELECTED = "No hay ningun kit seleccionado.",
     EZOARM_MSG_BAR_FRONT = "Barra frontal",

@@ -56,7 +56,7 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_OPTION_KIT_CAPTURE_TOOLTIP = "Create a kit from the pieces you are wearing right now, limited to the selection above.",
 
     EZOARM_OPTION_KIT_CAPTURE_ALL = "Capture everything worn as kits",
-    EZOARM_OPTION_KIT_CAPTURE_ALL_TOOLTIP = "Create kits from everything you are wearing in a single step: one per multi-piece set, plus one for each loose piece (mythics, setless weapons, or a single piece of a set such as a Slimecraw head). Each kit is named after its key word plus where it sits, for example \"Null Arca - armour\" or \"Slimecraw - Head\", so the same set used in different slots stays distinct. The full name is kept inside the kit and repeated names are numbered rather than skipped.",
+    EZOARM_OPTION_KIT_CAPTURE_ALL_TOOLTIP = "Create kits from everything you are wearing in a single step: one per multi-piece set, plus one for each loose piece (mythics, setless weapons, or a single piece of a set such as a Slimecraw head). Each kit is named after its key word plus where it sits, for example \"Null Arca - armour\" or \"Slimecraw - Head\". A kit is only skipped when an existing kit already holds exactly the same pieces, so re-running never creates duplicates; a same-named kit with different pieces gets a number instead.",
     EZOARM_MSG_KITS_CAPTURED_ALL = "Created <<1>> kits, skipped <<2>>.",
 
     EZOARM_OPTION_KIT_LIST = "Saved kits",
@@ -106,6 +106,7 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_MSG_KIT_NEED_NAME = "Give the kit a name first.",
     EZOARM_MSG_KIT_NO_PIECES = "Nothing captured. Check that you are wearing the selected slots.",
     EZOARM_MSG_KIT_CREATED = "Kit created: <<1>> (<<2>> pieces).",
+    EZOARM_MSG_KIT_DUPLICATE = "Not created: the kit <<1>> already holds exactly these pieces.",
     EZOARM_MSG_KIT_DELETED = "Kit deleted: <<1>>.",
     EZOARM_MSG_KIT_NONE_SELECTED = "No kit selected.",
     EZOARM_MSG_BAR_FRONT = "Front bar",

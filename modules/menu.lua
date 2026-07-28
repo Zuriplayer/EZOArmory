@@ -349,7 +349,13 @@ local function CaptureKit()
     end
 
     local slots = EZOArmory.Gear.ResolveCaptureSlots(runtime.capturePreset)
-    local id, kit = EZOArmory.Kits.CreateKitFromWorn(name, slots, nil)
+    local id, kit, reason = EZOArmory.Kits.CreateKitFromWorn(name, slots, nil)
+    if reason == "duplicate" and kit then
+        -- Mismas piezas exactas que un kit existente: no se crea otro.
+        runtime.selectedKitId = kit.id
+        Print(zo_strformat(GetString(EZOARM_MSG_KIT_DUPLICATE), tostring(kit.name)))
+        return
+    end
     if not id or not kit then
         Print(GetString(EZOARM_MSG_KIT_NO_PIECES))
         return
