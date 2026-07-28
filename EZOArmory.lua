@@ -40,6 +40,28 @@ function EZOA.GetClientLanguage()
     return GetClientLanguage()
 end
 
+-- Rol seleccionado en el buscador de grupo del jugador, traducido a los roles
+-- del addon. Devuelve "tank", "healer", "dd" o nil si no se puede detectar.
+function EZOA.GetDetectedRole()
+    if type(GetSelectedLFGRole) ~= "function" then
+        return nil
+    end
+    local ok, role = pcall(GetSelectedLFGRole)
+    if not ok then
+        return nil
+    end
+    if role == LFG_ROLE_TANK then
+        return "tank"
+    end
+    if role == LFG_ROLE_HEAL then
+        return "healer"
+    end
+    if role == LFG_ROLE_DPS then
+        return "dd"
+    end
+    return nil
+end
+
 function EZOA.IsLanguageManagedByEZOCore()
     if not (EZOCore and type(EZOCore.IsLanguageGloballyManaged) == "function") then
         return false

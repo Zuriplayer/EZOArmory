@@ -45,6 +45,8 @@ local function Runtime()
         end
     end
     runtime.selectedTargetKey = runtime.selectedTargetKey or "default"
+    -- Kit elegido en el selector propio de la seccion Asignaciones.
+    runtime.assignKitId = runtime.assignKitId or nil
     return runtime
 end
 
@@ -106,7 +108,21 @@ local function GetRoleChoices()
     return labels, values
 end
 
+local function IsRoleAuto()
+    return EZOArmory.sv
+        and EZOArmory.sv.general
+        and EZOArmory.sv.general.roleMode ~= "manual"
+end
+
+-- Rol activo: en modo automatico, el rol elegido en el buscador de grupo del
+-- juego; si no se puede detectar (o en modo manual), el seleccionado en panel.
 local function GetActiveRole()
+    if IsRoleAuto() then
+        local detected = EZOArmory.GetDetectedRole and EZOArmory.GetDetectedRole()
+        if detected then
+            return detected
+        end
+    end
     if EZOArmory.sv and EZOArmory.sv.general and EZOArmory.sv.general.role then
         return EZOArmory.sv.general.role
     end
@@ -253,6 +269,17 @@ end
 
 -- ------------------------------------------------------- Listado de kits ---
 
+-- Etiqueta estandar de un kit: iconos de sus piezas + nombre + numero de piezas.
+local function KitLabel(kit)
+    local label = string.format(
+        "%s (%d)", tostring(kit.name), EZOArmory.Kits.CountPieces(kit))
+    local icons = IconStrip(EZOArmory.Kits.GetKitIcons(kit))
+    if icons ~= "" then
+        label = icons .. " " .. label
+    end
+    return label
+end
+
 local kitChoices, kitChoiceValues = {}, {}
 
 local function RefreshKitChoices()
@@ -260,13 +287,7 @@ local function RefreshKitChoices()
     for index = #kitChoiceValues, 1, -1 do kitChoiceValues[index] = nil end
 
     for _, kit in ipairs(EZOArmory.Kits.ListKits()) do
-        local label = string.format(
-            "%s (%d)", tostring(kit.name), EZOArmory.Kits.CountPieces(kit))
-        local icons = IconStrip(EZOArmory.Kits.GetKitIcons(kit))
-        if icons ~= "" then
-            label = icons .. " " .. label
-        end
-        kitChoices[#kitChoices + 1] = label
+        kitChoices[#kitChoices + 1] = KitLabel(kit)
         kitChoiceValues[#kitChoiceValues + 1] = kit.id
     end
 
@@ -433,47 +454,71 @@ local function CurrentTargetKitIds()
         GetActiveRole(), runtime.selectedTrialTag, runtime.selectedTargetKey)
 end
 
--- Resumen legible de los kits del objetivo actual, para mostrarlo en el panel.
+local function IsKitOnCurrentTarget(kitId)
+    for _, id in ipairs(CurrentTargetKitIds()) do
+        if id == kitId then
+            return true
+        end
+    end
+    return false
+end
+
+-- Resumen del objetivo actual: una linea por kit con sus iconos, para ver de un
+-- vistazo que aporta cada kit a la build.
 local function CurrentTargetSummary()
     local ids = CurrentTargetKitIds()
     if #ids == 0 then
         return GetString(EZOARM_MSG_ASSIGN_EMPTY)
     end
-    local names = {}
+    local lines = {}
     for _, id in ipairs(ids) do
         local kit = EZOArmory.Kits.GetKit(id)
         if kit then
-            names[#names + 1] = tostring(kit.name)
+            lines[#lines + 1] = KitLabel(kit)
         end
     end
-    return table.concat(names, ", ")
+    return table.concat(lines, "\n")
 end
 
-local function AddSelectedKitToTarget()
+-- Choices del selector de kits de la seccion Asignaciones: iconos + nombre, y
+-- una marca delante en los que ya estan asignados al objetivo actual (LAM no
+-- permite deshabilitar entradas sueltas de un desplegable).
+local function GetAssignKitChoices()
+    local labels, values = {}, {}
+    for _, kit in ipairs(EZOArmory.Kits.ListKits()) do
+        local label = KitLabel(kit)
+        if IsKitOnCurrentTarget(kit.id) then
+            label = GetString(EZOARM_ASSIGNED_MARK) .. " " .. label
+        end
+        labels[#labels + 1] = label
+        values[#values + 1] = kit.id
+    end
+    return labels, values
+end
+
+local function AddAssignKitToTarget()
     local runtime = Runtime()
-    if not EZOArmory.Kits.GetKit(runtime.selectedKitId) then
+    if not EZOArmory.Kits.GetKit(runtime.assignKitId) then
         Print(GetString(EZOARM_MSG_KIT_NONE_SELECTED))
         return
     end
-    local ids = CurrentTargetKitIds()
-    for _, id in ipairs(ids) do
-        if id == runtime.selectedKitId then
-            return -- ya esta
-        end
+    if IsKitOnCurrentTarget(runtime.assignKitId) then
+        return -- ya esta
     end
-    ids[#ids + 1] = runtime.selectedKitId
+    local ids = CurrentTargetKitIds()
+    ids[#ids + 1] = runtime.assignKitId
     EZOArmory.Kits.SetAssignment(
         GetActiveRole(), runtime.selectedTrialTag, runtime.selectedTargetKey, ids)
     ForcePanelRebuild()
 end
 
-local function RemoveSelectedKitFromTarget()
+local function RemoveAssignKitFromTarget()
     local runtime = Runtime()
-    if not runtime.selectedKitId then return end
+    if not runtime.assignKitId then return end
     local ids = CurrentTargetKitIds()
     local kept = {}
     for _, id in ipairs(ids) do
-        if id ~= runtime.selectedKitId then
+        if id ~= runtime.assignKitId then
             kept[#kept + 1] = id
         end
     end
@@ -569,6 +614,7 @@ local function BuildOptions()
     local presetLabels, presetValues = GetCaptureChoices()
     local trialLabels, trialValues = GetTrialChoices()
     local targetLabels, targetValues = GetTargetChoices(Runtime().selectedTrialTag)
+    local assignKitLabels, assignKitValues = GetAssignKitChoices()
     RefreshKitChoices()
 
     -- Secciones planas (header + controles). No se usan submenus colapsables:
@@ -616,6 +662,20 @@ local function BuildOptions()
             GetString(EZOARM_OPTION_KITS_HEADER_TOOLTIP)
         ),
         {
+            type = "checkbox",
+            name = GetString(EZOARM_OPTION_ROLE_AUTO),
+            tooltip = GetString(EZOARM_OPTION_ROLE_AUTO_TOOLTIP),
+            getFunc = IsRoleAuto,
+            setFunc = function(value)
+                if EZOArmory.sv and EZOArmory.sv.general then
+                    EZOArmory.sv.general.roleMode = (value == true) and "auto" or "manual"
+                end
+                ForcePanelRebuild()
+            end,
+            default = true,
+            width = "half",
+        },
+        {
             type = "dropdown",
             name = GetString(EZOARM_OPTION_ROLE),
             tooltip = GetString(EZOARM_OPTION_ROLE_TOOLTIP),
@@ -629,7 +689,9 @@ local function BuildOptions()
                 -- Las asignaciones son por rol: reconstruye para reflejarlas.
                 ForcePanelRebuild()
             end,
+            disabled = IsRoleAuto,
             default = "dd",
+            width = "half",
         },
         {
             type = "editbox",
@@ -754,23 +816,36 @@ local function BuildOptions()
             end,
         },
         {
-            type = "description",
-            title = GetString(EZOARM_OPTION_ASSIGN_CURRENT),
-            text = CurrentTargetSummary(),
+            type = "dropdown",
+            name = GetString(EZOARM_OPTION_ASSIGN_PICK),
+            tooltip = GetString(EZOARM_OPTION_ASSIGN_PICK_TOOLTIP),
+            choices = assignKitLabels,
+            choicesValues = assignKitValues,
+            getFunc = function()
+                return Runtime().assignKitId
+            end,
+            setFunc = function(value)
+                Runtime().assignKitId = value
+            end,
         },
         {
             type = "button",
             name = GetString(EZOARM_OPTION_ASSIGN_ADD),
             tooltip = GetString(EZOARM_OPTION_ASSIGN_ADD_TOOLTIP),
-            func = AddSelectedKitToTarget,
+            func = AddAssignKitToTarget,
             width = "half",
         },
         {
             type = "button",
             name = GetString(EZOARM_OPTION_ASSIGN_REMOVE),
             tooltip = GetString(EZOARM_OPTION_ASSIGN_REMOVE_TOOLTIP),
-            func = RemoveSelectedKitFromTarget,
+            func = RemoveAssignKitFromTarget,
             width = "half",
+        },
+        {
+            type = "description",
+            title = GetString(EZOARM_OPTION_ASSIGN_CURRENT),
+            text = CurrentTargetSummary(),
         },
         {
             type = "button",
@@ -785,7 +860,7 @@ local function BuildOptions()
             name = GetString(EZOARM_OPTION_EQUIP_HERE),
             tooltip = GetString(EZOARM_OPTION_EQUIP_HERE_TOOLTIP),
             func = EquipForCurrentLocation,
-            width = "full",
+            width = "half",
         },
     }
 end

@@ -2,6 +2,19 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.4.0
+
+- Automatic role detection: the active profile (damage, tank or healer) now
+  follows the role selected in the game's group finder, so each role keeps its
+  own assignment space without manual switching. A checkbox turns this off to
+  pick the role by hand.
+- Assignments reworked to the sketched layout: the section now has its own kit
+  selector (with the piece icons), Add/Remove buttons next to it, and the kits
+  assigned to the target listed below, one per line with their icons, so you can
+  see what each kit contributes. Kits already assigned to the current target are
+  marked with a green + in the selector, since dropdown entries cannot be
+  disabled individually in LibAddonMenu.
+
 ## 0.3.2
 
 - Fix: adding a kit to a target did nothing visible. The panel options were

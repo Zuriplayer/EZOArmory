@@ -9,6 +9,9 @@ function EZOArmory.savedVars.Init()
             debugMode = false,
             unlockHud = false,
             role = "dd",
+            -- auto: el rol activo se detecta del rol elegido en el buscador de
+            -- grupo; manual: se usa el seleccionado en el panel.
+            roleMode = "auto",
         },
         -- Kits de piezas concretas (piedra angular), comunes al personaje.
         -- Esquema completo en modules/kits.lua.
@@ -40,6 +43,9 @@ function EZOArmory.savedVars.Init()
     EZOArmory.sv.general.debugMode = EZOArmory.sv.general.debugMode or defaults.general.debugMode
     EZOArmory.sv.general.unlockHud = false
     EZOArmory.sv.general.role = EZOArmory.sv.general.role or defaults.general.role
+    if EZOArmory.sv.general.roleMode ~= "manual" then
+        EZOArmory.sv.general.roleMode = "auto"
+    end
 
     EZOArmory.sv.kits = EZOArmory.sv.kits or defaults.kits
     EZOArmory.sv.profiles = EZOArmory.sv.profiles or defaults.profiles
