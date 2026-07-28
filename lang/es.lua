@@ -1,4 +1,13 @@
 EZOARMORY_STRINGS_ES = {
+    -- -------------------------------------------------------------------------
+    -- Categoria y nombres de keybind (pantalla de Controles).
+    -- Deben definirse aqui, no en Bindings.xml: ESO resuelve estos SI_* desde
+    -- las cadenas registradas por el addon (ZO_CreateStringId/SafeAddString).
+    -- Sin ellas la categoria no aparece en Controles.
+    -- -------------------------------------------------------------------------
+    SI_BINDING_CATEGORY_EZOARMORY = "E|cB040FFZ|rOArmory",
+    SI_BINDING_NAME_EZOARMORY_TOGGLE_WINDOW = "Abrir EZOArmory",
+
     EZOARM_MSG_INIT = "EZOArmory cargado. Escribe /ezoarmory para abrir la ventana.",
 
     EZOARM_WINDOW_CONTEXT_NONE = "Fuera de trial",

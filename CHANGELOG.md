@@ -2,6 +2,17 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.6.2
+
+- Fix: the "EZOArmory" keybind category never appeared in Controls. The action
+  name `EZOARMORY_TOGGLE_WINDOW` needs a matching global string
+  `SI_BINDING_NAME_EZOARMORY_TOGGLE_WINDOW` registered by the addon (the same
+  way `Open Command Panel` is registered for EZOTools) for the client to render
+  its keybind row; `Bindings.xml` alone declaring the action is not enough. That
+  string, plus the category color string, now live in the localization tables
+  and are applied through the normal language init, matching the family
+  pattern exactly.
+
 ## 0.6.1
 
 - Fix: the window could not be dragged. It toggled the window's movable flag on
