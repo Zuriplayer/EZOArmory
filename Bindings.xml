@@ -1,0 +1,9 @@
+<Bindings>
+  <String id="SI_BINDING_CATEGORY_EZOARMORY" value="EZOArmory" />
+  <String id="SI_BINDING_NAME_EZOARMORY_TOGGLE_WINDOW" value="Open EZOArmory" />
+  <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+    <Category name="E|cB040FFZ|rOArmory">
+      <Action name="EZOARMORY_TOGGLE_WINDOW"><Down>EZOArmory_ToggleWindow()</Down></Action>
+    </Category>
+  </Layer>
+</Bindings>

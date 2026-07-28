@@ -2,6 +2,18 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.6.0
+
+- EZOArmory now has its own window, opened with a keybind (bind "Open EZOArmory"
+  under Controls) or with `/ezoarmory`. It is movable by its header, remembers
+  its position, and shows the trial and boss you are in, live.
+- This is the frame the interface will be built on: kit lists, the twelve-slot
+  grid with coherence colours, per-boss assignments for gear, skill and CP kits,
+  and hover tooltips. The settings panel keeps working as before meanwhile.
+- The window follows the family HUD rule (visible only in the hud and hudui
+  scenes) and is deliberately not registered with `family.layout`, which is for
+  free-position HUD surfaces rather than management windows.
+
 ## 0.5.1
 
 - Automatic names for single armour pieces now include the armour weight, so a

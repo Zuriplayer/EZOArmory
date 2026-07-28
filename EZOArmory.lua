@@ -219,6 +219,14 @@ function EZOA:Initialize()
         EZOArmory_Menu.Init()
     end
 
+    if EZOA.Window and EZOA.Window.Init then
+        EZOA.Window.Init()
+    end
+
+    SLASH_COMMANDS["/ezoarmory"] = function()
+        EZOArmory_ToggleWindow()
+    end
+
     Print(GetString(EZOARM_MSG_INIT))
 end
 

@@ -34,7 +34,9 @@ full gear snapshot for every boss:
   captures with the same stars count as the same kit.
 - **One-step capture** of everything: gear sets, loose pieces, skill bars and
   Champion stars, each into its own section, never duplicating an existing kit.
-- **Configurable pop-up window** (HUD) showing the current context and warnings.
+- **Its own window**, opened with a keybind or `/ezoarmory`, showing the current
+  trial and boss. It is being built to hold the kit lists, the twelve-slot grid
+  with coherence colours, the per-boss assignments and hover tooltips.
 
 Gear pieces must be in your backpack: moving items out of the bank requires
 direct player interaction and cannot be automated. Skills and Champion Points can

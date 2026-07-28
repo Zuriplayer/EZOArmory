@@ -1,5 +1,8 @@
 EZOARMORY_STRINGS_ES = {
-    EZOARM_MSG_INIT = "EZOArmory cargado.",
+    EZOARM_MSG_INIT = "EZOArmory cargado. Escribe /ezoarmory para abrir la ventana.",
+
+    EZOARM_WINDOW_CONTEXT_NONE = "Fuera de trial",
+    EZOARM_WINDOW_PLACEHOLDER = "Aqui se estan construyendo las listas de kits, la rejilla de doce slots y las asignaciones por boss.\n\nDe momento usa Ajustes > EZO > EZOArmory.",
 
     EZOARM_OPTION_GENERAL = "General",
     EZOARM_OPTION_GENERAL_HEADER_TOOLTIP = "Opciones basicas de EZOArmory: idioma y diagnostico.",

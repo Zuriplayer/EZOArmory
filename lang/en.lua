@@ -1,5 +1,8 @@
 EZOARMORY_STRINGS_EN = {
-    EZOARM_MSG_INIT = "EZOArmory loaded.",
+    EZOARM_MSG_INIT = "EZOArmory loaded. Type /ezoarmory to open the window.",
+
+    EZOARM_WINDOW_CONTEXT_NONE = "Not in a trial",
+    EZOARM_WINDOW_PLACEHOLDER = "The kit lists, the twelve-slot grid and the per-boss assignments are being built here.\n\nFor now use Settings > EZO > EZOArmory.",
 
     EZOARM_OPTION_GENERAL = "General",
     EZOARM_OPTION_GENERAL_HEADER_TOOLTIP = "Core EZOArmory options: language and diagnostics.",

@@ -37,7 +37,10 @@ guardar una foto completa del equipo para cada boss:
 - **Captura en un paso** de todo: sets de equipo, piezas sueltas, barras de
   habilidades y estrellas de Campeon, cada cosa en su seccion, sin duplicar
   nunca un kit existente.
-- **Ventana emergente configurable** (HUD) con el contexto actual y los avisos.
+- **Ventana propia**, que se abre con una tecla o con `/ezoarmory`, y muestra la
+  trial y el boss actuales. Se esta construyendo para alojar las listas de kits,
+  la rejilla de doce slots con colores de coherencia, las asignaciones por boss y
+  los tooltips al pasar el cursor.
 
 Las piezas deben estar en la mochila: sacar items del banco requiere
 interaccion directa del jugador y no se puede automatizar. Las habilidades y los
