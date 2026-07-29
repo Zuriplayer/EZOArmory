@@ -91,11 +91,22 @@ end
 -- ------------------------------------------------------------- Filas ----
 
 -- Crea una fila reutilizable: fondo de seleccion, tira de iconos y nombre.
-local function CreateRow(parent, index)
+--
+-- widthAnchor es el ZO_ScrollContainer EXTERNO, no el ScrollChild que aloja la
+-- fila. Confirmado contra la plantilla oficial de ZOS
+-- (esoui/libraries/zo_templates/scrolltemplates.xml): el ScrollChild solo
+-- lleva un ancla TOPLEFT y "resizeToFitDescendents=true", asi que su ancho se
+-- autoajusta al de SUS hijos en vez de estirarse al contenedor. Anclar el
+-- ancho de la fila a el mismo (su propio padre) crea un ciclo que colapsa al
+-- ancho minimo del contenido -- exactamente el truncado que se veia. El
+-- contenedor externo si tiene anclas TOPLEFT/BOTTOMRIGHT propias y un ancho
+-- deterministico, asi que el ancho de la fila se toma de ahi.
+local function CreateRow(parent, index, widthAnchor)
     local row = WM:CreateControl("EZOArmoryKitRow" .. index, parent, CT_CONTROL)
-    row:SetDimensions(1, ROW_HEIGHT)
+    row:SetHeight(ROW_HEIGHT)
     row:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, (index - 1) * (ROW_HEIGHT + ROW_SPACING))
-    row:SetAnchor(TOPRIGHT, parent, TOPRIGHT, 0, (index - 1) * (ROW_HEIGHT + ROW_SPACING))
+    local scrollbarWidth = (type(ZO_SCROLL_BAR_WIDTH) == "number" and ZO_SCROLL_BAR_WIDTH or 16) + 8
+    row:SetAnchor(TOPRIGHT, widthAnchor, TOPRIGHT, -scrollbarWidth, (index - 1) * (ROW_HEIGHT + ROW_SPACING))
 
     local bg = WM:CreateControl(nil, row, CT_BACKDROP)
     bg:SetAnchorFill(row)
@@ -144,11 +155,11 @@ local function CreateRow(parent, index)
     return row
 end
 
-local function EnsureRows(parent)
+local function EnsureRows(parent, widthAnchor)
     WK.rows = WK.rows or {}
     if #WK.rows > 0 then return WK.rows end
     for i = 1, MAX_ROWS do
-        WK.rows[i] = CreateRow(parent, i)
+        WK.rows[i] = CreateRow(parent, i, widthAnchor)
     end
     return WK.rows
 end
@@ -228,10 +239,18 @@ local function FillGearRow(row, kit)
     row.nameLabel:SetHandler("OnMouseExit", HideTextSummary)
 end
 
--- Rellena una fila para un kit de habilidades: icono de arma por barra + resumen.
+-- Rellena una fila para un kit de habilidades: icono de arma por barra +
+-- vista previa de habilidades en el propio texto (no solo en el tooltip, para
+-- poder identificar el kit sin tener que pasar el cursor).
 local function FillSkillRow(row, kit)
-    row.nameLabel:SetText(string.format(
-        "%s (%d)", tostring(kit.name), EZOArmory.Skills.CountAbilities(kit)))
+    local frontNames = EZOArmory.Skills.GetBarAbilityNames(kit, EZOArmory.Skills.HOTBAR_FRONT)
+    local backNames = EZOArmory.Skills.GetBarAbilityNames(kit, EZOArmory.Skills.HOTBAR_BACK)
+    local allNames = {}
+    for _, n in ipairs(frontNames) do allNames[#allNames + 1] = n end
+    for _, n in ipairs(backNames) do allNames[#allNames + 1] = n end
+    local preview = table.concat(allNames, ", ")
+
+    row.nameLabel:SetText(string.format("%s: %s", tostring(kit.name), preview))
 
     local index = 0
     local weapons = kit.weapons or {}
@@ -255,8 +274,6 @@ local function FillSkillRow(row, kit)
     end
     row.nameLabel:SetAnchor(RIGHT, row, RIGHT, -6, 0)
 
-    local frontNames = EZOArmory.Skills.GetBarAbilityNames(kit, EZOArmory.Skills.HOTBAR_FRONT)
-    local backNames = EZOArmory.Skills.GetBarAbilityNames(kit, EZOArmory.Skills.HOTBAR_BACK)
     local lines = {
         GetString(EZOARM_MSG_BAR_FRONT) .. ": " .. table.concat(frontNames, ", "),
         GetString(EZOARM_MSG_BAR_BACK) .. ": " .. table.concat(backNames, ", "),
@@ -268,15 +285,17 @@ local function FillSkillRow(row, kit)
 end
 
 -- Rellena una fila para un kit de CP: sin iconos (sin API de icono por
--- estrella verificada), resumen de estrellas en el hover del nombre.
+-- estrella verificada). La vista previa de estrellas va en el propio texto,
+-- no solo en el tooltip, para identificar el kit sin pasar el cursor.
 local function FillCpRow(row, kit)
-    row.nameLabel:SetText(string.format(
-        "%s (%d)", tostring(kit.name), EZOArmory.Champion.CountStars(kit)))
+    local names = EZOArmory.Champion.GetStarNames(kit)
+    local preview = table.concat(names, ", ")
+
+    row.nameLabel:SetText(string.format("%s: %s", tostring(kit.name), preview))
     row.nameLabel:ClearAnchors()
     row.nameLabel:SetAnchor(LEFT, row, LEFT, 6, 0)
     row.nameLabel:SetAnchor(RIGHT, row, RIGHT, -6, 0)
 
-    local names = EZOArmory.Champion.GetStarNames(kit)
     row.nameLabel:SetHandler("OnMouseEnter", function(control)
         ShowTextSummary(control, kit.name, names)
     end)
@@ -503,7 +522,7 @@ function WK.Create(parent)
     listRoot:SetResizeToFitPadding(0, 20)
     WK.listRoot = listRoot
 
-    EnsureRows(listRoot)
+    EnsureRows(listRoot, scrollContainer)
     WK.RefreshTabs()
     WK.Refresh()
 

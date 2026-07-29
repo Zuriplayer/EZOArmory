@@ -2,6 +2,20 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.7.2
+
+- Fix: kit rows were truncated to a handful of characters even for short names
+  ("Slimecraw..." instead of "Slimecraw - Head (1)"). The row width was
+  anchored to the scroll's ScrollChild, whose own width auto-fits to its
+  children per ZOS's official template (resizeToFitDescendents) rather than
+  stretching to the scroll area - anchoring the row's width to it created a
+  circular dependency that collapsed to the content's minimum width. Rows now
+  anchor their width to the scroll container itself, which has a real,
+  deterministic width.
+- Skill and CP kits now show a content preview directly in the row text (the
+  abilities on each bar, or the Champion stars), not only on hover, since they
+  have little or no icon to identify them by at a glance.
+
 ## 0.7.1
 
 - Fix: kit row names with no fixed height or single-line mode would word-wrap
