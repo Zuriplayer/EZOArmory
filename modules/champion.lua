@@ -147,3 +147,33 @@ function Champion.GetStarNames(kit)
     end
     return names
 end
+
+-- Estrellas del kit agrupadas por disciplina/arbol de CP (Guerra, Forma
+-- Fisica, Mundo), en el orden en que aparecen sus primeras estrellas.
+-- Devuelve { { disciplineType, names = { ... } }, ... }.
+function Champion.GetStarsByDiscipline(kit)
+    local groups = {}
+    if type(GetChampionSkillType) ~= "function" or type(GetChampionSkillName) ~= "function" then
+        return groups
+    end
+
+    local byType = {}
+    for slot = Champion.SLOT_FIRST, Champion.SLOT_LAST do
+        local starId = tonumber(kit and kit.stars and kit.stars[slot]) or 0
+        if starId ~= 0 then
+            local okName, name = pcall(GetChampionSkillName, starId)
+            local okType, disciplineType = pcall(GetChampionSkillType, starId)
+            if okName and name and name ~= "" and okType then
+                local group = byType[disciplineType]
+                if not group then
+                    group = { disciplineType = disciplineType, names = {} }
+                    byType[disciplineType] = group
+                    groups[#groups + 1] = group
+                end
+                group.names[#group.names + 1] = zo_strformat("<<C:1>>", name)
+            end
+        end
+    end
+
+    return groups
+end

@@ -2,6 +2,16 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.7.3
+
+- Fix: hovering a skill kit's weapon icon showed the weapon's item tooltip
+  (set, trait...), which is not the point of a skill kit. It now shows that
+  bar's abilities instead, matching what hovering the kit name already showed.
+- CP kit hover now groups the Champion stars by discipline (Warfare, Fitness,
+  Craft), each line colored in that discipline's official colour (the same
+  ZO_CP_BAR_GLOW_COLORS used by the native Champion Points screen), instead of
+  one flat list.
+
 ## 0.7.2
 
 - Fix: kit rows were truncated to a handful of characters even for short names

@@ -88,6 +88,32 @@ local function HideTextSummary()
     end
 end
 
+-- Color oficial del arbol de CP (Guerra/Forma Fisica/Mundo), el mismo que usa
+-- la pantalla nativa de Puntos de Campeon (ZO_CP_BAR_GLOW_COLORS, global del
+-- propio juego indexada por CHAMPION_DISCIPLINE_TYPE_*).
+local function GetDisciplineColor(disciplineType)
+    if type(ZO_CP_BAR_GLOW_COLORS) == "table" then
+        return ZO_CP_BAR_GLOW_COLORS[disciplineType]
+    end
+    return nil
+end
+
+-- Lineas del resumen de un kit de CP: una linea por arbol, con sus estrellas
+-- coloreadas en el color oficial de ese arbol.
+local function BuildCpSummaryLines(kit)
+    local groups = EZOArmory.Champion.GetStarsByDiscipline(kit)
+    local lines = {}
+    for _, group in ipairs(groups) do
+        local text = table.concat(group.names, ", ")
+        local color = GetDisciplineColor(group.disciplineType)
+        if color and type(color.Colorize) == "function" then
+            text = color:Colorize(text)
+        end
+        lines[#lines + 1] = text
+    end
+    return lines
+end
+
 -- ------------------------------------------------------------- Filas ----
 
 -- Crea una fila reutilizable: fondo de seleccion, tira de iconos y nombre.
@@ -182,6 +208,19 @@ local function PlaceItemIcon(row, index, texture, itemId)
     icon:SetHandler("OnMouseExit", HideItemTooltip)
 end
 
+-- Coloca un icono cuyo hover muestra un resumen de texto (no un tooltip de
+-- item). Se usa para el icono de arma de un kit de habilidades: el arma es
+-- solo la referencia visual de la barra, lo relevante al pasar el cursor son
+-- las habilidades de esa barra, no las caracteristicas del arma en si.
+local function PlaceInfoIcon(row, index, texture, title, lines)
+    local icon = row.icons[index]
+    if not icon then return end
+    icon:SetTexture(texture)
+    icon:SetHidden(false)
+    icon:SetHandler("OnMouseEnter", function(control) ShowTextSummary(control, title, lines) end)
+    icon:SetHandler("OnMouseExit", HideTextSummary)
+end
+
 -- ---------------------------------------------------- Datos por categoria ----
 
 local function ListForCategory(category)
@@ -252,17 +291,21 @@ local function FillSkillRow(row, kit)
 
     row.nameLabel:SetText(string.format("%s: %s", tostring(kit.name), preview))
 
+    -- El icono es solo la referencia visual de que arma va en cada barra; su
+    -- hover muestra las habilidades de ESA barra, no el tooltip del arma.
     local index = 0
     local weapons = kit.weapons or {}
     local frontRef = weapons.main
     local backRef = weapons.backupMain
     if frontRef and frontRef.icon and frontRef.icon ~= "" and index < MAX_ROW_ICONS then
         index = index + 1
-        PlaceItemIcon(row, index, frontRef.icon, frontRef.itemId)
+        PlaceInfoIcon(row, index, frontRef.icon, kit.name,
+            { GetString(EZOARM_MSG_BAR_FRONT) .. ": " .. table.concat(frontNames, ", ") })
     end
     if backRef and backRef.icon and backRef.icon ~= "" and index < MAX_ROW_ICONS then
         index = index + 1
-        PlaceItemIcon(row, index, backRef.icon, backRef.itemId)
+        PlaceInfoIcon(row, index, backRef.icon, kit.name,
+            { GetString(EZOARM_MSG_BAR_BACK) .. ": " .. table.concat(backNames, ", ") })
     end
 
     local iconsAnchorAfter = index > 0 and row.icons[index] or nil
@@ -296,8 +339,9 @@ local function FillCpRow(row, kit)
     row.nameLabel:SetAnchor(LEFT, row, LEFT, 6, 0)
     row.nameLabel:SetAnchor(RIGHT, row, RIGHT, -6, 0)
 
+    local coloredLines = BuildCpSummaryLines(kit)
     row.nameLabel:SetHandler("OnMouseEnter", function(control)
-        ShowTextSummary(control, kit.name, names)
+        ShowTextSummary(control, kit.name, coloredLines)
     end)
     row.nameLabel:SetHandler("OnMouseExit", HideTextSummary)
 end
