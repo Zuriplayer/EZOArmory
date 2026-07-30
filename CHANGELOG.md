@@ -2,6 +2,23 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.8.0
+
+- Skill kit rows now show both action bars graphically, weapon plus five
+  abilities plus ultimate each, exactly like the native action bar. Every
+  ability icon has its own real tooltip (AbilityTooltip), same as hovering an
+  ability in your own bar.
+- CP kit rows now show every Champion star as its own text "chip", grouped by
+  discipline (each tree starts on its own line, flowing to further lines if it
+  does not fit) and coloured in that discipline's official colour
+  (ZO_CP_BAR_GLOW_COLORS, the same table the native Champion Points screen
+  uses). Hovering an individual star shows its real ChampionSkillTooltip.
+- Row height is now calculated per row instead of fixed, since a skill kit
+  needs two lines of icons and a CP kit needs as many lines as its stars
+  require to fit - rows no longer waste space or risk overlapping.
+- Gear kit rows moved the name above the icons (previously beside them), to
+  keep the three categories visually consistent.
+
 ## 0.7.3
 
 - Fix: hovering a skill kit's weapon icon showed the weapon's item tooltip

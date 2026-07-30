@@ -201,21 +201,29 @@ function Skills.CountAbilities(kit)
     return count
 end
 
--- Iconos de las habilidades de una barra del kit, en orden de slot.
-function Skills.GetBarAbilityIcons(kit, hotbar)
-    local icons = {}
-    if type(GetAbilityIcon) ~= "function" then return icons end
+-- Habilidades de una barra del kit, en orden de slot, con icono y id listos
+-- para pintar un icono interactivo con su propio tooltip real.
+-- Devuelve { { abilityId, icon, name }, ... }.
+function Skills.GetBarAbilityEntries(kit, hotbar)
+    local entries = {}
     local bar = kit and kit.bars and kit.bars[hotbar] or {}
     for slot = Skills.SLOT_FIRST, Skills.SLOT_LAST do
         local abilityId = tonumber(bar[slot]) or 0
         if abilityId ~= 0 then
-            local ok, icon = pcall(GetAbilityIcon, abilityId)
-            if ok and icon and icon ~= "" then
-                icons[#icons + 1] = icon
+            local icon = ""
+            if type(GetAbilityIcon) == "function" then
+                local okIcon, iconPath = pcall(GetAbilityIcon, abilityId)
+                if okIcon and iconPath then icon = iconPath end
             end
+            local name = ""
+            if type(GetAbilityName) == "function" then
+                local okName, abilityName = pcall(GetAbilityName, abilityId)
+                if okName and abilityName then name = zo_strformat("<<C:1>>", abilityName) end
+            end
+            entries[#entries + 1] = { abilityId = abilityId, icon = icon, name = name }
         end
     end
-    return icons
+    return entries
 end
 
 -- Nombres de las habilidades de una barra, en orden de slot (para el detalle).
