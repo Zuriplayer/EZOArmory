@@ -2,6 +2,26 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.8.4
+
+- Add: new "Assign" tab in the dedicated window, moving trial/boss kit
+  assignment out of the (now frozen) LAM settings panel. Pick a trial and a
+  target (trial default, trash, or a specific boss), see which Gear kits are
+  assigned there for your active role, add or remove kits, clear the target,
+  and equip either that target's kits or whatever applies to your current
+  location - all without touching Settings. Skill and CP kits are still not
+  assignable per target (only equippable standalone); that stays on the
+  roadmap.
+- Native dropdowns for trial/target/kit pickers, built at runtime with
+  WINDOW_MANAGER:CreateControlFromVirtual(name, parent, "ZO_ComboBox") +
+  ZO_ComboBox_ObjectFromContainer (pattern verified against LibScrollableMenu
+  and BanditsUserInterface, since this addon builds its window UI in pure
+  Lua with no XML of its own).
+- Promoted role detection (IsRoleAuto/GetActiveRole) and role display
+  (RoleLabel) from the LAM panel into shared EZOArmory.* functions, since the
+  new Assign tab needed the exact same active-role logic the LAM panel
+  already had; both now call the same code instead of duplicating it.
+
 ## 0.8.3
 
 - Add: rename button for the selected kit in any of the three window tabs

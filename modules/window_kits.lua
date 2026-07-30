@@ -64,11 +64,28 @@ local MAX_ROWS = 26
 local CATEGORY_GEAR = "gear"
 local CATEGORY_SKILLS = "skills"
 local CATEGORY_CP = "cp"
-local CATEGORIES = { CATEGORY_GEAR, CATEGORY_SKILLS, CATEGORY_CP }
+local CATEGORY_ASSIGN = "assign"
+local CATEGORIES = { CATEGORY_GEAR, CATEGORY_SKILLS, CATEGORY_CP, CATEGORY_ASSIGN }
+
+-- Layout de la pestana Assign: bloque superior de altura fija (rol, trial,
+-- objetivo, lista de asignados, selector para anadir) mas una barra de accion
+-- fija abajo. Alturas fijas a proposito (no por contenido, como Gear/Skills/CP)
+-- para evitar los bugs de anclaje variable ya sufridos en esas categorias: la
+-- pestana Assign es un panel corto y de forma estable, no una lista larga.
+local ASSIGN_LABEL_WIDTH = 70
+local ASSIGN_ROW_HEIGHT = 26
+local ASSIGN_ROW_GAP = 6
+local ASSIGN_LIST_ROW_HEIGHT = 20
+local ASSIGN_LIST_ROW_GAP = 3
+local MAX_ASSIGN_ROWS = 4
+local ASSIGN_TARGET_DEFAULT = "default"
 
 WK.state = WK.state or {
     category = CATEGORY_GEAR,
     selectedId = nil,
+    assignTrialTag = nil,
+    assignTargetKey = nil,
+    assignPickKitId = nil,
 }
 
 -- ---------------------------------------------------------- Tooltips ----
@@ -520,10 +537,25 @@ function WK.SelectKit(kitId)
     end
 end
 
+-- Alterna entre la vista de lista (Gear/Skills/CP) y el panel de Assign:
+-- ambas viven en la misma region de "content" y solo una esta visible.
+function WK.RefreshVisibility()
+    local isAssign = WK.state.category == CATEGORY_ASSIGN
+    if WK.countLabel then WK.countLabel:SetHidden(isAssign) end
+    if WK.scrollContainer then WK.scrollContainer:SetHidden(isAssign) end
+    if WK.actionBar then WK.actionBar:SetHidden(isAssign) end
+    if WK.assignRoot then WK.assignRoot:SetHidden(not isAssign) end
+end
+
 function WK.SetCategory(category)
     WK.state.category = category
     WK.state.selectedId = nil
-    WK.Refresh()
+    WK.RefreshVisibility()
+    if category == CATEGORY_ASSIGN then
+        WK.RefreshAssignPanel()
+    else
+        WK.Refresh()
+    end
     if WK.RefreshTabs then
         WK.RefreshTabs()
     end
@@ -663,14 +695,16 @@ local function OnRenameClicked()
     ZO_Dialogs_ShowDialog(RENAME_DIALOG_NAME, nil, { initialEditText = tostring(kit.name or "") })
 end
 
-local function OnEquipClicked()
-    if WK.state.category ~= CATEGORY_GEAR or not WK.state.selectedId then return end
+-- Lanza el equipado de una lista de kitIds y reporta el resultado en chat.
+-- Compartido por el boton Equip de la pestana Gear y por Equip Target/Equip
+-- Here de la pestana Assign (misma logica que EquipKitIds en menu.lua).
+local function EquipKitIds(kitIds)
     if not (EZOArmory.Equip and EZOArmory.Equip.ApplyKits) then return end
 
     EZOArmory.Equip.onQueued = function()
         if EZOArmory.Print then EZOArmory.Print(GetString(EZOARM_MSG_EQUIP_QUEUED)) end
     end
-    EZOArmory.Equip.ApplyKits({ WK.state.selectedId }, function(state)
+    EZOArmory.Equip.ApplyKits(kitIds, function(state)
         if not EZOArmory.Print then return end
         if state.error == "noLibAsync" then
             EZOArmory.Print(GetString(EZOARM_MSG_EQUIP_NO_LIBASYNC))
@@ -682,7 +716,16 @@ local function OnEquipClicked()
         end
         EZOArmory.Print(zo_strformat(
             GetString(EZOARM_MSG_EQUIP_DONE), state.equipped, state.already, state.missing))
+        if state.missing > 0 and state.missingNames and #state.missingNames > 0 then
+            EZOArmory.Print(zo_strformat(
+                GetString(EZOARM_MSG_EQUIP_MISSING), table.concat(state.missingNames, ", ")))
+        end
     end)
+end
+
+local function OnEquipClicked()
+    if WK.state.category ~= CATEGORY_GEAR or not WK.state.selectedId then return end
+    EquipKitIds({ WK.state.selectedId })
 end
 
 -- ------------------------------------------------------------- Pestanas ----
@@ -691,6 +734,7 @@ local TAB_STRING = {
     [CATEGORY_GEAR] = "EZOARM_WINDOW_TAB_GEAR",
     [CATEGORY_SKILLS] = "EZOARM_WINDOW_TAB_SKILLS",
     [CATEGORY_CP] = "EZOARM_WINDOW_TAB_CP",
+    [CATEGORY_ASSIGN] = "EZOARM_WINDOW_TAB_ASSIGN",
 }
 
 function WK.RefreshTabs()
@@ -732,6 +776,350 @@ local function CreateTabs(parent)
     return column
 end
 
+-- ------------------------------------------------------- Asignaciones ----
+--
+-- Pestana Assign: asigna kits de Gear a trial/objetivo, por rol activo. Solo
+-- Gear se puede asignar por ahora (aplicar Skills/CP a un objetivo queda
+-- pendiente, ver docs/concept.md); misma logica de datos que la seccion
+-- Asignaciones del panel LAM (Kits.SetAssignment/GetAssignment/
+-- GetStoredAssignment), sin duplicarla.
+
+local function EnsureAssignState()
+    if WK.state.assignTrialTag == nil then
+        local contextTrial = EZOArmory.Context and EZOArmory.Context.GetTrial and EZOArmory.Context.GetTrial()
+        if contextTrial then
+            WK.state.assignTrialTag = contextTrial.tag
+        elseif EZOArmory.Zones and EZOArmory.Zones.TRIALS[1] then
+            WK.state.assignTrialTag = EZOArmory.Zones.TRIALS[1].tag
+        end
+    end
+    WK.state.assignTargetKey = WK.state.assignTargetKey or ASSIGN_TARGET_DEFAULT
+end
+
+-- Objetivos de una trial: default (fallback), trash, y cada boss/miniboss.
+local function GetAssignTargetChoices(trialTag)
+    local labels = { GetString(EZOARM_TARGET_DEFAULT), GetString(EZOARM_TARGET_TRASH) }
+    local values = { ASSIGN_TARGET_DEFAULT, EZOArmory.Kits.TARGET_TRASH }
+    local trial = EZOArmory.Zones.GetTrialByTag(trialTag)
+    if trial then
+        for _, boss in ipairs(trial.bosses) do
+            labels[#labels + 1] = boss.name
+            values[#values + 1] = boss.key
+        end
+    end
+    return labels, values
+end
+
+-- Kits de Gear ya asignados (sin herencia) al objetivo seleccionado.
+local function CurrentAssignKitIds()
+    return EZOArmory.Kits.GetStoredAssignment(
+        EZOArmory.GetActiveRole(), WK.state.assignTrialTag, WK.state.assignTargetKey)
+end
+
+local function IsKitOnCurrentAssignTarget(kitId)
+    for _, id in ipairs(CurrentAssignKitIds()) do
+        if id == kitId then return true end
+    end
+    return false
+end
+
+-- Rellena un ZO_ComboBox con entradas (label, value) y deja el texto mostrado
+-- en sync con currentValue. onSelect(value) se llama al elegir una entrada.
+-- Patron verificado (LibScrollableMenu, BanditsUserInterface): el combo se
+-- crea con CreateControlFromVirtual "ZO_ComboBox" y su objeto Lua se obtiene
+-- con ZO_ComboBox_ObjectFromContainer.
+local function PopulateCombo(comboControl, labels, values, currentValue, onSelect)
+    local combo = ZO_ComboBox_ObjectFromContainer(comboControl)
+    combo:SetSortsItems(false)
+    combo:ClearItems()
+    local selectedLabel
+    for i, label in ipairs(labels) do
+        local value = values[i]
+        local entry = combo:CreateItemEntry(label, function()
+            onSelect(value)
+        end)
+        combo:AddItem(entry, ZO_COMBOBOX_SUPPRESS_UPDATE)
+        if value == currentValue then
+            selectedLabel = label
+        end
+    end
+    combo:UpdateItems()
+    combo:SetSelectedItemText(selectedLabel or "")
+end
+
+local function PopulateTrialCombo()
+    local labels, values = {}, {}
+    for _, trial in ipairs(EZOArmory.Zones.TRIALS) do
+        labels[#labels + 1] = trial.name
+        values[#values + 1] = trial.tag
+    end
+    PopulateCombo(WK.assignTrialCombo, labels, values, WK.state.assignTrialTag, function(value)
+        WK.state.assignTrialTag = value
+        WK.state.assignTargetKey = ASSIGN_TARGET_DEFAULT
+        WK.RefreshAssignPanel()
+    end)
+end
+
+local function PopulateTargetCombo()
+    local labels, values = GetAssignTargetChoices(WK.state.assignTrialTag)
+    PopulateCombo(WK.assignTargetCombo, labels, values, WK.state.assignTargetKey, function(value)
+        WK.state.assignTargetKey = value
+        WK.RefreshAssignPanel()
+    end)
+end
+
+-- Selector de Gear kits para anadir al objetivo actual; los ya asignados
+-- llevan la misma marca que en LAM (EZOARM_ASSIGNED_MARK).
+local function PopulatePickCombo()
+    local labels, values = {}, {}
+    for _, kit in ipairs(EZOArmory.Kits.ListKits()) do
+        local label = string.format(
+            "%s (%d)", tostring(kit.name), EZOArmory.Kits.CountPieces(kit))
+        if IsKitOnCurrentAssignTarget(kit.id) then
+            label = GetString(EZOARM_ASSIGNED_MARK) .. " " .. label
+        end
+        labels[#labels + 1] = label
+        values[#values + 1] = kit.id
+    end
+    if WK.state.assignPickKitId == nil or not EZOArmory.Kits.GetKit(WK.state.assignPickKitId) then
+        WK.state.assignPickKitId = values[1]
+    end
+    PopulateCombo(WK.assignPickCombo, labels, values, WK.state.assignPickKitId, function(value)
+        WK.state.assignPickKitId = value
+    end)
+end
+
+-- Lista corta de kits asignados al objetivo actual, con boton de quitar por
+-- fila. Pool de altura FIJA (ver comentario junto a los ASSIGN_* arriba).
+local function RefreshAssignRows()
+    local ids = CurrentAssignKitIds()
+    for i, row in ipairs(WK.assignRows) do
+        local kitId = ids[i]
+        if kitId then
+            local kit = EZOArmory.Kits.GetKit(kitId)
+            row.nameLabel:SetText(kit and string.format(
+                "%s (%d)", tostring(kit.name), EZOArmory.Kits.CountPieces(kit)) or tostring(kitId))
+            row:SetHidden(false)
+            row.removeButton:SetHandler("OnClicked", function()
+                local kept = {}
+                for _, id in ipairs(CurrentAssignKitIds()) do
+                    if id ~= kitId then kept[#kept + 1] = id end
+                end
+                EZOArmory.Kits.SetAssignment(
+                    EZOArmory.GetActiveRole(), WK.state.assignTrialTag, WK.state.assignTargetKey,
+                    #kept > 0 and kept or nil)
+                WK.RefreshAssignPanel()
+            end)
+        else
+            row:SetHidden(true)
+        end
+    end
+    WK.assignEmptyLabel:SetHidden(#ids > 0)
+end
+
+local function OnAssignAddClicked()
+    local kitId = WK.state.assignPickKitId
+    if not kitId or not EZOArmory.Kits.GetKit(kitId) then return end
+    if IsKitOnCurrentAssignTarget(kitId) then return end
+    local ids = CurrentAssignKitIds()
+    ids[#ids + 1] = kitId
+    EZOArmory.Kits.SetAssignment(
+        EZOArmory.GetActiveRole(), WK.state.assignTrialTag, WK.state.assignTargetKey, ids)
+    WK.RefreshAssignPanel()
+end
+
+local function OnAssignClearClicked()
+    EZOArmory.Kits.SetAssignment(
+        EZOArmory.GetActiveRole(), WK.state.assignTrialTag, WK.state.assignTargetKey, nil)
+    WK.RefreshAssignPanel()
+end
+
+-- Equipa la asignacion del objetivo seleccionado en el panel (con herencia).
+-- No depende de donde estes: sirve para probar y para forzar una build.
+local function OnAssignEquipTargetClicked()
+    local kitIds = EZOArmory.Kits.GetAssignment(
+        EZOArmory.GetActiveRole(), WK.state.assignTrialTag, WK.state.assignTargetKey)
+    if not kitIds or #kitIds == 0 then
+        if EZOArmory.Print then
+            local trial = EZOArmory.Zones.GetTrialByTag(WK.state.assignTrialTag)
+            EZOArmory.Print(zo_strformat(GetString(EZOARM_MSG_EQUIP_NO_ASSIGNMENT),
+                trial and trial.name or tostring(WK.state.assignTrialTag)))
+        end
+        return
+    end
+    EquipKitIds(kitIds)
+end
+
+-- Equipa la asignacion aplicable a donde estas ahora mismo, segun el contexto.
+local function OnAssignEquipHereClicked()
+    local role = EZOArmory.GetActiveRole()
+    local context = EZOArmory.Context and EZOArmory.Context.GetState and EZOArmory.Context.GetState()
+    local trial = context and context.trial
+
+    if not trial then
+        if EZOArmory.Print then EZOArmory.Print(GetString(EZOARM_MSG_EQUIP_NO_TRIAL)) end
+        return
+    end
+
+    local targetKey = context.matchedBoss and context.matchedBoss.key or EZOArmory.Kits.TARGET_TRASH
+    local kitIds = EZOArmory.Kits.GetAssignment(role, trial.tag, targetKey)
+    if not kitIds or #kitIds == 0 then
+        if EZOArmory.Print then
+            EZOArmory.Print(zo_strformat(GetString(EZOARM_MSG_EQUIP_NO_ASSIGNMENT), trial.name))
+        end
+        return
+    end
+    EquipKitIds(kitIds)
+end
+
+function WK.RefreshAssignPanel()
+    if not WK.assignRoot then return end
+    EnsureAssignState()
+    if WK.assignRoleLabel then
+        WK.assignRoleLabel:SetText(zo_strformat(
+            GetString(EZOARM_WINDOW_ASSIGN_ROLE), EZOArmory.RoleLabel(EZOArmory.GetActiveRole())))
+    end
+    PopulateTrialCombo()
+    PopulateTargetCombo()
+    RefreshAssignRows()
+    PopulatePickCombo()
+end
+
+-- Fila etiqueta + combo nativo, ancho de ambos lados (mismo truco de anclas
+-- TOPLEFT+TOPRIGHT que las filas de Gear/Skills/CP: fija el ancho, la altura
+-- la da SetHeight). El combo se crea con CreateControlFromVirtual "ZO_ComboBox"
+-- + ZO_ComboBox_ObjectFromContainer, patron verificado (LibScrollableMenu,
+-- BanditsUserInterface) para crear dropdowns nativos sin XML propio.
+local function CreateAssignComboRow(parent, name, labelStringId, y)
+    local label = WM:CreateControl(nil, parent, CT_LABEL)
+    label:SetFont("ZoFontGame")
+    label:SetColor(0.75, 0.75, 0.8, 1)
+    label:SetDimensions(ASSIGN_LABEL_WIDTH, ASSIGN_ROW_HEIGHT)
+    label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    label:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, y)
+    label:SetText(GetString(labelStringId))
+
+    local combo = WM:CreateControlFromVirtual(name, parent, "ZO_ComboBox")
+    combo:SetHeight(ASSIGN_ROW_HEIGHT)
+    combo:SetAnchor(TOPLEFT, label, TOPRIGHT, 8, 0)
+    combo:SetAnchor(TOPRIGHT, parent, TOPRIGHT, 0, y)
+    return combo
+end
+
+-- Construye la pestana Assign completa (bloque fijo + barra de accion fija
+-- abajo) dentro de "content", oculta hasta que se seleccione esa pestana.
+local function CreateAssignPanel(content)
+    local assignRoot = WM:CreateControl(nil, content, CT_CONTROL)
+    assignRoot:SetAnchorFill(content)
+    assignRoot:SetHidden(true)
+    WK.assignRoot = assignRoot
+
+    local roleLabel = WM:CreateControl(nil, assignRoot, CT_LABEL)
+    roleLabel:SetFont("ZoFontGameBold")
+    roleLabel:SetColor(0.85, 0.85, 0.9, 1)
+    roleLabel:SetAnchor(TOPLEFT, assignRoot, TOPLEFT, 0, 0)
+    WK.assignRoleLabel = roleLabel
+
+    local trialY = 24
+    local targetY = trialY + ASSIGN_ROW_HEIGHT + ASSIGN_ROW_GAP
+    WK.assignTrialCombo = CreateAssignComboRow(
+        assignRoot, "EZOArmoryAssignTrialCombo", EZOARM_OPTION_ASSIGN_TRIAL, trialY)
+    WK.assignTargetCombo = CreateAssignComboRow(
+        assignRoot, "EZOArmoryAssignTargetCombo", EZOARM_OPTION_ASSIGN_TARGET, targetY)
+
+    local assignedHeaderY = targetY + ASSIGN_ROW_HEIGHT + 12
+    local assignedHeader = WM:CreateControl(nil, assignRoot, CT_LABEL)
+    assignedHeader:SetFont("ZoFontGameBold")
+    assignedHeader:SetColor(0.85, 0.85, 0.9, 1)
+    assignedHeader:SetAnchor(TOPLEFT, assignRoot, TOPLEFT, 0, assignedHeaderY)
+    assignedHeader:SetText(GetString(EZOARM_OPTION_ASSIGN_CURRENT))
+
+    local assignedListY = assignedHeaderY + 20
+    WK.assignRows = {}
+    for i = 1, MAX_ASSIGN_ROWS do
+        local rowY = assignedListY + (i - 1) * (ASSIGN_LIST_ROW_HEIGHT + ASSIGN_LIST_ROW_GAP)
+        local row = WM:CreateControl(nil, assignRoot, CT_CONTROL)
+        row:SetAnchor(TOPLEFT, assignRoot, TOPLEFT, 0, rowY)
+        row:SetAnchor(TOPRIGHT, assignRoot, TOPRIGHT, 0, rowY)
+        row:SetHeight(ASSIGN_LIST_ROW_HEIGHT)
+        row:SetHidden(true)
+
+        local removeButton = WM:CreateControl(nil, row, CT_BUTTON)
+        removeButton:SetDimensions(18, ASSIGN_LIST_ROW_HEIGHT)
+        removeButton:SetAnchor(TOPRIGHT, row, TOPRIGHT, 0, 0)
+        removeButton:SetFont("ZoFontGameBold")
+        removeButton:SetNormalFontColor(1, 0.55, 0.55, 1)
+        removeButton:SetMouseOverFontColor(1, 0.3, 0.3, 1)
+        removeButton:SetText("x")
+        row.removeButton = removeButton
+
+        local rowName = WM:CreateControl(nil, row, CT_LABEL)
+        rowName:SetFont("ZoFontGame")
+        rowName:SetColor(0.9, 0.9, 0.92, 1)
+        rowName:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+        rowName:SetHeight(ASSIGN_LIST_ROW_HEIGHT)
+        rowName:SetAnchor(TOPLEFT, row, TOPLEFT, 0, 0)
+        rowName:SetAnchor(TOPRIGHT, removeButton, TOPLEFT, -6, 0)
+        row.nameLabel = rowName
+
+        WK.assignRows[i] = row
+    end
+
+    local assignEmptyLabel = WM:CreateControl(nil, assignRoot, CT_LABEL)
+    assignEmptyLabel:SetFont("ZoFontGame")
+    assignEmptyLabel:SetColor(0.6, 0.6, 0.65, 1)
+    assignEmptyLabel:SetAnchor(TOPLEFT, assignRoot, TOPLEFT, 0, assignedListY)
+    assignEmptyLabel:SetText(GetString(EZOARM_MSG_ASSIGN_EMPTY))
+    WK.assignEmptyLabel = assignEmptyLabel
+
+    local pickY = assignedListY + MAX_ASSIGN_ROWS * (ASSIGN_LIST_ROW_HEIGHT + ASSIGN_LIST_ROW_GAP) + 8
+    WK.assignPickCombo = CreateAssignComboRow(
+        assignRoot, "EZOArmoryAssignPickCombo", EZOARM_OPTION_ASSIGN_PICK, pickY)
+
+    local addButton = WM:CreateControl(nil, assignRoot, CT_BUTTON)
+    addButton:SetDimensions(200, 24)
+    addButton:SetAnchor(TOPLEFT, assignRoot, TOPLEFT, ASSIGN_LABEL_WIDTH + 8, pickY + ASSIGN_ROW_HEIGHT + 8)
+    addButton:SetFont("ZoFontGameBold")
+    addButton:SetNormalFontColor(0.6, 1, 0.6, 1)
+    addButton:SetMouseOverFontColor(0.4, 1, 0.4, 1)
+    addButton:SetText(GetString(EZOARM_OPTION_ASSIGN_ADD))
+    addButton:SetHandler("OnClicked", OnAssignAddClicked)
+
+    -- Barra de accion fija abajo (Equip Target / Equip Here / Clear), mismo
+    -- estilo y orden (dangerous a la derecha) que la barra de Gear/Skills/CP.
+    local assignActionBar = WM:CreateControl(nil, assignRoot, CT_CONTROL)
+    assignActionBar:SetDimensions(1, 26)
+    assignActionBar:SetAnchor(BOTTOMLEFT, assignRoot, BOTTOMLEFT, 0, 0)
+    assignActionBar:SetAnchor(BOTTOMRIGHT, assignRoot, BOTTOMRIGHT, 0, 0)
+
+    local clearButton = WM:CreateControl(nil, assignActionBar, CT_BUTTON)
+    clearButton:SetDimensions(160, 24)
+    clearButton:SetAnchor(BOTTOMRIGHT, assignActionBar, BOTTOMRIGHT, 0, 0)
+    clearButton:SetFont("ZoFontGameBold")
+    clearButton:SetNormalFontColor(1, 0.55, 0.55, 1)
+    clearButton:SetMouseOverFontColor(1, 0.3, 0.3, 1)
+    clearButton:SetText(GetString(EZOARM_OPTION_ASSIGN_CLEAR))
+    clearButton:SetHandler("OnClicked", OnAssignClearClicked)
+
+    local equipHereButton = WM:CreateControl(nil, assignActionBar, CT_BUTTON)
+    equipHereButton:SetDimensions(160, 24)
+    equipHereButton:SetAnchor(RIGHT, clearButton, LEFT, -12, 0)
+    equipHereButton:SetFont("ZoFontGameBold")
+    equipHereButton:SetNormalFontColor(0.6, 1, 0.6, 1)
+    equipHereButton:SetMouseOverFontColor(0.4, 1, 0.4, 1)
+    equipHereButton:SetText(GetString(EZOARM_OPTION_EQUIP_HERE))
+    equipHereButton:SetHandler("OnClicked", OnAssignEquipHereClicked)
+
+    local equipTargetButton = WM:CreateControl(nil, assignActionBar, CT_BUTTON)
+    equipTargetButton:SetDimensions(160, 24)
+    equipTargetButton:SetAnchor(RIGHT, equipHereButton, LEFT, -12, 0)
+    equipTargetButton:SetFont("ZoFontGameBold")
+    equipTargetButton:SetNormalFontColor(0.6, 1, 0.6, 1)
+    equipTargetButton:SetMouseOverFontColor(0.4, 1, 0.4, 1)
+    equipTargetButton:SetText(GetString(EZOARM_OPTION_EQUIP_TARGET))
+    equipTargetButton:SetHandler("OnClicked", OnAssignEquipTargetClicked)
+end
+
 -- --------------------------------------------------------------- Panel ----
 
 -- Construye el panel completo dentro de "parent" (Window.body) y lo devuelve.
@@ -761,6 +1149,7 @@ function WK.Create(parent)
     actionBar:SetDimensions(1, 26)
     actionBar:SetAnchor(BOTTOMLEFT, content, BOTTOMLEFT, 0, 0)
     actionBar:SetAnchor(BOTTOMRIGHT, content, BOTTOMRIGHT, 0, 0)
+    WK.actionBar = actionBar
 
     local deleteButton = WM:CreateControl(nil, actionBar, CT_BUTTON)
     deleteButton:SetDimensions(160, 24)
@@ -804,10 +1193,15 @@ function WK.Create(parent)
     local listRoot = scrollContainer:GetNamedChild("ScrollChild")
     listRoot:SetResizeToFitPadding(0, 20)
     WK.listRoot = listRoot
+    WK.scrollContainer = scrollContainer
 
     EnsureRows(listRoot, scrollContainer)
+
+    CreateAssignPanel(content)
+
     WK.RefreshTabs()
     WK.Refresh()
+    WK.RefreshVisibility()
 
     return root
 end

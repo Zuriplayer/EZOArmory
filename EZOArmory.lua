@@ -62,6 +62,45 @@ function EZOA.GetDetectedRole()
     return nil
 end
 
+local ROLE_STRING = {
+    dd = "EZOARM_ROLE_DD",
+    tank = "EZOARM_ROLE_TANK",
+    healer = "EZOARM_ROLE_HEALER",
+}
+
+-- Nombre mostrable de un rol ("dd"/"tank"/"healer"). Compartido por el panel
+-- LAM y la pestana de asignaciones de la ventana propia.
+function EZOA.RoleLabel(role)
+    local stringId = _G[ROLE_STRING[role] or ""]
+    if stringId then
+        return GetString(stringId)
+    end
+    return tostring(role)
+end
+
+function EZOA.IsRoleAuto()
+    return EZOA.sv
+        and EZOA.sv.general
+        and EZOA.sv.general.roleMode ~= "manual"
+end
+
+-- Rol activo: en modo automatico, el rol elegido en el buscador de grupo del
+-- juego; si no se puede detectar (o en modo manual), el guardado en opciones.
+-- Unica fuente de verdad para el rol: la usan tanto el panel LAM como la
+-- pestana de asignaciones de la ventana propia.
+function EZOA.GetActiveRole()
+    if EZOA.IsRoleAuto() then
+        local detected = EZOA.GetDetectedRole()
+        if detected then
+            return detected
+        end
+    end
+    if EZOA.sv and EZOA.sv.general and EZOA.sv.general.role then
+        return EZOA.sv.general.role
+    end
+    return "dd"
+end
+
 function EZOA.IsLanguageManagedByEZOCore()
     if not (EZOCore and type(EZOCore.IsLanguageGloballyManaged) == "function") then
         return false

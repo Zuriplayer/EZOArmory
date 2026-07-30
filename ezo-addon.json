@@ -3,7 +3,7 @@
   "addon": {
     "id": "ezoarmory",
     "name": "EZOArmory",
-    "version": "0.8.3",
+    "version": "0.8.4",
     "stage": "development",
     "status": "development",
     "phase": "internal",
@@ -11,7 +11,7 @@
     "manifest": "EZOArmory.txt",
     "package": {
       "rootFolderName": "EZOArmory",
-      "zipName": "EZOArmory_v0.8.3.zip",
+      "zipName": "EZOArmory_v0.8.4.zip",
       "outputPath": "dist",
       "include": [
         "*.txt",
