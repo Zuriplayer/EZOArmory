@@ -41,18 +41,18 @@ local MAX_ROW_ICONS = 8
 
 local NAME_LINE_HEIGHT = 20
 
-local ABILITY_ICON_SIZE = 24
-local ABILITY_ICON_GAP = 3
+-- Arma y habilidades de un kit de skills comparten tamano, mas grande que el
+-- icono de equipo: son el contenido principal de esa fila (equivalente visual
+-- de la barra de accion nativa), no una referencia secundaria.
+local SKILL_ICON_SIZE = 36
+local SKILL_ICON_GAP = 4
 local ABILITIES_PER_BAR = 6 -- 5 activas + definitiva
-local BAR_LINE_GAP = 4
+local BAR_LINE_GAP = 6
 
 -- Alturas de fila calculadas a partir del contenido real (nombre + icono(s)),
--- con margen inferior. El icono de habilidad (24) es mas pequeno que el de
--- arma/equipo (28), pero comparten linea anclados por el punto LEFT
--- (verticalmente centrado), asi que la altura de cada linea la marca el
--- control mas alto de esa linea (ICON_SIZE).
+-- con margen inferior.
 local GEAR_ROW_HEIGHT = NAME_LINE_HEIGHT + 2 + ICON_SIZE + 8
-local SKILL_ROW_HEIGHT = NAME_LINE_HEIGHT + 2 + (ICON_SIZE * 2) + BAR_LINE_GAP + 8
+local SKILL_ROW_HEIGHT = NAME_LINE_HEIGHT + 2 + (SKILL_ICON_SIZE * 2) + BAR_LINE_GAP + 8
 
 local CP_CHIP_HEIGHT = 20
 local CP_CHIP_PADDING = 14
@@ -209,7 +209,7 @@ local function CreateRow(parent, index, widthAnchor)
     row.weaponIcons = {}
     for i = 1, 2 do
         local icon = WM:CreateControl(nil, row, CT_TEXTURE)
-        icon:SetDimensions(ICON_SIZE, ICON_SIZE)
+        icon:SetDimensions(SKILL_ICON_SIZE, SKILL_ICON_SIZE)
         icon:SetHidden(true)
         icon:SetMouseEnabled(true)
         row.weaponIcons[i] = icon
@@ -219,7 +219,7 @@ local function CreateRow(parent, index, widthAnchor)
     row.abilityIcons = {}
     for i = 1, ABILITIES_PER_BAR * 2 do
         local icon = WM:CreateControl(nil, row, CT_TEXTURE)
-        icon:SetDimensions(ABILITY_ICON_SIZE, ABILITY_ICON_SIZE)
+        icon:SetDimensions(SKILL_ICON_SIZE, SKILL_ICON_SIZE)
         icon:SetHidden(true)
         icon:SetMouseEnabled(true)
         row.abilityIcons[i] = icon
@@ -361,7 +361,7 @@ local function PlaceBarAbilityIcons(row, kit, hotbar, iconOffset, y)
             icon:SetHidden(false)
             icon:ClearAnchors()
             if previousControl then
-                icon:SetAnchor(LEFT, previousControl, RIGHT, ABILITY_ICON_GAP + (i == 1 and 4 or 0), 0)
+                icon:SetAnchor(LEFT, previousControl, RIGHT, SKILL_ICON_GAP + (i == 1 and 6 or 0), 0)
             else
                 icon:SetAnchor(TOPLEFT, row, TOPLEFT, 6, y)
             end
@@ -384,7 +384,7 @@ local function FillSkillRow(row, kit)
 
     local weapons = kit.weapons or {}
     local frontY = NAME_LINE_HEIGHT + 2
-    local backY = frontY + ICON_SIZE + BAR_LINE_GAP
+    local backY = frontY + SKILL_ICON_SIZE + BAR_LINE_GAP
 
     row.weaponIcons[1]:ClearAnchors()
     row.weaponIcons[1]:SetAnchor(TOPLEFT, row, TOPLEFT, 6, frontY)

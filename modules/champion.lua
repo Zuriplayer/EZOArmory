@@ -7,6 +7,17 @@
 --
 -- Solo memorizan y comparan; la aplicacion de CP llega en una fase posterior
 -- (con su cooldown de ~30 s y el principio de aplicar solo la diferencia).
+--
+-- Disciplina (arbol) de una estrella: NO existe una API directa
+-- "championSkillId -> disciplina". GetChampionSkillType(starId) devuelve si la
+-- estrella es pasiva o sloteable, no su arbol (confirmado comparando contra
+-- esoui/ingame/champion/championdatamanager.lua: la disciplina de una estrella
+-- solo se conoce porque el objeto nativo la construye DESDE la disciplina, no
+-- al reves). El propio ZO_ChampionDataManager del juego construye esa relacion
+-- recorriendo cada disciplina y sus estrellas
+-- (GetNumChampionDisciplines/GetChampionDisciplineId/GetChampionDisciplineType/
+-- GetNumChampionDisciplineSkills/GetChampionSkillId); este modulo hace lo mismo
+-- una sola vez y cachea el resultado, ya que la relacion es fija por parche.
 
 EZOArmory = EZOArmory or {}
 EZOArmory.Champion = EZOArmory.Champion or {}
@@ -15,6 +26,49 @@ local Champion = EZOArmory.Champion
 
 Champion.SLOT_FIRST = 1
 Champion.SLOT_LAST = 12
+
+-- Mapa championSkillId -> CHAMPION_DISCIPLINE_TYPE_*, calculado una sola vez.
+local starDisciplineCache = nil
+
+local function BuildStarDisciplineMap()
+    local map = {}
+    if type(GetNumChampionDisciplines) ~= "function"
+        or type(GetChampionDisciplineId) ~= "function"
+        or type(GetChampionDisciplineType) ~= "function"
+        or type(GetNumChampionDisciplineSkills) ~= "function"
+        or type(GetChampionSkillId) ~= "function" then
+        return map
+    end
+
+    local okCount, disciplineCount = pcall(GetNumChampionDisciplines)
+    if not okCount or not disciplineCount then return map end
+
+    for disciplineIndex = 1, disciplineCount do
+        local okId, disciplineId = pcall(GetChampionDisciplineId, disciplineIndex)
+        if okId and disciplineId then
+            local okType, disciplineType = pcall(GetChampionDisciplineType, disciplineId)
+            local okSkillCount, skillCount = pcall(GetNumChampionDisciplineSkills, disciplineIndex)
+            if okType and okSkillCount and skillCount then
+                for skillIndex = 1, skillCount do
+                    local okSkillId, starId = pcall(GetChampionSkillId, disciplineIndex, skillIndex)
+                    if okSkillId and starId then
+                        map[starId] = disciplineType
+                    end
+                end
+            end
+        end
+    end
+
+    return map
+end
+
+-- Disciplina/arbol de una estrella (CHAMPION_DISCIPLINE_TYPE_*), o nil.
+function Champion.GetStarDisciplineType(starId)
+    if not starDisciplineCache then
+        starDisciplineCache = BuildStarDisciplineMap()
+    end
+    return starDisciplineCache[starId]
+end
 
 local function Store()
     local sv = EZOArmory.sv
@@ -153,7 +207,7 @@ end
 -- Devuelve { { disciplineType, stars = { { starId, name }, ... } }, ... }.
 function Champion.GetStarsByDiscipline(kit)
     local groups = {}
-    if type(GetChampionSkillType) ~= "function" or type(GetChampionSkillName) ~= "function" then
+    if type(GetChampionSkillName) ~= "function" then
         return groups
     end
 
@@ -162,8 +216,8 @@ function Champion.GetStarsByDiscipline(kit)
         local starId = tonumber(kit and kit.stars and kit.stars[slot]) or 0
         if starId ~= 0 then
             local okName, name = pcall(GetChampionSkillName, starId)
-            local okType, disciplineType = pcall(GetChampionSkillType, starId)
-            if okName and name and name ~= "" and okType then
+            local disciplineType = Champion.GetStarDisciplineType(starId)
+            if okName and name and name ~= "" then
                 local group = byType[disciplineType]
                 if not group then
                     group = { disciplineType = disciplineType, stars = {} }

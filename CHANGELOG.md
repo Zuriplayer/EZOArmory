@@ -2,6 +2,23 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.8.1
+
+- Fix: CP stars grouped incorrectly (stars from different disciplines mixed
+  into the same coloured line). The cause was using GetChampionSkillType,
+  which returns whether a star is passive or slottable, not its discipline -
+  there is no direct "star to discipline" API. Champion.GetStarDisciplineType
+  now builds the correct mapping once by walking every discipline and its
+  stars (GetNumChampionDisciplines / GetChampionDisciplineId /
+  GetChampionDisciplineType / GetNumChampionDisciplineSkills /
+  GetChampionSkillId), the same way the game's own champion data manager does
+  it, and caches the result.
+- Skill kit icons (weapon and abilities) are noticeably larger (36px, up from
+  24-28) so both bars read clearly at a glance. Fixed a related bug where the
+  back bar's vertical position was computed from the smaller gear icon size
+  instead of the skill icon size, which would have made it overlap the front
+  bar once the icons grew.
+
 ## 0.8.0
 
 - Skill kit rows now show both action bars graphically, weapon plus five
