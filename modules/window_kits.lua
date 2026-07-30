@@ -49,9 +49,10 @@ local SKILL_ICON_GAP = 4
 local ABILITIES_PER_BAR = 6 -- 5 activas + definitiva
 local BAR_LINE_GAP = 6
 
--- Alturas de fila calculadas a partir del contenido real (nombre + icono(s)),
--- con margen inferior.
-local GEAR_ROW_HEIGHT = NAME_LINE_HEIGHT + 2 + ICON_SIZE + 8
+-- Alturas de fila calculadas a partir del contenido real, con margen. Gear va
+-- en una sola linea (icono + nombre al lado), asi que solo necesita el alto
+-- del icono. Skills apila dos lineas de iconos bajo el nombre.
+local GEAR_ROW_HEIGHT = ICON_SIZE + 8
 local SKILL_ROW_HEIGHT = NAME_LINE_HEIGHT + 2 + (SKILL_ICON_SIZE * 2) + BAR_LINE_GAP + 8
 
 local CP_CHIP_HEIGHT = 20
@@ -295,12 +296,11 @@ local function DeleteKit(category, id)
     return EZOArmory.Kits.DeleteKit(id)
 end
 
--- Rellena una fila de equipo: nombre + iconos reales de item, cada uno con su
--- tooltip nativo. Devuelve la altura usada (fija).
+-- Rellena una fila de equipo en una sola linea: iconos reales de item a la
+-- izquierda (cada uno con su tooltip nativo), nombre a la derecha. Mas
+-- compacta que Skills/CP porque no necesita mostrar varias lineas de
+-- contenido grafico. Devuelve la altura usada (fija).
 local function FillGearRow(row, kit)
-    row.nameLabel:SetText(string.format(
-        "%s (%d)", tostring(kit.name), EZOArmory.Kits.CountPieces(kit)))
-
     local slots = EZOArmory.Kits.GetKitSlots(kit)
     local index = 0
     local summaryLines = {}
@@ -313,7 +313,9 @@ local function FillGearRow(row, kit)
             icon:SetHidden(false)
             icon:ClearAnchors()
             if index == 1 then
-                icon:SetAnchor(TOPLEFT, row, TOPLEFT, 6, NAME_LINE_HEIGHT + 2)
+                -- LEFT (no TOPLEFT): punto verticalmente centrado, para que el
+                -- icono quede centrado en el alto completo de la fila.
+                icon:SetAnchor(LEFT, row, LEFT, 6, 0)
             else
                 icon:SetAnchor(LEFT, row.icons[index - 1], RIGHT, ICON_GAP, 0)
             end
@@ -326,6 +328,17 @@ local function FillGearRow(row, kit)
             summaryLines[#summaryLines + 1] = string.format("%s: %s", slotKey, tostring(label))
         end
     end
+
+    row.nameLabel:SetText(string.format(
+        "%s (%d)", tostring(kit.name), EZOArmory.Kits.CountPieces(kit)))
+    row.nameLabel:ClearAnchors()
+    local iconsAnchorAfter = index > 0 and row.icons[index] or nil
+    if iconsAnchorAfter then
+        row.nameLabel:SetAnchor(LEFT, iconsAnchorAfter, RIGHT, 10, 0)
+    else
+        row.nameLabel:SetAnchor(LEFT, row, LEFT, 6, 0)
+    end
+    row.nameLabel:SetAnchor(RIGHT, row, RIGHT, -6, 0)
 
     row.nameLabel:SetHandler("OnMouseEnter", function(control)
         ShowTextSummary(control, kit.name, summaryLines)

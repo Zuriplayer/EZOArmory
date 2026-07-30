@@ -2,6 +2,14 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.8.2
+
+- Gear kit rows are back to a single compact line (icons and name side by
+  side), instead of the name-above-icons layout 0.8.0 introduced for visual
+  consistency with skill/CP rows. Gear does not need the extra line skill kits
+  do (two full bars) or CP kits do (variable star lines), so the earlier
+  compact layout reads better and wastes far less vertical space in the list.
+
 ## 0.8.1
 
 - Fix: CP stars grouped incorrectly (stars from different disciplines mixed
