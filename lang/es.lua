@@ -85,6 +85,10 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_OPTION_KIT_LIST_TOOLTIP = "Selecciona un kit guardado. El numero entre parentesis son las piezas que contiene.",
     EZOARM_OPTION_KIT_DELETE = "Eliminar el kit seleccionado",
     EZOARM_OPTION_KIT_DELETE_TOOLTIP = "Borra el kit seleccionado y cualquier referencia a el en las asignaciones de rol.",
+    EZOARM_OPTION_KIT_RENAME = "Renombrar el kit seleccionado",
+    EZOARM_OPTION_KIT_RENAME_TOOLTIP = "Cambia el nombre del kit seleccionado.",
+    EZOARM_DIALOG_RENAME_TITLE = "Renombrar kit",
+    EZOARM_DIALOG_RENAME_TEXT = "Nuevo nombre para este kit:",
     EZOARM_OPTION_KIT_SHOW = "Ver el kit seleccionado",
     EZOARM_OPTION_KIT_SHOW_TOOLTIP = "Muestra las piezas guardadas en el kit seleccionado.",
 

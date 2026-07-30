@@ -85,6 +85,10 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_OPTION_KIT_LIST_TOOLTIP = "Select a saved kit. The number in brackets is how many pieces it holds.",
     EZOARM_OPTION_KIT_DELETE = "Delete selected kit",
     EZOARM_OPTION_KIT_DELETE_TOOLTIP = "Remove the selected kit and any reference to it in the role assignments.",
+    EZOARM_OPTION_KIT_RENAME = "Rename selected kit",
+    EZOARM_OPTION_KIT_RENAME_TOOLTIP = "Change the name of the selected kit.",
+    EZOARM_DIALOG_RENAME_TITLE = "Rename kit",
+    EZOARM_DIALOG_RENAME_TEXT = "New name for this kit:",
     EZOARM_OPTION_KIT_SHOW = "Show selected kit",
     EZOARM_OPTION_KIT_SHOW_TOOLTIP = "Print the pieces stored in the selected kit.",
 

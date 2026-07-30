@@ -2,6 +2,18 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.8.3
+
+- Add: rename button for the selected kit in any of the three window tabs
+  (Gear/Skills/CP), using a native text-entry dialog.
+- Fix: after visiting the Gear tab, switching to Skills or CP could leave the
+  kit name floating on top of the ability icons or CP star chips instead of
+  sitting above them as a header line. Kit rows are pooled and reused across
+  tabs, and only the Gear layout re-anchors the name label (to sit vertically
+  centered next to its icons); that anchor was never reset when the same row
+  got reused for a different category. Row cleanup now always restores the
+  default top-anchored name position before each fill.
+
 ## 0.8.2
 
 - Gear kit rows are back to a single compact line (icons and name side by

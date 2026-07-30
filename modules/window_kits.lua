@@ -249,9 +249,21 @@ local function EnsureRows(parent, widthAnchor)
     return WK.rows
 end
 
+-- Restaura el nombre a su posicion de cabecera (linea propia arriba de la
+-- fila). Gear lo re-ancla a su propio layout de una linea en FillGearRow;
+-- este reset hace falta porque las filas se reciclan entre categorias y, sin
+-- el, un nombre re-anclado por Gear se quedaba centrado verticalmente encima
+-- de las habilidades/estrellas al reutilizar esa fila para Skills o CP.
+local function ResetNameLabelAnchor(row)
+    row.nameLabel:ClearAnchors()
+    row.nameLabel:SetAnchor(TOPLEFT, row, TOPLEFT, 6, 0)
+    row.nameLabel:SetAnchor(TOPRIGHT, row, TOPRIGHT, -6, 0)
+end
+
 -- Oculta todo el contenido reutilizable de una fila antes de rellenarla de
 -- nuevo, para que restos de la categoria/kit anterior no se cuelen.
 local function ClearRowContent(row)
+    ResetNameLabelAnchor(row)
     for _, icon in ipairs(row.icons) do
         icon:SetHidden(true)
         icon:SetHandler("OnMouseEnter", nil)
@@ -294,6 +306,24 @@ local function DeleteKit(category, id)
         return EZOArmory.Champion.DeleteKit(id)
     end
     return EZOArmory.Kits.DeleteKit(id)
+end
+
+local function GetKit(category, id)
+    if category == CATEGORY_SKILLS then
+        return EZOArmory.Skills.GetKit(id)
+    elseif category == CATEGORY_CP then
+        return EZOArmory.Champion.GetKit(id)
+    end
+    return EZOArmory.Kits.GetKit(id)
+end
+
+local function RenameKit(category, id, name)
+    if category == CATEGORY_SKILLS then
+        return EZOArmory.Skills.RenameKit(id, name)
+    elseif category == CATEGORY_CP then
+        return EZOArmory.Champion.RenameKit(id, name)
+    end
+    return EZOArmory.Kits.RenameKit(id, name)
 end
 
 -- Rellena una fila de equipo en una sola linea: iconos reales de item a la
@@ -568,6 +598,9 @@ function WK.RefreshActionBar()
     if not WK.deleteButton then return end
     local hasSelection = WK.state.selectedId ~= nil
     WK.deleteButton:SetHidden(not hasSelection)
+    if WK.renameButton then
+        WK.renameButton:SetHidden(not hasSelection)
+    end
     if WK.equipButton then
         WK.equipButton:SetHidden(not hasSelection or WK.state.category ~= CATEGORY_GEAR)
     end
@@ -578,6 +611,56 @@ local function OnDeleteClicked()
     DeleteKit(WK.state.category, WK.state.selectedId)
     WK.state.selectedId = nil
     WK.Refresh()
+end
+
+-- Dialogo de renombrado, patron verificado en produccion (Wizard's Wardrobe,
+-- WWG.ShowEditDialog): editBox = {} en el registro, texto inicial via
+-- initialEditText, y ZO_Dialogs_GetEditBoxText(dialog) en el boton de
+-- confirmar. Registrado con ZO_Dialogs_RegisterCustomDialog (API real, no la
+-- tabla ESO_Dialogs directa), siguiendo el patron ya usado en EZOTools.
+local RENAME_DIALOG_NAME = "EZOARMORY_RENAME_KIT"
+local renameDialogRegistered = false
+
+local function EnsureRenameDialog()
+    if renameDialogRegistered then return true end
+    if type(ZO_Dialogs_RegisterCustomDialog) ~= "function" then return false end
+
+    ZO_Dialogs_RegisterCustomDialog(RENAME_DIALOG_NAME, {
+        canQueue = true,
+        title = { text = GetString(EZOARM_DIALOG_RENAME_TITLE) },
+        mainText = { text = GetString(EZOARM_DIALOG_RENAME_TEXT) },
+        editBox = {},
+        buttons = {
+            [1] = {
+                keybind = "DIALOG_PRIMARY",
+                text = SI_DIALOG_CONFIRM,
+                callback = function(dialog)
+                    local category = WK.state.category
+                    local kitId = WK.state.selectedId
+                    if not kitId then return end
+                    local input = ZO_Dialogs_GetEditBoxText(dialog)
+                    if input and input ~= "" then
+                        RenameKit(category, kitId, input)
+                        WK.Refresh()
+                    end
+                end,
+            },
+            [2] = {
+                keybind = "DIALOG_NEGATIVE",
+                text = SI_DIALOG_CANCEL,
+            },
+        },
+    })
+    renameDialogRegistered = true
+    return true
+end
+
+local function OnRenameClicked()
+    if not WK.state.selectedId then return end
+    if not EnsureRenameDialog() or type(ZO_Dialogs_ShowDialog) ~= "function" then return end
+    local kit = GetKit(WK.state.category, WK.state.selectedId)
+    if not kit then return end
+    ZO_Dialogs_ShowDialog(RENAME_DIALOG_NAME, nil, { initialEditText = tostring(kit.name or "") })
 end
 
 local function OnEquipClicked()
@@ -690,9 +773,20 @@ function WK.Create(parent)
     deleteButton:SetHidden(true)
     WK.deleteButton = deleteButton
 
+    local renameButton = WM:CreateControl(nil, actionBar, CT_BUTTON)
+    renameButton:SetDimensions(160, 24)
+    renameButton:SetAnchor(RIGHT, deleteButton, LEFT, -12, 0)
+    renameButton:SetFont("ZoFontGameBold")
+    renameButton:SetNormalFontColor(0.8, 0.85, 1, 1)
+    renameButton:SetMouseOverFontColor(0.6, 0.75, 1, 1)
+    renameButton:SetText(GetString(EZOARM_OPTION_KIT_RENAME))
+    renameButton:SetHandler("OnClicked", OnRenameClicked)
+    renameButton:SetHidden(true)
+    WK.renameButton = renameButton
+
     local equipButton = WM:CreateControl(nil, actionBar, CT_BUTTON)
     equipButton:SetDimensions(160, 24)
-    equipButton:SetAnchor(RIGHT, deleteButton, LEFT, -12, 0)
+    equipButton:SetAnchor(RIGHT, renameButton, LEFT, -12, 0)
     equipButton:SetFont("ZoFontGameBold")
     equipButton:SetNormalFontColor(0.6, 1, 0.6, 1)
     equipButton:SetMouseOverFontColor(0.4, 1, 0.4, 1)

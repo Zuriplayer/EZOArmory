@@ -177,6 +177,13 @@ function Skills.DeleteKit(id)
     return true
 end
 
+function Skills.RenameKit(id, name)
+    local kit = Skills.GetKit(id)
+    if not kit then return false end
+    kit.name = tostring(name or kit.name)
+    return true
+end
+
 function Skills.ListKits()
     local sv = Store()
     local list = {}

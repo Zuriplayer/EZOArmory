@@ -171,6 +171,13 @@ function Champion.DeleteKit(id)
     return true
 end
 
+function Champion.RenameKit(id, name)
+    local kit = Champion.GetKit(id)
+    if not kit then return false end
+    kit.name = tostring(name or kit.name)
+    return true
+end
+
 function Champion.ListKits()
     local sv = Store()
     local list = {}
