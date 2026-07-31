@@ -2,6 +2,21 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.8.7
+
+- Fix: the 0.8.5 armor-weight hover text did nothing for kits that had no
+  armorType stored on the piece (typically kits captured before the addon
+  started saving that field) - it just silently fell back to repeating the
+  set name with no new information, which read as a broken/pointless
+  tooltip. Now, if the captured piece has no usable armor weight, EZOArmory
+  tries to read it live from the exact item if it can still be located in
+  your bags, and only if that also fails does it say "unknown weight"
+  explicitly instead of showing nothing extra at all.
+- The weight is now only ever appended for armor slots (head, shoulders,
+  chest, waist, hands, legs, feet) - jewelry and weapon pieces never had a
+  weight to show in the first place, so they no longer risk a stray
+  "(unknown weight)".
+
 ## 0.8.6
 
 - Add: the Equip button in the window now works for Skill and CP kits too,

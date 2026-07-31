@@ -90,14 +90,41 @@ WK.state = WK.state or {
 
 -- ---------------------------------------------------------- Tooltips ----
 
+-- Peso de armadura de una pieza: el capturado si es valido: si no (kits
+-- capturados antes de que el addon guardara este dato), se intenta leer en
+-- vivo del item si todavia esta localizable en las bolsas.
+local function ResolveArmorTypeLabel(piece)
+    local label = EZOArmory.ArmorTypeLabel(piece.armorType)
+    if label then return label end
+
+    if piece.itemId and EZOArmory.Gear and EZOArmory.Gear.FindItemById
+        and type(GetItemLink) == "function" and type(GetItemLinkArmorType) == "function" then
+        local location = EZOArmory.Gear.FindItemById(piece.itemId)
+        if location then
+            local ok, link = pcall(GetItemLink, location.bag, location.slot)
+            if ok and link and link ~= "" then
+                local okArmor, armorType = pcall(GetItemLinkArmorType, link)
+                if okArmor then
+                    return EZOArmory.ArmorTypeLabel(armorType)
+                end
+            end
+        end
+    end
+    return nil
+end
+
 -- Etiqueta de una pieza guardada: set (o nombre del item) + peso de armadura
--- si aplica, por ejemplo "Slimecraw (Medium)". Es la unica forma de distinguir
--- a simple vista dos kits de un mismo set y slot pero distinto peso (p.ej. dos
--- cabezas de Slimecraw, una ligera y otra media), ya que el icono es el mismo.
-local function PieceSummaryLabel(piece)
+-- si el slot es de armadura, por ejemplo "Slimecraw (Medium)". Es la unica
+-- forma de distinguir a simple vista dos kits de un mismo set y slot pero
+-- distinto peso (p.ej. dos cabezas de Slimecraw, una ligera y otra media), ya
+-- que el icono es el mismo. Si no se puede determinar el peso (ni capturado ni
+-- en vivo) se dice explicitamente en vez de omitirlo en silencio.
+local function PieceSummaryLabel(piece, slotKey)
     local label = piece.setName ~= "" and piece.setName or piece.itemName
-    local armorLabel = EZOArmory.ArmorTypeLabel(piece.armorType)
-    if armorLabel then
+    local def = slotKey and EZOArmory.Gear and EZOArmory.Gear.GetSlotDef
+        and EZOArmory.Gear.GetSlotDef(slotKey)
+    if def and def.category == "armor" then
+        local armorLabel = ResolveArmorTypeLabel(piece) or GetString(EZOARM_ARMOR_UNKNOWN)
         label = string.format("%s (%s)", tostring(label), armorLabel)
     end
     return tostring(label)
@@ -107,7 +134,7 @@ end
 -- en las bolsas (banco, otro personaje...) no hay link real que mostrar; en
 -- vez de un generico "no disponible" sin mas, se usan los datos capturados
 -- (nombre, set, peso) para que la pieza se pueda identificar igualmente.
-local function ShowItemTooltip(anchor, piece)
+local function ShowItemTooltip(anchor, piece, slotKey)
     local itemId = piece and piece.itemId
     local location = itemId
         and EZOArmory.Gear and EZOArmory.Gear.FindItemById and EZOArmory.Gear.FindItemById(itemId)
@@ -123,7 +150,7 @@ local function ShowItemTooltip(anchor, piece)
     if type(ZO_Tooltips_ShowTextTooltip) == "function" then
         local text = GetString(EZOARM_WINDOW_TOOLTIP_NOT_AVAILABLE)
         if piece then
-            text = PieceSummaryLabel(piece) .. "\n" .. text
+            text = PieceSummaryLabel(piece, slotKey) .. "\n" .. text
         end
         ZO_Tooltips_ShowTextTooltip(anchor, RIGHT, text)
     end
@@ -389,11 +416,11 @@ local function FillGearRow(row, kit)
             else
                 icon:SetAnchor(LEFT, row.icons[index - 1], RIGHT, ICON_GAP, 0)
             end
-            icon:SetHandler("OnMouseEnter", function(control) ShowItemTooltip(control, piece) end)
+            icon:SetHandler("OnMouseEnter", function(control) ShowItemTooltip(control, piece, slotKey) end)
             icon:SetHandler("OnMouseExit", HideItemTooltip)
         end
         if piece then
-            summaryLines[#summaryLines + 1] = string.format("%s: %s", slotKey, PieceSummaryLabel(piece))
+            summaryLines[#summaryLines + 1] = string.format("%s: %s", slotKey, PieceSummaryLabel(piece, slotKey))
         end
     end
 

@@ -70,6 +70,7 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_ARMOR_LIGHT = "light",
     EZOARM_ARMOR_MEDIUM = "medium",
     EZOARM_ARMOR_HEAVY = "heavy",
+    EZOARM_ARMOR_UNKNOWN = "unknown weight",
 
     EZOARM_CAT_ARMOR = "armour",
     EZOARM_CAT_JEWELRY = "jewelry",
