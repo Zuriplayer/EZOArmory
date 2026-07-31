@@ -2,6 +2,20 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.8.5
+
+- Fix: two Gear kits for the same set and slot (e.g. a light and a medium
+  Slimecraw head) were indistinguishable in the window, since the icon is
+  identical and armor weight was shown nowhere. The row's name-hover summary
+  now appends the piece's armor weight (light/medium/heavy) next to its set
+  or item name, and hovering an individual gear icon shows the same weight
+  even when the exact item is no longer in your bags (bank, other
+  character...) - previously that case just showed a generic "not available"
+  with no identifying info at all.
+- Promoted ArmorTypeLabel from the LAM panel into a shared EZOArmory.*
+  function (same pattern as RoleLabel in 0.8.4), since the window now needs
+  the same light/medium/heavy label the LAM panel already had.
+
 ## 0.8.4
 
 - Add: new "Assign" tab in the dedicated window, moving trial/boss kit

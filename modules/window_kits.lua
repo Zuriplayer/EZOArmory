@@ -90,8 +90,27 @@ WK.state = WK.state or {
 
 -- ---------------------------------------------------------- Tooltips ----
 
-local function ShowItemTooltip(anchor, itemId)
-    local location = EZOArmory.Gear and EZOArmory.Gear.FindItemById and EZOArmory.Gear.FindItemById(itemId)
+-- Etiqueta de una pieza guardada: set (o nombre del item) + peso de armadura
+-- si aplica, por ejemplo "Slimecraw (Medium)". Es la unica forma de distinguir
+-- a simple vista dos kits de un mismo set y slot pero distinto peso (p.ej. dos
+-- cabezas de Slimecraw, una ligera y otra media), ya que el icono es el mismo.
+local function PieceSummaryLabel(piece)
+    local label = piece.setName ~= "" and piece.setName or piece.itemName
+    local armorLabel = EZOArmory.ArmorTypeLabel(piece.armorType)
+    if armorLabel then
+        label = string.format("%s (%s)", tostring(label), armorLabel)
+    end
+    return tostring(label)
+end
+
+-- Tooltip de una pieza al pasar el raton por su icono. Si el item ya no esta
+-- en las bolsas (banco, otro personaje...) no hay link real que mostrar; en
+-- vez de un generico "no disponible" sin mas, se usan los datos capturados
+-- (nombre, set, peso) para que la pieza se pueda identificar igualmente.
+local function ShowItemTooltip(anchor, piece)
+    local itemId = piece and piece.itemId
+    local location = itemId
+        and EZOArmory.Gear and EZOArmory.Gear.FindItemById and EZOArmory.Gear.FindItemById(itemId)
     if location and type(GetItemLink) == "function"
         and type(InitializeTooltip) == "function" and ItemTooltip then
         local ok, link = pcall(GetItemLink, location.bag, location.slot)
@@ -102,7 +121,11 @@ local function ShowItemTooltip(anchor, itemId)
         end
     end
     if type(ZO_Tooltips_ShowTextTooltip) == "function" then
-        ZO_Tooltips_ShowTextTooltip(anchor, RIGHT, GetString(EZOARM_WINDOW_TOOLTIP_NOT_AVAILABLE))
+        local text = GetString(EZOARM_WINDOW_TOOLTIP_NOT_AVAILABLE)
+        if piece then
+            text = PieceSummaryLabel(piece) .. "\n" .. text
+        end
+        ZO_Tooltips_ShowTextTooltip(anchor, RIGHT, text)
     end
 end
 
@@ -366,13 +389,11 @@ local function FillGearRow(row, kit)
             else
                 icon:SetAnchor(LEFT, row.icons[index - 1], RIGHT, ICON_GAP, 0)
             end
-            local itemId = piece.itemId
-            icon:SetHandler("OnMouseEnter", function(control) ShowItemTooltip(control, itemId) end)
+            icon:SetHandler("OnMouseEnter", function(control) ShowItemTooltip(control, piece) end)
             icon:SetHandler("OnMouseExit", HideItemTooltip)
         end
         if piece then
-            local label = piece.setName ~= "" and piece.setName or piece.itemName
-            summaryLines[#summaryLines + 1] = string.format("%s: %s", slotKey, tostring(label))
+            summaryLines[#summaryLines + 1] = string.format("%s: %s", slotKey, PieceSummaryLabel(piece))
         end
     end
 

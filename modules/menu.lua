@@ -192,18 +192,7 @@ local function CategoryHint(slots)
     return table.concat(parts, " + ")
 end
 
-local ARMOR_TYPE_STRING = {}
-if ARMORTYPE_LIGHT then ARMOR_TYPE_STRING[ARMORTYPE_LIGHT] = "EZOARM_ARMOR_LIGHT" end
-if ARMORTYPE_MEDIUM then ARMOR_TYPE_STRING[ARMORTYPE_MEDIUM] = "EZOARM_ARMOR_MEDIUM" end
-if ARMORTYPE_HEAVY then ARMOR_TYPE_STRING[ARMORTYPE_HEAVY] = "EZOARM_ARMOR_HEAVY" end
-
-local function ArmorTypeLabel(armorType)
-    local sid = _G[ARMOR_TYPE_STRING[armorType] or ""]
-    if sid then
-        return GetString(sid)
-    end
-    return nil
-end
+local ArmorTypeLabel = EZOArmory.ArmorTypeLabel
 
 -- Nombre sugerido al capturar: palabra clave del set mas su ubicacion, para que
 -- dos kits del mismo set en sitios distintos no se confundan. Para una pieza

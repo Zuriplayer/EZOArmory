@@ -78,6 +78,22 @@ function EZOA.RoleLabel(role)
     return tostring(role)
 end
 
+local ARMOR_TYPE_STRING = {}
+if ARMORTYPE_LIGHT then ARMOR_TYPE_STRING[ARMORTYPE_LIGHT] = "EZOARM_ARMOR_LIGHT" end
+if ARMORTYPE_MEDIUM then ARMOR_TYPE_STRING[ARMORTYPE_MEDIUM] = "EZOARM_ARMOR_MEDIUM" end
+if ARMORTYPE_HEAVY then ARMOR_TYPE_STRING[ARMORTYPE_HEAVY] = "EZOARM_ARMOR_HEAVY" end
+
+-- Peso de armadura mostrable ("Light"/"Medium"/"Heavy") o nil si la pieza no
+-- es armadura (joyeria, armas). Compartido por el panel LAM (nombre sugerido
+-- al capturar) y la ventana propia (distinguir piezas del mismo set y slot).
+function EZOA.ArmorTypeLabel(armorType)
+    local sid = _G[ARMOR_TYPE_STRING[armorType] or ""]
+    if sid then
+        return GetString(sid)
+    end
+    return nil
+end
+
 function EZOA.IsRoleAuto()
     return EZOA.sv
         and EZOA.sv.general
