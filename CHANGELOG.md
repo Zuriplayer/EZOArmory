@@ -2,6 +2,22 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.8.6
+
+- Add: the Equip button in the window now works for Skill and CP kits too,
+  not just Gear. Skill kits slot both bars via
+  ACTION_BAR_ASSIGNMENT_MANAGER:AssignSkillToSlotByAbilityId (not a protected
+  function, but out of combat only, and skipped per-ability if it is not
+  unlocked on this character). CP kits slot stars via
+  PrepareChampionPurchaseRequest/AddHotbarSlotToChampionPurchaseRequest/
+  SendChampionPurchaseRequest, tracking the game's real ~30s cooldown
+  (EVENT_CHAMPION_PURCHASE_RESULT) so a kit requested during cooldown queues
+  and applies automatically once it clears. Both only touch slots that
+  actually differ from what is already slotted, same idempotent-apply
+  principle as gear (critical for CP given the cooldown). Both patterns
+  verified against Wizard's Wardrobe's WW.SlotSkill/WW.LoadCP in production
+  and against the native skill/champion managers in the ESOUI source.
+
 ## 0.8.5
 
 - Fix: two Gear kits for the same set and slot (e.g. a light and a medium

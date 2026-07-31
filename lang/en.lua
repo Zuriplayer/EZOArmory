@@ -101,6 +101,7 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_MSG_EQUIP_MISSING = "Not available in your backpack: <<1>>.",
     EZOARM_MSG_EQUIP_NO_LIBASYNC = "Equipping needs the LibAsync add-on. Install it to enable this.",
     EZOARM_MSG_EQUIP_EMPTY = "The selected kit has nothing to equip.",
+    EZOARM_MSG_EQUIP_QUEUED_CP_COOLDOWN = "Champion Points are on cooldown: EZOArmory will slot the kit as soon as it is available.",
 
     -- Skill kits
     EZOARM_OPTION_SKILL_KITS = "Skill kits",
@@ -118,6 +119,9 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_MSG_SKILL_KIT_EMPTY = "No abilities slotted to capture.",
     EZOARM_MSG_SKILL_KIT_DELETED = "Skill kit deleted: <<1>>.",
     EZOARM_AUTONAME_SKILLS = "Skills",
+    EZOARM_MSG_SKILL_EQUIP_DONE = "Slotted <<1>>, already set <<2>>, skipped <<3>>.",
+    EZOARM_MSG_SKILL_EQUIP_SKIPPED = "Not unlocked, skipped: <<1>>.",
+    EZOARM_MSG_SKILL_EQUIP_EMPTY = "The selected skill kit has nothing to slot.",
 
     -- CP kits
     EZOARM_OPTION_CP_KITS = "Champion Point kits",
@@ -134,6 +138,9 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_MSG_CP_KIT_DUPLICATE = "Not created: the CP kit <<1>> already holds exactly these stars.",
     EZOARM_MSG_CP_KIT_EMPTY = "No Champion stars slotted to capture.",
     EZOARM_MSG_CP_KIT_DELETED = "CP kit deleted: <<1>>.",
+    EZOARM_MSG_CP_EQUIP_DONE = "Slotted <<1>>, already set <<2>>, skipped <<3>>.",
+    EZOARM_MSG_CP_EQUIP_SKIPPED = "Not purchased, skipped: <<1>>.",
+    EZOARM_MSG_CP_EQUIP_EMPTY = "The selected CP kit has nothing to slot.",
     EZOARM_AUTONAME_CP = "CP",
 
     EZOARM_OPTION_ASSIGN = "Assignments",

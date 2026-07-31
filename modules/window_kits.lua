@@ -655,7 +655,7 @@ function WK.RefreshActionBar()
         WK.renameButton:SetHidden(not hasSelection)
     end
     if WK.equipButton then
-        WK.equipButton:SetHidden(not hasSelection or WK.state.category ~= CATEGORY_GEAR)
+        WK.equipButton:SetHidden(not hasSelection or WK.state.category == CATEGORY_ASSIGN)
     end
 end
 
@@ -744,9 +744,73 @@ local function EquipKitIds(kitIds)
     end)
 end
 
+-- Ranura un kit de habilidades (ambas barras) via Equip.ApplySkillKit.
+local function EquipSkillKit(kitId)
+    if not (EZOArmory.Equip and EZOArmory.Equip.ApplySkillKit) then return end
+
+    EZOArmory.Equip.onQueued = function()
+        if EZOArmory.Print then EZOArmory.Print(GetString(EZOARM_MSG_EQUIP_QUEUED)) end
+    end
+    EZOArmory.Equip.ApplySkillKit(kitId, function(state)
+        if not EZOArmory.Print then return end
+        if state.error == "noLibAsync" then
+            EZOArmory.Print(GetString(EZOARM_MSG_EQUIP_NO_LIBASYNC))
+            return
+        end
+        if state.error == "empty" then
+            EZOArmory.Print(GetString(EZOARM_MSG_SKILL_EQUIP_EMPTY))
+            return
+        end
+        EZOArmory.Print(zo_strformat(
+            GetString(EZOARM_MSG_SKILL_EQUIP_DONE), state.slotted, state.already, state.skipped))
+        if state.skipped > 0 and state.skippedNames and #state.skippedNames > 0 then
+            EZOArmory.Print(zo_strformat(
+                GetString(EZOARM_MSG_SKILL_EQUIP_SKIPPED), table.concat(state.skippedNames, ", ")))
+        end
+    end)
+end
+
+-- Ranura un kit de CP (las 12 estrellas) via Equip.ApplyCpKit. El aviso de
+-- cola distingue combate de cooldown de CP (Equip.onQueued recibe el motivo).
+local function EquipCpKit(kitId)
+    if not (EZOArmory.Equip and EZOArmory.Equip.ApplyCpKit) then return end
+
+    EZOArmory.Equip.onQueued = function(reason)
+        if not EZOArmory.Print then return end
+        if reason == "cpCooldown" then
+            EZOArmory.Print(GetString(EZOARM_MSG_EQUIP_QUEUED_CP_COOLDOWN))
+        else
+            EZOArmory.Print(GetString(EZOARM_MSG_EQUIP_QUEUED))
+        end
+    end
+    EZOArmory.Equip.ApplyCpKit(kitId, function(state)
+        if not EZOArmory.Print then return end
+        if state.error == "noLibAsync" then
+            EZOArmory.Print(GetString(EZOARM_MSG_EQUIP_NO_LIBASYNC))
+            return
+        end
+        if state.error == "empty" then
+            EZOArmory.Print(GetString(EZOARM_MSG_CP_EQUIP_EMPTY))
+            return
+        end
+        EZOArmory.Print(zo_strformat(
+            GetString(EZOARM_MSG_CP_EQUIP_DONE), state.slotted, state.already, state.skipped))
+        if state.skipped > 0 and state.skippedNames and #state.skippedNames > 0 then
+            EZOArmory.Print(zo_strformat(
+                GetString(EZOARM_MSG_CP_EQUIP_SKIPPED), table.concat(state.skippedNames, ", ")))
+        end
+    end)
+end
+
 local function OnEquipClicked()
-    if WK.state.category ~= CATEGORY_GEAR or not WK.state.selectedId then return end
-    EquipKitIds({ WK.state.selectedId })
+    if not WK.state.selectedId then return end
+    if WK.state.category == CATEGORY_GEAR then
+        EquipKitIds({ WK.state.selectedId })
+    elseif WK.state.category == CATEGORY_SKILLS then
+        EquipSkillKit(WK.state.selectedId)
+    elseif WK.state.category == CATEGORY_CP then
+        EquipCpKit(WK.state.selectedId)
+    end
 end
 
 -- ------------------------------------------------------------- Pestanas ----

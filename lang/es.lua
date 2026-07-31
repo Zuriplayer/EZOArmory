@@ -101,6 +101,7 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_MSG_EQUIP_MISSING = "No disponibles en la mochila: <<1>>.",
     EZOARM_MSG_EQUIP_NO_LIBASYNC = "El equipado necesita el addon LibAsync. Instalalo para activarlo.",
     EZOARM_MSG_EQUIP_EMPTY = "El kit seleccionado no tiene nada que equipar.",
+    EZOARM_MSG_EQUIP_QUEUED_CP_COOLDOWN = "Los CP estan en tiempo de espera: EZOArmory ranurara el kit en cuanto este disponible.",
 
     -- Kits de habilidades
     EZOARM_OPTION_SKILL_KITS = "Kits de habilidades",
@@ -118,6 +119,9 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_MSG_SKILL_KIT_EMPTY = "No hay habilidades slotteadas que capturar.",
     EZOARM_MSG_SKILL_KIT_DELETED = "Kit de habilidades eliminado: <<1>>.",
     EZOARM_AUTONAME_SKILLS = "Skills",
+    EZOARM_MSG_SKILL_EQUIP_DONE = "Ranuradas <<1>>, ya puestas <<2>>, omitidas <<3>>.",
+    EZOARM_MSG_SKILL_EQUIP_SKIPPED = "No desbloqueadas, omitidas: <<1>>.",
+    EZOARM_MSG_SKILL_EQUIP_EMPTY = "El kit de habilidades seleccionado no tiene nada que ranurar.",
 
     -- Kits de CP
     EZOARM_OPTION_CP_KITS = "Kits de Puntos de Campeon",
@@ -134,6 +138,9 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_MSG_CP_KIT_DUPLICATE = "No se ha creado: el kit de CP <<1>> ya contiene exactamente estas estrellas.",
     EZOARM_MSG_CP_KIT_EMPTY = "No hay estrellas de Campeon slotteadas que capturar.",
     EZOARM_MSG_CP_KIT_DELETED = "Kit de CP eliminado: <<1>>.",
+    EZOARM_MSG_CP_EQUIP_DONE = "Ranuradas <<1>>, ya puestas <<2>>, omitidas <<3>>.",
+    EZOARM_MSG_CP_EQUIP_SKIPPED = "No compradas, omitidas: <<1>>.",
+    EZOARM_MSG_CP_EQUIP_EMPTY = "El kit de CP seleccionado no tiene nada que ranurar.",
     EZOARM_AUTONAME_CP = "CP",
 
     EZOARM_OPTION_ASSIGN = "Asignaciones",
