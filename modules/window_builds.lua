@@ -172,14 +172,22 @@ local function CreateBuildRow(parent, index, widthAnchor)
     cpLabel:SetHidden(true)
     row.cpLabel = cpLabel
 
-    row:SetHandler("OnMouseUp", function(_, button)
+    -- Un clic selecciona; el doble clic va directo a los kits de esa build,
+    -- que es lo que casi siempre se quiere hacer con ella.
+    local function OnRowClick(_, button)
         if button ~= MOUSE_BUTTON_INDEX_LEFT then return end
         WB.SelectBuild(row.buildId)
-    end)
-    name:SetHandler("OnMouseUp", function(_, button)
-        if button ~= MOUSE_BUTTON_INDEX_LEFT then return end
+    end
+    local function OnRowDoubleClick(_, button)
+        if button ~= MOUSE_BUTTON_INDEX_LEFT or not row.buildId then return end
         WB.SelectBuild(row.buildId)
-    end)
+        WB.EditSelected()
+    end
+
+    row:SetHandler("OnMouseUp", OnRowClick)
+    row:SetHandler("OnMouseDoubleClick", OnRowDoubleClick)
+    name:SetHandler("OnMouseUp", OnRowClick)
+    name:SetHandler("OnMouseDoubleClick", OnRowDoubleClick)
 
     return row
 end
@@ -402,6 +410,15 @@ function WB.RefreshList()
         end
     end
 
+    -- Sin builds la lista queda vacia y no se ve por donde empezar, asi que el
+    -- cartel explica que es una build y donde se le anaden los kits. Con builds
+    -- ya creadas basta una linea recordando el atajo.
+    if WB.emptyHint then
+        WB.emptyHint:SetText(#list == 0
+            and GetString(EZOARM_BUILD_EMPTY_HINT)
+            or GetString(EZOARM_BUILD_EDIT_HINT))
+    end
+
     WB.listRoot:SetHeight(math.max(1, yOffset))
     WB.RefreshActionBar()
 end
@@ -549,7 +566,7 @@ function WB.RefreshEditor()
     if not build then return end
     local report = EZOArmory.Builds.Analyze(build)
 
-    WB.edNameLabel:SetText(tostring(build.name))
+    WB.edNameLabel:SetText(zo_strformat(GetString(EZOARM_BUILD_EDITOR_TITLE), build.name))
     PopulateRoleCombo(build, report)
     RefreshEditorGearRows(build)
     PopulateGearPickCombo(build)
@@ -666,10 +683,16 @@ local function OnRenameClicked()
     end)
 end
 
-local function OnEditClicked()
+-- Abre el editor de la build seleccionada: la vista donde se le anaden kits.
+-- Publica porque tambien la usa el doble clic sobre una fila.
+function WB.EditSelected()
     if not WB.state.selectedId then return end
     WB.state.editingId = WB.state.selectedId
     WB.SetView("editor")
+end
+
+local function OnEditClicked()
+    WB.EditSelected()
 end
 
 local function OnDeleteClicked()
@@ -794,9 +817,20 @@ local function CreateListPanel(content)
         { 0.85, 0.85, 0.9 }, { 1, 1, 1 }, OnNewClicked)
     newButton:SetAnchor(BOTTOMLEFT, actionBar, BOTTOMLEFT, 0, 0)
 
+    -- Cartel de ayuda entre el contador y la lista. Su alto cambia con el
+    -- texto y la lista se ancla debajo, asi que la cadena de anclas absorbe
+    -- sola la diferencia entre el texto largo (sin builds) y el corto.
+    local emptyHint = WM:CreateControl(nil, panel, CT_LABEL)
+    emptyHint:SetFont("ZoFontGame")
+    emptyHint:SetColor(0.7, 0.7, 0.78, 1)
+    emptyHint:SetVerticalAlignment(TEXT_ALIGN_TOP)
+    emptyHint:SetAnchor(TOPLEFT, countLabel, BOTTOMLEFT, 0, 8)
+    emptyHint:SetAnchor(TOPRIGHT, countLabel, BOTTOMRIGHT, 0, 8)
+    WB.emptyHint = emptyHint
+
     local scrollContainer = WM:CreateControlFromVirtual(
         "EZOArmoryBuildScroll", panel, "ZO_ScrollContainer")
-    scrollContainer:SetAnchor(TOPLEFT, countLabel, BOTTOMLEFT, 0, 8)
+    scrollContainer:SetAnchor(TOPLEFT, emptyHint, BOTTOMLEFT, 0, 10)
     scrollContainer:SetAnchor(BOTTOMRIGHT, actionBar, TOPRIGHT, 0, -8)
 
     local listRoot = scrollContainer:GetNamedChild("ScrollChild")

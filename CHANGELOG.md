@@ -2,6 +2,19 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.9.1
+
+- Fix: there was no visible way to find where kits get added to a build. The
+  editor that does it only appears after you select an existing build and press
+  "Edit build", so with no builds created yet the Builds tab looked empty and
+  the only assignment screen you could find was the Assign tab - which is the
+  trial one, not the build one. The Builds tab now explains what a build is and
+  points at the "New build" button, and once you have builds it reminds you
+  that double-clicking one jumps straight to its kits.
+- Add: double-click a build to open its editor directly.
+- The editor now titles itself "Build: <name>" and its kit section reads "Gear
+  kits in this build", so it is unambiguous which build you are composing.
+
 ## 0.9.0
 
 The addon pivots from being trial-centric to being build-centric.
