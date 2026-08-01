@@ -234,6 +234,16 @@ function Gear.DescribeItem(bag, slot)
         end
     end
 
+    -- Tipo de arma (WEAPONTYPE_*): lo usa el rol automatico de una build
+    -- (baston de curacion -> sanador, escudo -> tanque, baston de hielo -> duda).
+    local weaponType = nil
+    if type(GetItemLinkWeaponType) == "function" then
+        local okWeapon, value = pcall(GetItemLinkWeaponType, itemLink)
+        if okWeapon and value ~= nil and value ~= WEAPONTYPE_NONE then
+            weaponType = value
+        end
+    end
+
     local info = ReadSetInfo(itemLink)
     local itemName = ""
     if type(GetItemName) == "function" then
@@ -257,6 +267,7 @@ function Gear.DescribeItem(bag, slot)
         itemName = itemName,
         icon = icon,
         armorType = armorType,
+        weaponType = weaponType,
         setId = info and info.setId or 0,
         setName = info and info.setName or "",
         maxEquipped = info and info.maxEquipped or 0,
@@ -282,6 +293,7 @@ function Gear.ScanWorn()
             itemName = "",
             icon = "",
             armorType = nil,
+            weaponType = nil,
             setId = 0,
             setName = "",
             maxEquipped = 0,
@@ -297,6 +309,7 @@ function Gear.ScanWorn()
                 entry.itemName = described.itemName
                 entry.icon = described.icon
                 entry.armorType = described.armorType
+                entry.weaponType = described.weaponType
                 entry.setId = described.setId
                 entry.setName = described.setName
                 entry.maxEquipped = described.maxEquipped

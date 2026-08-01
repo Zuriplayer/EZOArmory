@@ -12,9 +12,18 @@ Part of the EZO addon family.
 EZOArmory manages builds by **composing reusable kits** instead of storing a
 full gear snapshot for every boss:
 
-- **Named kits** (the core idea): a kit is a block of concrete pieces, such as
-  "Null Arca — 5 body", "Ansuul — jewelry and weapons", a 2-piece monster set, a
-  mythic or a single loose piece. You define a kit once and reuse it everywhere.
+- **Named kits** (the building block): a kit is a block of concrete pieces, such
+  as "Null Arca — 5 body", "Ansuul — jewelry and weapons", a 2-piece monster set,
+  a mythic or a single loose piece. You define a kit once and reuse it everywhere.
+- **Builds** (what you actually equip): a build composes gear kits, one skill kit
+  and one CP kit into something complete. A kit on its own is not coherently
+  equippable — it has gaps — while a build covers everything. EZOArmory checks
+  every build and refuses to equip an incomplete one, showing exactly what is
+  missing or conflicting. Each build gets a role of its own, worked out from its
+  weapons: a healing staff means healer, a shield means tank, an ice staff
+  without either is flagged as unclear (some tanks run ice staff without a
+  shield), and attack weapons on both bars mean damage. You can override it. This
+  role is internal to EZOArmory and never touches your group finder role.
 - **Assign kits per encounter**: each trial has a default set of kits, and you
   only override the trash or the specific bosses that need something different.
   Change a kit and every encounter using it updates automatically.
@@ -35,12 +44,13 @@ full gear snapshot for every boss:
 - **One-step capture** of everything: gear sets, loose pieces, skill bars and
   Champion stars, each into its own section, never duplicating an existing kit.
 - **Its own window**, opened with a keybind or `/ezoarmory`, showing the current
-  trial and boss. It browses gear, skill and Champion Point kits with real
-  native tooltips on hover: gear pieces show the actual item tooltip, skill
-  kits show both action bars graphically with a real tooltip per ability, and
-  CP kits show every star grouped and coloured by discipline tree with a real
-  tooltip per star. Lets you equip or delete a selected kit. The twelve-slot
-  grid and the per-boss assignments are still being built here.
+  trial and boss. Its **Builds** tab lists every build with its role, its status
+  and the pieces, abilities and stars that make it up — hover any of them for the
+  real in-game tooltip — and equips a whole build in one click. A separate editor
+  view builds one up from your kits and reports what still needs fixing. The
+  remaining tabs browse gear, skill and Champion Point kits with the same real
+  tooltips, and assign kits per trial and boss. The twelve-slot coherence grid is
+  still being built here.
 
 Gear pieces must be in your backpack: moving items out of the bank requires
 direct player interaction and cannot be automated. Skills and Champion Points can

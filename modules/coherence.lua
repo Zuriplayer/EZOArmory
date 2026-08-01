@@ -96,6 +96,13 @@ local function BuildAssignment(kits, issues)
                         kitName = kitName,
                         itemId = piece.itemId,
                         itemName = piece.itemName,
+                        -- icon/armorType/weaponType se arrastran para que la
+                        -- interfaz pueda pintar y describir la pieza asignada
+                        -- (y para el rol automatico de una build) sin volver a
+                        -- buscar el kit de origen.
+                        icon = piece.icon or "",
+                        armorType = tonumber(piece.armorType),
+                        weaponType = tonumber(piece.weaponType),
                         setId = tonumber(piece.setId) or 0,
                         setName = piece.setName or "",
                         maxEquipped = tonumber(piece.maxEquipped) or 0,

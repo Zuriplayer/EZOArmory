@@ -78,6 +78,41 @@ function EZOA.RoleLabel(role)
     return tostring(role)
 end
 
+local SLOT_LABEL_STRING = {
+    head = "EZOARM_SLOT_HEAD",
+    shoulders = "EZOARM_SLOT_SHOULDERS",
+    chest = "EZOARM_SLOT_CHEST",
+    waist = "EZOARM_SLOT_WAIST",
+    hands = "EZOARM_SLOT_HANDS",
+    legs = "EZOARM_SLOT_LEGS",
+    feet = "EZOARM_SLOT_FEET",
+    neck = "EZOARM_SLOT_NECK",
+    ring1 = "EZOARM_SLOT_RING1",
+    ring2 = "EZOARM_SLOT_RING2",
+    main = "EZOARM_SLOT_MAIN",
+    off = "EZOARM_SLOT_OFF",
+    backupMain = "EZOARM_SLOT_BACKUP_MAIN",
+    backupOff = "EZOARM_SLOT_BACKUP_OFF",
+}
+
+-- Nombre mostrable de un slot de equipo. Compartido por el panel LAM y por las
+-- revisiones de build de la ventana propia.
+function EZOA.SlotLabel(slotKey)
+    local stringId = _G[SLOT_LABEL_STRING[slotKey or ""] or ""]
+    if stringId then
+        return GetString(stringId)
+    end
+    return tostring(slotKey)
+end
+
+-- Nombre mostrable de una barra ("front" / "back").
+function EZOA.BarLabel(bar)
+    if bar == "back" then
+        return GetString(EZOARM_MSG_BAR_BACK)
+    end
+    return GetString(EZOARM_MSG_BAR_FRONT)
+end
+
 local ARMOR_TYPE_STRING = {}
 if ARMORTYPE_LIGHT then ARMOR_TYPE_STRING[ARMORTYPE_LIGHT] = "EZOARM_ARMOR_LIGHT" end
 if ARMORTYPE_MEDIUM then ARMOR_TYPE_STRING[ARMORTYPE_MEDIUM] = "EZOARM_ARMOR_MEDIUM" end

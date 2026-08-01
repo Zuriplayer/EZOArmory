@@ -19,8 +19,11 @@ function EZOArmory.savedVars.Init()
         -- Perfiles por rol: asignaciones de kits por trial/boss y modo de
         -- equipado. Los rellena kits.lua bajo demanda.
         profiles = {},
+        -- Builds: composicion completa y equipable (varios kits de equipo + un
+        -- kit de habilidades + un kit de CP). Esquema en modules/builds.lua.
+        builds = {},
         -- Contadores de identificadores incrementales.
-        seq = { kit = 0, skillKit = 0, cpKit = 0 },
+        seq = { kit = 0, skillKit = 0, cpKit = 0, build = 0 },
         -- Kits de habilidades (modules/skills.lua) y de CP (modules/champion.lua).
         skillKits = {},
         cpKits = {},
@@ -52,8 +55,10 @@ function EZOArmory.savedVars.Init()
     EZOArmory.sv.seq.kit = tonumber(EZOArmory.sv.seq.kit) or 0
     EZOArmory.sv.seq.skillKit = tonumber(EZOArmory.sv.seq.skillKit) or 0
     EZOArmory.sv.seq.cpKit = tonumber(EZOArmory.sv.seq.cpKit) or 0
+    EZOArmory.sv.seq.build = tonumber(EZOArmory.sv.seq.build) or 0
     EZOArmory.sv.skillKits = EZOArmory.sv.skillKits or defaults.skillKits
     EZOArmory.sv.cpKits = EZOArmory.sv.cpKits or defaults.cpKits
+    EZOArmory.sv.builds = EZOArmory.sv.builds or defaults.builds
     -- Limpieza de placeholders antiguos que nunca llegaron a usarse.
     EZOArmory.sv.cpGroups = nil
     EZOArmory.sv.skillSets = nil

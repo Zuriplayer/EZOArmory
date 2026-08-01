@@ -2,6 +2,37 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.9.0
+
+The addon pivots from being trial-centric to being build-centric.
+
+- Add: **builds**. A kit is a building block and is not coherently equippable on
+  its own - it has gaps. A build composes gear kits plus one skill kit and one
+  CP kit into something complete, and that is now the thing you equip. Builds
+  live in `sv.builds`; see `modules/builds.lua`.
+- Add: **Builds tab** in the window, now the first tab and the default one. It
+  lists every build with its role icon, its check status and the actual pieces,
+  abilities and CP it is made of - hovering any of them gives the real in-game
+  tooltip - and equips the whole build (gear, skills and CP) in one click. A
+  separate editor view composes a build from your kits, lets you override its
+  role, and lists exactly what is wrong with it.
+- Add: **automatic build role**, worked out from the weapons: healing staff ->
+  healer, shield -> tank, ice staff with neither -> unclear (deliberately not
+  guessed, since some tanks run ice staff without a shield and some damage
+  builds run ice staff too), attack weapons -> damage. Overridable per build.
+  This is internal to EZOArmory and never touches the game's group finder role.
+  Weapon type read with GetItemLinkWeaponType; role icons are the game's own
+  (ZO_GetKeyboardRoleIcon).
+- Add: build-level checks on top of the existing per-bar coherence engine - no
+  gear kits, no skill kit, no CP kit, and a skill kit captured with a different
+  weapon than the bar it is used on (abilities depend on the weapon). A build
+  with any error refuses to equip; warnings do not block.
+- Gear pieces now also store their weapon type, and deleting a kit removes it
+  from any build that used it instead of leaving a dangling reference.
+- Trials still assign kits for now. The model is already prepared for them to
+  assign whole builds instead (`Builds.GetTrialReadyBuilds`); see
+  docs/concept.md section 3.
+
 ## 0.8.7
 
 - Fix: the 0.8.5 armor-weight hover text did nothing for kits that had no

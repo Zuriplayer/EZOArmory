@@ -12,10 +12,20 @@ trials y bosses de ESO. Forma parte de la familia de addons EZO.
 EZOArmory gestiona builds **componiendo kits reutilizables**, en lugar de
 guardar una foto completa del equipo para cada boss:
 
-- **Kits con nombre** (la idea central): un kit es un bloque de piezas
+- **Kits con nombre** (el bloque de construccion): un kit es un bloque de piezas
   concretas, como "Arca Nula — 5 de ropa", "Ansuul — joyeria y armas", un
   monster set de 2 piezas, un mitico o una pieza suelta. Defines el kit una vez
   y lo reutilizas en todas partes.
+- **Builds** (lo que de verdad se equipa): una build compone kits de equipo, un
+  kit de habilidades y un kit de CP hasta tenerlo todo. Un kit por si solo no es
+  equipable de forma coherente — le faltan slots —, mientras que una build lo
+  cubre entero. EZOArmory revisa cada build y se niega a equipar una incompleta,
+  indicando exactamente que falta o que entra en conflicto. Cada build tiene su
+  propio rol, deducido de sus armas: baston de curacion es sanador, escudo es
+  tanque, baston de hielo sin ninguno de los dos se marca como duda (hay tanques
+  que no llevan escudo pero si baston de hielo), y armas de ataque en ambas
+  barras es dano. Puedes forzarlo. Este rol es interno de EZOArmory y nunca toca
+  tu rol del buscador de grupo.
 - **Asignacion por encuentro**: cada trial tiene unos kits por defecto, y solo
   sobrescribes el trash o los bosses concretos que necesiten algo distinto. Si
   cambias un kit, se actualiza en todos los encuentros que lo usan.
@@ -38,13 +48,14 @@ guardar una foto completa del equipo para cada boss:
   habilidades y estrellas de Campeon, cada cosa en su seccion, sin duplicar
   nunca un kit existente.
 - **Ventana propia**, que se abre con una tecla o con `/ezoarmory`, y muestra la
-  trial y el boss actuales. Navega los kits de equipo, habilidades y Puntos de
-  Campeon con tooltips nativos reales al pasar el cursor: las piezas de equipo
-  muestran el tooltip real del item, los kits de habilidades muestran ambas
-  barras de forma grafica con un tooltip real por habilidad, y los kits de CP
-  muestran cada estrella agrupada y coloreada por su arbol con un tooltip real
-  por estrella. Permite equipar o borrar el kit seleccionado. La rejilla de
-  doce slots y las asignaciones por boss se siguen construyendo aqui.
+  trial y el boss actuales. Su pestana **Builds** lista todas las builds con su
+  rol, su estado y las piezas, habilidades y estrellas que las componen —pasa el
+  cursor por cualquiera para ver su tooltip real del juego— y equipa una build
+  entera de una vez. Una vista de editor aparte la construye a partir de tus
+  kits e indica que queda por corregir. Las demas pestanas navegan los kits de
+  equipo, habilidades y CP con esos mismos tooltips reales, y asignan kits por
+  trial y boss. La rejilla de coherencia de doce slots se sigue construyendo
+  aqui.
 
 Las piezas deben estar en la mochila: sacar items del banco requiere
 interaccion directa del jugador y no se puede automatizar. Las habilidades y los

@@ -168,6 +168,9 @@ function Champion.DeleteKit(id)
     local sv = Store()
     if not sv or id == nil or sv.cpKits[id] == nil then return false end
     sv.cpKits[id] = nil
+    if EZOArmory.Builds and EZOArmory.Builds.ForgetKit then
+        EZOArmory.Builds.ForgetKit(id)
+    end
     return true
 end
 

@@ -83,6 +83,9 @@ local function CaptureWeaponsRef()
                 itemId = entry.itemId,
                 itemName = entry.itemName,
                 icon = entry.icon,
+                -- weaponType permite comprobar despues que las habilidades de
+                -- este kit encajan con las armas de la build donde se use.
+                weaponType = entry.weaponType,
                 setName = entry.setName,
                 twoHand = entry.twoHand,
             }
@@ -174,6 +177,9 @@ function Skills.DeleteKit(id)
     local sv = Store()
     if not sv or id == nil or sv.skillKits[id] == nil then return false end
     sv.skillKits[id] = nil
+    if EZOArmory.Builds and EZOArmory.Builds.ForgetKit then
+        EZOArmory.Builds.ForgetKit(id)
+    end
     return true
 end
 

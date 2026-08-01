@@ -50,14 +50,59 @@ frontales solo da 3 piezas cuando estas en la barra trasera).
 
 ```text
 PERSONAJE
-├── Kits (pool comun, muchos)              <- se definen una vez
+├── Kits (pool comun, muchos)              <- bloques sueltos, se definen una vez
 │     "Arca Nula 5 ropa", "Ansuul 5 joyas+armas", "Monster 2", "Mitico"
-├── Perfiles de rol: DD / Tanque / Sanador
-│     ├── Asignaciones: [trial][trash|boss] -> { kit, kit, kit, kit }
-│     └── autoEquip por trial: automatico | manual
-├── Kits de habilidades (barra frontal / trasera)
-└── Grupos de CP: "pulls", "bosses", "especial"
+│     Kits de habilidades (barra frontal / trasera)
+│     Kits de CP (las 12 estrellas)
+├── Builds (composicion completa y EQUIPABLE)
+│     varios kits de equipo + un kit de habilidades + un kit de CP
+│     rol propio (automatico por armas, o forzado)
+└── Perfiles de rol: DD / Tanque / Sanador
+      ├── Asignaciones: [trial][trash|boss] -> { kit, ... }   <- hoy
+      │                                     -> build          <- destino
+      └── autoEquip por trial: automatico | manual
 ```
+
+### Kit vs Build (importante)
+
+Un **kit** es un bloque suelto y por si solo NO es equipable de forma
+coherente: le faltan slots. Es la pieza de construccion.
+
+Una **build** es lo que de verdad se equipa: compone kits hasta cubrirlo todo
+(equipo + habilidades + CP). Una build incompleta se marca en rojo y no se
+deja equipar; esa es justo la diferencia con un kit.
+
+```lua
+Build = {
+    id, name,
+    gearKitIds = { kitId, ... },  -- se componen; no pueden solapar slots
+    skillKitId,                   -- obligatorio para estar completa
+    cpKitId,                      -- obligatorio para estar completa
+    role,                         -- nil = automatico por armas; si no, forzado
+}
+```
+
+**Cambio de foco**: el addon pasa de estar orientado a trials (asignar kits a
+cada boss) a estar orientado a builds. Las trials no equiparan kits sueltos:
+equiparan una build entera. Las asignaciones actuales por kits se mantienen
+mientras dura la transicion (`Builds.GetTrialReadyBuilds` ya devuelve las
+builds completas para el paso siguiente).
+
+### Rol de una build (solo interno)
+
+Deducido de las armas, NO del buscador de grupo del juego (ese se sigue
+leyendo con `GetSelectedLFGRole` para las asignaciones por rol). Prioridad:
+
+1. baston de curacion en cualquier barra -> **sanador**
+2. escudo -> **tanque**
+3. baston de hielo, sin lo anterior -> **duda**: hay tanques que no llevan
+   escudo pero si baston de hielo, y hay dd de hielo. No se puede decidir
+   solo por el arma, asi que se marca como dudoso en vez de adivinar mal.
+4. armas de ataque -> **dd**
+
+El jugador puede forzar el rol; entonces manda el suyo. Tipo de arma via
+`GetItemLinkWeaponType` (WEAPONTYPE_*); iconos de rol, los nativos del juego
+(`ZO_GetKeyboardRoleIcon`).
 
 ### Kit
 
@@ -190,6 +235,16 @@ Ambas requieren verificacion adicional en UESP antes de implementarse.
 - Mismo item usado por dos kits del mismo conjunto.
 - Contraste contra lo que se lleva puesto en este momento.
 
+### A nivel de build (encima de lo anterior)
+
+- Sin kits de equipo: no hay nada que ponerse.
+- Sin kit de habilidades o sin kit de CP: la build no esta completa.
+- Armas incoherentes con las habilidades: el kit de habilidades se capturo
+  con otro tipo de arma que la que lleva esa barra de la build (las
+  habilidades dependen del arma).
+
+Una build con cualquier error no se deja equipar. Con solo avisos si.
+
 ## 6. Plan por fases
 
 1. **Fase 1 — datos y motor.** Modelo de kits con items concretos, motor de
@@ -200,6 +255,10 @@ Ambas requieren verificacion adicional en UESP antes de implementarse.
    trial/boss con herencia. Incluye la capa de revisiones (ver 6.1).
 4. **Fase 4 — habilidades y CP.** Kits de habilidades por barra y grupos de CP,
    con las restricciones de la seccion 4.3.
+5. **Fase 5 — builds.** El concepto pasa a girar sobre la build: crearla
+   componiendo kits, validarla entera, verla con su rol y equiparla de una
+   vez. Siguiente paso de esta fase: que las trials asignen **builds** en vez
+   de kits sueltos (el modelo ya esta preparado, ver seccion 3).
 
 ## 6.1 Revisiones de la ventana (Fase 3)
 

@@ -128,23 +128,6 @@ end
 
 -- ---------------------------------------------------------- Presets kit ----
 
-local SLOT_LABEL_STRING = {
-    head = "EZOARM_SLOT_HEAD",
-    shoulders = "EZOARM_SLOT_SHOULDERS",
-    chest = "EZOARM_SLOT_CHEST",
-    waist = "EZOARM_SLOT_WAIST",
-    hands = "EZOARM_SLOT_HANDS",
-    legs = "EZOARM_SLOT_LEGS",
-    feet = "EZOARM_SLOT_FEET",
-    neck = "EZOARM_SLOT_NECK",
-    ring1 = "EZOARM_SLOT_RING1",
-    ring2 = "EZOARM_SLOT_RING2",
-    main = "EZOARM_SLOT_MAIN",
-    off = "EZOARM_SLOT_OFF",
-    backupMain = "EZOARM_SLOT_BACKUP_MAIN",
-    backupOff = "EZOARM_SLOT_BACKUP_OFF",
-}
-
 local CATEGORY_STRING = {
     armor = "EZOARM_CAT_ARMOR",
     jewelry = "EZOARM_CAT_JEWELRY",
@@ -155,10 +138,7 @@ local CATEGORY_STRING = {
 local ICON_SIZE = 24
 local ICON_MAX = 6
 
-local function SlotLabel(slotKey)
-    local sid = _G[SLOT_LABEL_STRING[slotKey] or ""]
-    return sid and GetString(sid) or tostring(slotKey)
-end
+local SlotLabel = EZOArmory.SlotLabel
 
 -- Tira de iconos con los slots ocupados, en orden canonico. Es la pista visual
 -- que distingue de un vistazo un kit de cuerpo de uno de joyeria y armas.

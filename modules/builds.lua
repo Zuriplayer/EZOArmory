@@ -1,0 +1,445 @@
+-- Builds: la unidad completa y equipable del addon.
+--
+-- Un KIT es un bloque suelto (5 piezas de un set, joyeria+armas, un monster,
+-- un mitico, las dos barras de habilidades, las 12 estrellas de CP). Un kit
+-- por si solo no es equipable de forma coherente: le faltan slots.
+--
+-- Una BUILD compone kits hasta cubrirlo todo:
+--   - varios kits de equipo (armadura + joyeria + armas)
+--   - un kit de habilidades (las dos barras)
+--   - un kit de CP (las doce estrellas)
+--
+-- Una build es lo que de verdad se equipa, y a partir de aqui es tambien lo
+-- que se asignara a trials y bosses (hoy las asignaciones siguen siendo por
+-- kits de equipo; ver Builds.GetTrialReadyBuilds y docs/concept.md).
+--
+-- Este modulo NO construye interfaz. Solo modelo, validacion y rol.
+--
+-- Rol de una build (SOLO interno de EZOArmory: no toca el rol del buscador de
+-- grupo del juego, que se sigue leyendo con GetSelectedLFGRole). Se deduce de
+-- las armas, con el orden de prioridad que pidio el diseno:
+--   1. baston de curacion en cualquier barra -> sanador
+--   2. escudo                                -> tanque
+--   3. baston de hielo (sin lo anterior)     -> DUDA: hay tanques que no
+--      llevan escudo pero si baston de hielo, y no se puede decidir solo
+--      por el arma. Se marca como dudoso en vez de adivinar mal.
+--   4. armas de ataque                       -> dd
+-- El jugador puede forzar el rol; entonces build.role manda sobre la deteccion.
+--
+-- WEAPONTYPE_* y GetItemLinkWeaponType(itemLink) verificados en
+-- ESOUIDocumentation.txt; los iconos de rol son los nativos del juego
+-- (ZO_GetKeyboardRoleIcon / EsoUI/Art/LFG/LFG_icon_*.dds, confirmados en
+-- esoui/publicallingames/globals/sharedtextures.lua).
+
+EZOArmory = EZOArmory or {}
+EZOArmory.Builds = EZOArmory.Builds or {}
+
+local Builds = EZOArmory.Builds
+
+Builds.ROLE_DD = "dd"
+Builds.ROLE_TANK = "tank"
+Builds.ROLE_HEALER = "healer"
+-- No es un rol del juego: es "no se puede deducir del equipo".
+Builds.ROLE_UNCERTAIN = "uncertain"
+
+Builds.STATUS_OK = "ok"
+Builds.STATUS_WARNING = "warning"
+Builds.STATUS_ERROR = "error"
+
+-- Slots de arma, en orden de barra frontal y luego trasera.
+local WEAPON_SLOTS = { "main", "off", "backupMain", "backupOff" }
+
+local function Store()
+    local sv = EZOArmory.sv
+    if not sv then return nil end
+    sv.builds = sv.builds or {}
+    sv.seq = sv.seq or {}
+    sv.seq.build = tonumber(sv.seq.build) or 0
+    return sv
+end
+
+-- ---------------------------------------------------------------- CRUD ----
+
+function Builds.CreateBuild(name)
+    local sv = Store()
+    if not sv then return nil end
+
+    sv.seq.build = sv.seq.build + 1
+    local id = "build" .. tostring(sv.seq.build)
+    local build = {
+        id = id,
+        name = tostring(name or id),
+        gearKitIds = {},
+        skillKitId = nil,
+        cpKitId = nil,
+        role = nil, -- nil = automatico por armas
+    }
+    sv.builds[id] = build
+    return id, build
+end
+
+function Builds.GetBuild(id)
+    local sv = Store()
+    if not sv or id == nil then return nil end
+    return sv.builds[id]
+end
+
+function Builds.DeleteBuild(id)
+    local sv = Store()
+    if not sv or id == nil or sv.builds[id] == nil then return false end
+    sv.builds[id] = nil
+    return true
+end
+
+function Builds.RenameBuild(id, name)
+    local build = Builds.GetBuild(id)
+    if not build then return false end
+    build.name = tostring(name or build.name)
+    return true
+end
+
+function Builds.ListBuilds()
+    local sv = Store()
+    local list = {}
+    if not sv then return list end
+    for _, build in pairs(sv.builds) do
+        list[#list + 1] = build
+    end
+    table.sort(list, function(a, b) return tostring(a.name) < tostring(b.name) end)
+    return list
+end
+
+-- Rol forzado por el jugador. nil vuelve a dejarlo en automatico.
+function Builds.SetRoleOverride(id, role)
+    local build = Builds.GetBuild(id)
+    if not build then return false end
+    if role == Builds.ROLE_DD or role == Builds.ROLE_TANK or role == Builds.ROLE_HEALER then
+        build.role = role
+    else
+        build.role = nil
+    end
+    return true
+end
+
+-- ------------------------------------------------- Composicion de kits ----
+
+function Builds.HasGearKit(build, kitId)
+    for _, id in ipairs(build and build.gearKitIds or {}) do
+        if id == kitId then return true end
+    end
+    return false
+end
+
+function Builds.AddGearKit(id, kitId)
+    local build = Builds.GetBuild(id)
+    if not build or not EZOArmory.Kits.GetKit(kitId) then return false end
+    if Builds.HasGearKit(build, kitId) then return false end
+    build.gearKitIds[#build.gearKitIds + 1] = kitId
+    return true
+end
+
+function Builds.RemoveGearKit(id, kitId)
+    local build = Builds.GetBuild(id)
+    if not build then return false end
+    for index = #build.gearKitIds, 1, -1 do
+        if build.gearKitIds[index] == kitId then
+            table.remove(build.gearKitIds, index)
+            return true
+        end
+    end
+    return false
+end
+
+function Builds.SetSkillKit(id, skillKitId)
+    local build = Builds.GetBuild(id)
+    if not build then return false end
+    build.skillKitId = skillKitId
+    return true
+end
+
+function Builds.SetCpKit(id, cpKitId)
+    local build = Builds.GetBuild(id)
+    if not build then return false end
+    build.cpKitId = cpKitId
+    return true
+end
+
+-- Quita de todas las builds cualquier referencia a un kit borrado. Lo llaman
+-- los DeleteKit de Kits/Skills/Champion para no dejar builds apuntando a kits
+-- fantasma.
+function Builds.ForgetKit(kitId)
+    local sv = Store()
+    if not sv or kitId == nil then return end
+    for _, build in pairs(sv.builds) do
+        for index = #build.gearKitIds, 1, -1 do
+            if build.gearKitIds[index] == kitId then
+                table.remove(build.gearKitIds, index)
+            end
+        end
+        if build.skillKitId == kitId then build.skillKitId = nil end
+        if build.cpKitId == kitId then build.cpKitId = nil end
+    end
+end
+
+-- Kits de equipo de la build que todavia existen, ya resueltos.
+function Builds.ResolveGearKits(build)
+    local kits = {}
+    for _, kitId in ipairs(build and build.gearKitIds or {}) do
+        local kit = EZOArmory.Kits.GetKit(kitId)
+        if kit then
+            kits[#kits + 1] = kit
+        end
+    end
+    return kits
+end
+
+-- ------------------------------------------------------- Rol por armas ----
+
+-- Tipo de arma de una pieza: el guardado al capturar y, si el kit es anterior
+-- a que se guardara ese dato, leido en vivo del item si sigue localizable.
+local function ResolveWeaponType(entry)
+    local stored = tonumber(entry and entry.weaponType)
+    if stored and stored ~= 0 then
+        return stored
+    end
+    if not (entry and entry.itemId) then return nil end
+    if not (EZOArmory.Gear and EZOArmory.Gear.FindItemById)
+        or type(GetItemLink) ~= "function"
+        or type(GetItemLinkWeaponType) ~= "function" then
+        return nil
+    end
+    local location = EZOArmory.Gear.FindItemById(entry.itemId)
+    if not location then return nil end
+    local okLink, link = pcall(GetItemLink, location.bag, location.slot)
+    if not okLink or not link or link == "" then return nil end
+    local okType, weaponType = pcall(GetItemLinkWeaponType, link)
+    if not okType then return nil end
+    return weaponType
+end
+
+Builds.ResolveWeaponType = ResolveWeaponType
+
+-- Deduce el rol a partir de las armas asignadas. Devuelve nil si la build no
+-- tiene ningun arma todavia (no hay nada de lo que deducirlo).
+function Builds.DetectRole(assignment)
+    local hasHealStaff, hasShield, hasFrostStaff, hasAnyWeapon = false, false, false, false
+
+    for _, slotKey in ipairs(WEAPON_SLOTS) do
+        local entry = assignment and assignment[slotKey]
+        if entry then
+            local weaponType = ResolveWeaponType(entry)
+            if weaponType then
+                hasAnyWeapon = true
+                if WEAPONTYPE_HEALING_STAFF and weaponType == WEAPONTYPE_HEALING_STAFF then
+                    hasHealStaff = true
+                elseif WEAPONTYPE_SHIELD and weaponType == WEAPONTYPE_SHIELD then
+                    hasShield = true
+                elseif WEAPONTYPE_FROST_STAFF and weaponType == WEAPONTYPE_FROST_STAFF then
+                    hasFrostStaff = true
+                end
+            end
+        end
+    end
+
+    if not hasAnyWeapon then return nil end
+    if hasHealStaff then return Builds.ROLE_HEALER end
+    if hasShield then return Builds.ROLE_TANK end
+    -- Baston de hielo sin escudo: puede ser un tanque de hielo o un dd de
+    -- hielo. No se adivina.
+    if hasFrostStaff then return Builds.ROLE_UNCERTAIN end
+    return Builds.ROLE_DD
+end
+
+-- Rol efectivo: el forzado por el jugador si lo hay, si no el deducido.
+function Builds.GetEffectiveRole(build, assignment)
+    if build and build.role then
+        return build.role, true
+    end
+    return Builds.DetectRole(assignment), false
+end
+
+local ROLE_ICON = {}
+if LFG_ROLE_DPS then ROLE_ICON[Builds.ROLE_DD] = LFG_ROLE_DPS end
+if LFG_ROLE_TANK then ROLE_ICON[Builds.ROLE_TANK] = LFG_ROLE_TANK end
+if LFG_ROLE_HEAL then ROLE_ICON[Builds.ROLE_HEALER] = LFG_ROLE_HEAL end
+
+-- Icono del rol. Para dd/tanque/sanador se usan los iconos nativos del juego;
+-- para "duda" el icono generico de ayuda, que es el que ya usa la familia EZO
+-- para marcar informacion pendiente.
+function Builds.GetRoleIcon(role)
+    if role == Builds.ROLE_UNCERTAIN then
+        return "EsoUI/Art/Miscellaneous/help_icon.dds"
+    end
+    local lfgRole = ROLE_ICON[role]
+    if lfgRole and type(ZO_GetKeyboardRoleIcon) == "function" then
+        local ok, icon = pcall(ZO_GetKeyboardRoleIcon, lfgRole)
+        if ok and icon then return icon end
+    end
+    return nil
+end
+
+local ROLE_STRING = {
+    [Builds.ROLE_DD] = "EZOARM_ROLE_DD",
+    [Builds.ROLE_TANK] = "EZOARM_ROLE_TANK",
+    [Builds.ROLE_HEALER] = "EZOARM_ROLE_HEALER",
+    [Builds.ROLE_UNCERTAIN] = "EZOARM_ROLE_UNCERTAIN",
+}
+
+function Builds.GetRoleLabel(role)
+    local stringId = _G[ROLE_STRING[role or ""] or ""]
+    if stringId then
+        return GetString(stringId)
+    end
+    return GetString(EZOARM_ROLE_UNKNOWN)
+end
+
+-- --------------------------------------------------------- Validacion ----
+
+-- Comprueba que las habilidades del kit encajan con las armas de la build:
+-- un kit capturado con arco no sirve tal cual en una barra con baston. Solo
+-- se puede comprobar si ambas partes conocen su tipo de arma.
+local function CheckWeaponCoherence(build, assignment, issues)
+    local skillKit = build.skillKitId and EZOArmory.Skills.GetKit(build.skillKitId)
+    if not skillKit or not skillKit.weapons then return end
+
+    local pairsToCheck = {
+        { slotKey = "main", ref = skillKit.weapons.main, bar = "front" },
+        { slotKey = "backupMain", ref = skillKit.weapons.backupMain, bar = "back" },
+    }
+
+    for _, check in ipairs(pairsToCheck) do
+        local entry = assignment and assignment[check.slotKey]
+        local buildWeapon = entry and ResolveWeaponType(entry)
+        local skillWeapon = check.ref and ResolveWeaponType(check.ref)
+        if buildWeapon and skillWeapon and buildWeapon ~= skillWeapon then
+            issues[#issues + 1] = {
+                type = "weaponMismatch",
+                severity = EZOArmory.Coherence.SEVERITY.WARNING,
+                bar = check.bar,
+                slot = check.slotKey,
+                skillKitName = tostring(skillKit.name),
+            }
+        end
+    end
+end
+
+-- Analiza una build completa: coherencia del equipo (motor ya existente) mas
+-- lo que solo tiene sentido a nivel de build (falta el kit de habilidades o el
+-- de CP, armas incoherentes con las habilidades).
+--
+-- Devuelve:
+--   { status, ok, issues, analysis, assignment, role, roleForced, complete }
+function Builds.Analyze(build)
+    local issues = {}
+    if not build then
+        return {
+            status = Builds.STATUS_ERROR,
+            ok = false,
+            issues = issues,
+            complete = false,
+        }
+    end
+
+    local gearKits = Builds.ResolveGearKits(build)
+    local analysis = EZOArmory.Coherence.Analyze({ kits = gearKits })
+
+    -- Las incidencias del equipo son tambien incidencias de la build.
+    for _, issue in ipairs(analysis.issues or {}) do
+        issues[#issues + 1] = issue
+    end
+
+    if #gearKits == 0 then
+        issues[#issues + 1] = {
+            type = "noGearKits",
+            severity = EZOArmory.Coherence.SEVERITY.ERROR,
+        }
+    end
+
+    -- Una build sin habilidades o sin CP no esta completa: no se puede
+    -- equipar entera, que es justo lo que distingue una build de un kit.
+    if not (build.skillKitId and EZOArmory.Skills.GetKit(build.skillKitId)) then
+        issues[#issues + 1] = {
+            type = "noSkillKit",
+            severity = EZOArmory.Coherence.SEVERITY.ERROR,
+        }
+    end
+    if not (build.cpKitId and EZOArmory.Champion.GetKit(build.cpKitId)) then
+        issues[#issues + 1] = {
+            type = "noCpKit",
+            severity = EZOArmory.Coherence.SEVERITY.ERROR,
+        }
+    end
+
+    CheckWeaponCoherence(build, analysis.assignment, issues)
+
+    local hasError, hasWarning = false, false
+    for _, issue in ipairs(issues) do
+        if issue.severity == EZOArmory.Coherence.SEVERITY.ERROR then
+            hasError = true
+        elseif issue.severity == EZOArmory.Coherence.SEVERITY.WARNING then
+            hasWarning = true
+        end
+    end
+
+    local status = Builds.STATUS_OK
+    if hasError then
+        status = Builds.STATUS_ERROR
+    elseif hasWarning then
+        status = Builds.STATUS_WARNING
+    end
+
+    local role, roleForced = Builds.GetEffectiveRole(build, analysis.assignment)
+
+    return {
+        status = status,
+        ok = not hasError,
+        issues = issues,
+        analysis = analysis,
+        assignment = analysis.assignment,
+        role = role,
+        roleForced = roleForced,
+        complete = not hasError,
+    }
+end
+
+-- Builds que se pueden asignar a una trial: solo las que estan completas.
+-- Pensado para la fase siguiente, en la que las trials pasan a equipar builds
+-- enteras en vez de kits sueltos.
+function Builds.GetTrialReadyBuilds()
+    local ready = {}
+    for _, build in ipairs(Builds.ListBuilds()) do
+        if Builds.Analyze(build).complete then
+            ready[#ready + 1] = build
+        end
+    end
+    return ready
+end
+
+-- --------------------------------------------------------- Equipado ----
+
+-- Equipa una build entera: equipo, habilidades y CP. Cada parte respeta sus
+-- propias reglas (fuera de combate, cooldown de CP, aplicar solo lo que
+-- cambia); ver modules/equip.lua. onReport(part, state) se llama una vez por
+-- parte ("gear" | "skills" | "cp") para poder informar de cada una.
+function Builds.Equip(buildId, onReport)
+    local build = Builds.GetBuild(buildId)
+    if not build then return false end
+
+    local function report(part)
+        return function(state)
+            if onReport then onReport(part, state) end
+        end
+    end
+
+    if #build.gearKitIds > 0 then
+        EZOArmory.Equip.ApplyKits(build.gearKitIds, report("gear"))
+    end
+    if build.skillKitId then
+        EZOArmory.Equip.ApplySkillKit(build.skillKitId, report("skills"))
+    end
+    if build.cpKitId then
+        EZOArmory.Equip.ApplyCpKit(build.cpKitId, report("cp"))
+    end
+
+    return true
+end

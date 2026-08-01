@@ -53,6 +53,7 @@ local function CopyPiece(piece)
         itemName = tostring(piece.itemName or ""),
         icon = tostring(piece.icon or ""),
         armorType = tonumber(piece.armorType),
+        weaponType = tonumber(piece.weaponType),
         setId = tonumber(piece.setId) or 0,
         setName = tostring(piece.setName or ""),
         maxEquipped = tonumber(piece.maxEquipped) or 0,
@@ -154,6 +155,7 @@ function Kits.CreateKitFromWorn(name, slotKeys, role)
                 itemName = worn.itemName,
                 icon = worn.icon,
                 armorType = worn.armorType,
+                weaponType = worn.weaponType,
                 setId = worn.setId,
                 setName = worn.setName,
                 maxEquipped = worn.maxEquipped,
@@ -312,6 +314,11 @@ function Kits.DeleteKit(id)
     local sv = Store()
     if not sv or id == nil or sv.kits[id] == nil then return false end
     sv.kits[id] = nil
+
+    -- Las builds que lo componian dejarian de ser validas en silencio.
+    if EZOArmory.Builds and EZOArmory.Builds.ForgetKit then
+        EZOArmory.Builds.ForgetKit(id)
+    end
 
     -- Limpia referencias en todas las asignaciones de todos los roles.
     for _, profile in pairs(sv.profiles) do

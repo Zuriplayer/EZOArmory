@@ -65,7 +65,13 @@ local CATEGORY_GEAR = "gear"
 local CATEGORY_SKILLS = "skills"
 local CATEGORY_CP = "cp"
 local CATEGORY_ASSIGN = "assign"
-local CATEGORIES = { CATEGORY_GEAR, CATEGORY_SKILLS, CATEGORY_CP, CATEGORY_ASSIGN }
+-- Builds va primero: es la unidad completa y equipable, y a partir de ahora el
+-- punto de entrada natural. Las pestanas de kits son los bloques con los que se
+-- componen.
+local CATEGORY_BUILDS = "builds"
+local CATEGORIES = {
+    CATEGORY_BUILDS, CATEGORY_GEAR, CATEGORY_SKILLS, CATEGORY_CP, CATEGORY_ASSIGN,
+}
 
 -- Layout de la pestana Assign: bloque superior de altura fija (rol, trial,
 -- objetivo, lista de asignados, selector para anadir) mas una barra de accion
@@ -81,7 +87,7 @@ local MAX_ASSIGN_ROWS = 4
 local ASSIGN_TARGET_DEFAULT = "default"
 
 WK.state = WK.state or {
-    category = CATEGORY_GEAR,
+    category = CATEGORY_BUILDS,
     selectedId = nil,
     assignTrialTag = nil,
     assignTargetKey = nil,
@@ -193,6 +199,16 @@ local function HideChampionTooltip()
     end
 end
 
+-- Los tooltips reales (item, habilidad, estrella de CP) se comparten con la
+-- pestana de builds, que pinta los mismos elementos. Se exponen aqui en vez de
+-- duplicarlos alli: son los que ya estan verificados contra produccion.
+WK.ShowItemTooltip = function(anchor, piece, slotKey) return ShowItemTooltip(anchor, piece, slotKey) end
+WK.HideItemTooltip = HideItemTooltip
+WK.ShowAbilityTooltip = ShowAbilityTooltip
+WK.HideAbilityTooltip = HideAbilityTooltip
+WK.ShowChampionTooltip = ShowChampionTooltip
+WK.HideChampionTooltip = HideChampionTooltip
+
 -- Resumen compuesto (varias lineas) para el hover sobre el nombre de una fila.
 local function ShowTextSummary(anchor, title, lines)
     if type(ZO_Tooltips_ShowTextTooltip) ~= "function" then return end
@@ -208,6 +224,9 @@ local function HideTextSummary()
         ZO_Tooltips_HideTextTooltip()
     end
 end
+
+WK.ShowTextSummary = ShowTextSummary
+WK.HideTextSummary = HideTextSummary
 
 -- Color oficial del arbol de CP (Guerra/Forma Fisica/Mundo), el mismo que usa
 -- la pantalla nativa de Puntos de Campeon (ZO_CP_BAR_GLOW_COLORS, global del
@@ -587,12 +606,21 @@ end
 
 -- Alterna entre la vista de lista (Gear/Skills/CP) y el panel de Assign:
 -- ambas viven en la misma region de "content" y solo una esta visible.
+-- Tres vistas comparten la region de contenido y solo una esta visible: la
+-- lista de kits (Gear/Skills/CP), el panel de asignaciones y la pestana de
+-- builds.
 function WK.RefreshVisibility()
     local isAssign = WK.state.category == CATEGORY_ASSIGN
-    if WK.countLabel then WK.countLabel:SetHidden(isAssign) end
-    if WK.scrollContainer then WK.scrollContainer:SetHidden(isAssign) end
-    if WK.actionBar then WK.actionBar:SetHidden(isAssign) end
+    local isBuilds = WK.state.category == CATEGORY_BUILDS
+    local isKitList = not isAssign and not isBuilds
+
+    if WK.countLabel then WK.countLabel:SetHidden(not isKitList) end
+    if WK.scrollContainer then WK.scrollContainer:SetHidden(not isKitList) end
+    if WK.actionBar then WK.actionBar:SetHidden(not isKitList) end
     if WK.assignRoot then WK.assignRoot:SetHidden(not isAssign) end
+    if EZOArmory.WindowBuilds and EZOArmory.WindowBuilds.root then
+        EZOArmory.WindowBuilds.root:SetHidden(not isBuilds)
+    end
 end
 
 function WK.SetCategory(category)
@@ -601,6 +629,8 @@ function WK.SetCategory(category)
     WK.RefreshVisibility()
     if category == CATEGORY_ASSIGN then
         WK.RefreshAssignPanel()
+    elseif category == CATEGORY_BUILDS then
+        EZOArmory.WindowBuilds.Refresh()
     else
         WK.Refresh()
     end
@@ -843,6 +873,7 @@ end
 -- ------------------------------------------------------------- Pestanas ----
 
 local TAB_STRING = {
+    [CATEGORY_BUILDS] = "EZOARM_WINDOW_TAB_BUILDS",
     [CATEGORY_GEAR] = "EZOARM_WINDOW_TAB_GEAR",
     [CATEGORY_SKILLS] = "EZOARM_WINDOW_TAB_SKILLS",
     [CATEGORY_CP] = "EZOARM_WINDOW_TAB_CP",
@@ -1310,10 +1341,14 @@ function WK.Create(parent)
     EnsureRows(listRoot, scrollContainer)
 
     CreateAssignPanel(content)
+    EZOArmory.WindowBuilds.Create(content)
 
     WK.RefreshTabs()
     WK.Refresh()
     WK.RefreshVisibility()
+    if WK.state.category == CATEGORY_BUILDS then
+        EZOArmory.WindowBuilds.Refresh()
+    end
 
     return root
 end
