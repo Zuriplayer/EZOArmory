@@ -813,29 +813,32 @@ local function CreateListPanel(content)
     actionBar:SetAnchor(BOTTOMRIGHT, panel, BOTTOMRIGHT, 0, 0)
     WB.listActionBar = actionBar
 
-    local deleteButton = CreateActionButton(actionBar, 160, GetString(EZOARM_OPTION_KIT_DELETE),
+    -- Grupo izquierdo (crear) y derecho (acciones sobre la build seleccionada)
+    -- dimensionados para caber a la vez: con los anchos anteriores se solapaban
+    -- en cuanto habia una build seleccionada.
+    local deleteButton = CreateActionButton(actionBar, 120, GetString(EZOARM_BUILD_DELETE),
         { 1, 0.55, 0.55 }, { 1, 0.3, 0.3 }, OnDeleteClicked)
     deleteButton:SetAnchor(BOTTOMRIGHT, actionBar, BOTTOMRIGHT, 0, 0)
     deleteButton:SetHidden(true)
     WB.deleteButton = deleteButton
 
-    local editButton = CreateActionButton(actionBar, 160, GetString(EZOARM_BUILD_EDIT),
+    local editButton = CreateActionButton(actionBar, 110, GetString(EZOARM_BUILD_EDIT),
         { 0.8, 0.85, 1 }, { 0.6, 0.75, 1 }, OnEditClicked)
     editButton:SetAnchor(RIGHT, deleteButton, LEFT, -12, 0)
     editButton:SetHidden(true)
     WB.editButton = editButton
 
-    local equipButton = CreateActionButton(actionBar, 160, GetString(EZOARM_OPTION_KIT_EQUIP),
+    local equipButton = CreateActionButton(actionBar, 120, GetString(EZOARM_BUILD_EQUIP),
         { 0.6, 1, 0.6 }, { 0.4, 1, 0.4 }, OnEquipClicked)
     equipButton:SetAnchor(RIGHT, editButton, LEFT, -12, 0)
     equipButton:SetHidden(true)
     WB.equipButton = equipButton
 
-    local newButton = CreateActionButton(actionBar, 140, GetString(EZOARM_BUILD_NEW),
+    local newButton = CreateActionButton(actionBar, 110, GetString(EZOARM_BUILD_NEW),
         { 0.85, 0.85, 0.9 }, { 1, 1, 1 }, OnNewClicked)
     newButton:SetAnchor(BOTTOMLEFT, actionBar, BOTTOMLEFT, 0, 0)
 
-    local copyWornButton = CreateActionButton(actionBar, 250, GetString(EZOARM_BUILD_FROM_WORN),
+    local copyWornButton = CreateActionButton(actionBar, 170, GetString(EZOARM_BUILD_FROM_WORN),
         { 0.6, 1, 0.6 }, { 0.4, 1, 0.4 }, OnCopyWornClicked)
     copyWornButton:SetAnchor(LEFT, newButton, RIGHT, 12, 0)
 
@@ -879,7 +882,7 @@ local function CreateEditorPanel(content)
     nameLabel:SetAnchor(TOPLEFT, panel, TOPLEFT, 0, 0)
     WB.edNameLabel = nameLabel
 
-    local renameButton = CreateActionButton(panel, 140, GetString(EZOARM_OPTION_KIT_RENAME),
+    local renameButton = CreateActionButton(panel, 120, GetString(EZOARM_WINDOW_BTN_RENAME),
         { 0.8, 0.85, 1 }, { 0.6, 0.75, 1 }, OnRenameClicked)
     renameButton:SetAnchor(TOPRIGHT, panel, TOPRIGHT, 0, 0)
     nameLabel:SetAnchor(TOPRIGHT, renameButton, TOPLEFT, -12, 0)

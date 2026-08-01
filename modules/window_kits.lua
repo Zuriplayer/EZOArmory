@@ -1349,24 +1349,27 @@ function WK.Create(parent)
     actionBar:SetAnchor(BOTTOMRIGHT, content, BOTTOMRIGHT, 0, 0)
     WK.actionBar = actionBar
 
+    -- Anchos ajustados para que el grupo de la izquierda (capturar, que lee del
+    -- personaje) y el de la derecha (acciones sobre el kit seleccionado) quepan
+    -- a la vez en la barra sin solaparse.
     local deleteButton = WM:CreateControl(nil, actionBar, CT_BUTTON)
-    deleteButton:SetDimensions(160, 24)
+    deleteButton:SetDimensions(110, 24)
     deleteButton:SetAnchor(BOTTOMRIGHT, actionBar, BOTTOMRIGHT, 0, 0)
     deleteButton:SetFont("ZoFontGameBold")
     deleteButton:SetNormalFontColor(1, 0.55, 0.55, 1)
     deleteButton:SetMouseOverFontColor(1, 0.3, 0.3, 1)
-    deleteButton:SetText(GetString(EZOARM_OPTION_KIT_DELETE))
+    deleteButton:SetText(GetString(EZOARM_WINDOW_BTN_DELETE))
     deleteButton:SetHandler("OnClicked", OnDeleteClicked)
     deleteButton:SetHidden(true)
     WK.deleteButton = deleteButton
 
     local renameButton = WM:CreateControl(nil, actionBar, CT_BUTTON)
-    renameButton:SetDimensions(160, 24)
+    renameButton:SetDimensions(110, 24)
     renameButton:SetAnchor(RIGHT, deleteButton, LEFT, -12, 0)
     renameButton:SetFont("ZoFontGameBold")
     renameButton:SetNormalFontColor(0.8, 0.85, 1, 1)
     renameButton:SetMouseOverFontColor(0.6, 0.75, 1, 1)
-    renameButton:SetText(GetString(EZOARM_OPTION_KIT_RENAME))
+    renameButton:SetText(GetString(EZOARM_WINDOW_BTN_RENAME))
     renameButton:SetHandler("OnClicked", OnRenameClicked)
     renameButton:SetHidden(true)
     WK.renameButton = renameButton
@@ -1374,7 +1377,7 @@ function WK.Create(parent)
     -- A la izquierda, separado de las acciones sobre el kit seleccionado: no
     -- opera sobre la seleccion, lee del personaje.
     local captureButton = WM:CreateControl(nil, actionBar, CT_BUTTON)
-    captureButton:SetDimensions(240, 24)
+    captureButton:SetDimensions(210, 24)
     captureButton:SetAnchor(BOTTOMLEFT, actionBar, BOTTOMLEFT, 0, 0)
     captureButton:SetFont("ZoFontGameBold")
     captureButton:SetNormalFontColor(0.85, 0.85, 0.9, 1)
@@ -1384,12 +1387,12 @@ function WK.Create(parent)
     WK.captureButton = captureButton
 
     local equipButton = WM:CreateControl(nil, actionBar, CT_BUTTON)
-    equipButton:SetDimensions(160, 24)
+    equipButton:SetDimensions(110, 24)
     equipButton:SetAnchor(RIGHT, renameButton, LEFT, -12, 0)
     equipButton:SetFont("ZoFontGameBold")
     equipButton:SetNormalFontColor(0.6, 1, 0.6, 1)
     equipButton:SetMouseOverFontColor(0.4, 1, 0.4, 1)
-    equipButton:SetText(GetString(EZOARM_OPTION_KIT_EQUIP))
+    equipButton:SetText(GetString(EZOARM_WINDOW_BTN_EQUIP))
     equipButton:SetHandler("OnClicked", OnEquipClicked)
     equipButton:SetHidden(true)
     WK.equipButton = equipButton

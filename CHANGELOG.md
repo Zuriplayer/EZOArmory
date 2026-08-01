@@ -2,6 +2,18 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.9.3
+
+- Fix: the buttons at the bottom of the window overlapped and printed on top of
+  each other. The left-hand group (capture / new build / copy worn) and the
+  right-hand group (equip, edit, rename, delete) were each sized as if they had
+  the bar to themselves, so together they were wider than the bar and collided
+  as soon as something was selected. Both groups are now sized to fit
+  side by side, with shorter button labels to match.
+- Fix: the build buttons said "kit" - "Equip selected kit", "Delete selected
+  kit" - because they reused the kit tab's strings. They now read "Equip build"
+  and "Delete build", which is what they actually do.
+
 ## 0.9.2
 
 - Add: a capture button in the Gear, Skill and CP kit tabs, so you can read

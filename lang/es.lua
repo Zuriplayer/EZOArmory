@@ -85,9 +85,14 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_OPTION_KIT_CAPTURE_ALL = "Capturar todo lo puesto como kits",
     EZOARM_OPTION_KIT_CAPTURE_ALL_TOOLTIP = "Crea de una vez kits con todo lo que llevas puesto: uno por cada set de varias piezas, y ademas uno por cada pieza suelta (miticos, armas sin set, o una sola pieza de un set como una cabeza de Slimecraw). Tambien captura tus barras de habilidades y estrellas de Campeon actuales como kits propios, listados en sus propias secciones. Cada kit de equipo se nombra con su palabra clave mas donde va, por ejemplo \"Null Arca - armadura\". Todo lo identico a un kit existente se salta, asi repetir la captura nunca crea duplicados.",
     EZOARM_MSG_KITS_CAPTURED_ALL = "Creados <<1>> kits, <<2>> ya existian.",
-    EZOARM_WINDOW_CAPTURE_GEAR = "Capturar el equipo que llevo",
-    EZOARM_WINDOW_CAPTURE_SKILLS = "Capturar mis barras actuales",
-    EZOARM_WINDOW_CAPTURE_CP = "Capturar mis estrellas actuales",
+    -- Textos de boton de la ventana: cortos a proposito, el ancho de la barra
+    -- de acciones es fijo y los largos del panel de opciones no caben.
+    EZOARM_WINDOW_CAPTURE_GEAR = "Capturar equipo",
+    EZOARM_WINDOW_CAPTURE_SKILLS = "Capturar barras",
+    EZOARM_WINDOW_CAPTURE_CP = "Capturar estrellas",
+    EZOARM_WINDOW_BTN_EQUIP = "Equipar kit",
+    EZOARM_WINDOW_BTN_RENAME = "Renombrar",
+    EZOARM_WINDOW_BTN_DELETE = "Borrar",
 
     EZOARM_OPTION_KIT_LIST = "Kits guardados",
     EZOARM_OPTION_KIT_LIST_TOOLTIP = "Selecciona un kit guardado. El numero entre parentesis son las piezas que contiene.",
@@ -156,7 +161,9 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_BUILD_EDIT_HINT = "Selecciona una build para equiparla o editarla. Haz doble clic para ir directo a sus kits.",
     EZOARM_BUILD_EDITOR_TITLE = "Build: <<1>>",
     EZOARM_BUILD_NEW = "Nueva build",
-    EZOARM_BUILD_FROM_WORN = "Copiar todo lo que llevo puesto",
+    EZOARM_BUILD_FROM_WORN = "Copiar lo puesto",
+    EZOARM_BUILD_EQUIP = "Equipar build",
+    EZOARM_BUILD_DELETE = "Borrar build",
     EZOARM_MSG_BUILD_FROM_WORN = "Build <<1>> creada desde lo que llevas puesto: <<2>> kit(s) nuevos, <<3>> reutilizados.",
     EZOARM_BUILD_EDIT = "Editar build",
     EZOARM_BUILD_BACK = "Volver a la lista",
