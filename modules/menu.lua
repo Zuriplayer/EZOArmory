@@ -519,43 +519,49 @@ local function EquipSelectedKit()
     EquipKitIds({ runtime.selectedKitId })
 end
 
--- Equipa la asignacion del objetivo seleccionado en el panel (con herencia).
--- No depende de donde estes: sirve para probar y para forzar una build.
-local function EquipSelectedTarget()
-    local runtime = Runtime()
-    local kitIds = EZOArmory.Kits.GetAssignment(
-        GetActiveRole(), runtime.selectedTrialTag, runtime.selectedTargetKey)
-    if not kitIds or #kitIds == 0 then
-        local trial = EZOArmory.Zones.GetTrialByTag(runtime.selectedTrialTag)
-        Print(zo_strformat(GetString(EZOARM_MSG_EQUIP_NO_ASSIGNMENT),
-            trial and trial.name or tostring(runtime.selectedTrialTag)))
-        return
+-- Informe por partes, el mismo que usa la ventana: equipar un objetivo puede
+-- aplicar una build entera (equipo + habilidades + CP), no solo equipo.
+local function ReportEquipPart(part, state)
+    if EZOArmory.WindowBuilds and EZOArmory.WindowBuilds.ReportEquipPart then
+        EZOArmory.WindowBuilds.ReportEquipPart(part, state)
     end
-    EquipKitIds(kitIds)
 end
 
--- Equipa la asignacion aplicable a donde estas ahora mismo, segun el contexto.
-local function EquipForCurrentLocation()
-    local role = GetActiveRole()
-    local context = EZOArmory.Context and EZOArmory.Context.GetState and EZOArmory.Context.GetState()
-    local trial = context and context.trial
+local function PrintNotEquipped(reason, trialTag)
+    if reason == "incomplete" then
+        Print(GetString(EZOARM_MSG_BUILD_INCOMPLETE))
+        return
+    end
+    local trial = EZOArmory.Zones.GetTrialByTag(trialTag)
+    Print(zo_strformat(GetString(EZOARM_MSG_EQUIP_NO_ASSIGNMENT),
+        trial and trial.name or tostring(trialTag)))
+end
 
+-- Equipa lo asignado al objetivo seleccionado en el panel (con herencia). No
+-- depende de donde estes: sirve para probar y para prepararte antes de entrar.
+-- Resuelve por build y, si el objetivo aun no tiene, por los kits de antes.
+local function EquipSelectedTarget()
+    local runtime = Runtime()
+    local mode, reason = EZOArmory.Builds.EquipForTarget(
+        GetActiveRole(), runtime.selectedTrialTag, runtime.selectedTargetKey, ReportEquipPart)
+    if not mode then
+        PrintNotEquipped(reason, runtime.selectedTrialTag)
+    end
+end
+
+-- Equipa lo aplicable a donde estas ahora mismo, segun el contexto.
+local function EquipForCurrentLocation()
+    local trial, targetKey = EZOArmory.Builds.GetCurrentTarget()
     if not trial then
         Print(GetString(EZOARM_MSG_EQUIP_NO_TRIAL))
         return
     end
 
-    -- Boss conocido -> su objetivo; si no, "trash" (que hereda del default de la
-    -- trial si no tiene asignacion propia).
-    local targetKey = context.matchedBoss and context.matchedBoss.key or EZOArmory.Kits.TARGET_TRASH
-    local kitIds = EZOArmory.Kits.GetAssignment(role, trial.tag, targetKey)
-
-    if not kitIds or #kitIds == 0 then
-        Print(zo_strformat(GetString(EZOARM_MSG_EQUIP_NO_ASSIGNMENT), trial.name))
-        return
+    local mode, reason = EZOArmory.Builds.EquipForTarget(
+        GetActiveRole(), trial.tag, targetKey, ReportEquipPart)
+    if not mode then
+        PrintNotEquipped(reason, trial.tag)
     end
-
-    EquipKitIds(kitIds)
 end
 
 -- Kits actualmente asignados al objetivo seleccionado (sin herencia).

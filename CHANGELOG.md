@@ -2,6 +2,32 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.10.0
+
+Trials now assign builds instead of loose kits, completing the pivot started
+in 0.9.0.
+
+- The Assign tab assigns **one build** per trial target (trial default, trash
+  or a specific boss) instead of a list of gear kits. A build already covers
+  everything, so there is nothing left to combine - picking it in the dropdown
+  assigns it, and the old add/remove list is gone. Trial-default inheritance
+  works exactly as before: a target with no build of its own uses the trial's.
+- "What applies here" now spells out what would actually be equipped at that
+  target and why - its own build, one inherited from the trial default, or an
+  old kit assignment - so an empty target is distinguishable from an
+  inheriting one.
+- Equipping a target now applies the whole build (gear, skills and CP), not
+  just gear. An incomplete build is refused with the same message the Builds
+  tab gives, rather than half-equipping.
+- **Existing kit assignments are neither deleted nor migrated.** If a target
+  has no build assigned but does have kits from the old model, those kits are
+  still equipped, and the panel labels them as an old assignment so you know
+  to replace them. Builds.ResolveForTarget is the single place that decides.
+- The settings panel's "Equip this target's kits" and "Equip for my current
+  location" go through the same resolution, so they no longer disagree with
+  the window about what applies where.
+- Deleting a build now clears it from any trial or boss it was assigned to.
+
 ## 0.9.3
 
 - Fix: the buttons at the bottom of the window overlapped and printed on top of

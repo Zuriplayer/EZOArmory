@@ -725,45 +725,51 @@ local function OnDeleteClicked()
     WB.RefreshList()
 end
 
+local PART_STRING = {
+    gear = "EZOARM_MSG_BUILD_PART_GEAR",
+    skills = "EZOARM_MSG_BUILD_PART_SKILLS",
+    cp = "EZOARM_MSG_BUILD_PART_CP",
+}
+
+-- Informe en chat de una parte del equipado de una build. Publica porque la
+-- pestana Assign equipa las mismas builds y debe informar igual.
+function WB.ReportEquipPart(part, state)
+    if not EZOArmory.Print then return end
+    local stringName = PART_STRING[part]
+    local prefix = stringName and GetString(_G[stringName]) or ""
+
+    if state.error == "noLibAsync" then
+        EZOArmory.Print(prefix .. " " .. GetString(EZOARM_MSG_EQUIP_NO_LIBASYNC))
+        return
+    end
+    if state.error == "empty" then
+        return
+    end
+
+    if part == "gear" then
+        EZOArmory.Print(prefix .. " " .. zo_strformat(
+            GetString(EZOARM_MSG_EQUIP_DONE), state.equipped, state.already, state.missing))
+    else
+        local doneString = (part == "skills") and EZOARM_MSG_SKILL_EQUIP_DONE or EZOARM_MSG_CP_EQUIP_DONE
+        EZOArmory.Print(prefix .. " " .. zo_strformat(
+            GetString(doneString), state.slotted, state.already, state.skipped))
+    end
+end
+
 -- Equipado rapido: equipo, habilidades y CP de una vez. Se niega a equipar una
 -- build incompleta, que es justo lo que la validacion existe para evitar.
 local function OnEquipClicked()
     local build = EZOArmory.Builds.GetBuild(WB.state.selectedId)
     if not build then return end
 
-    local report = EZOArmory.Builds.Analyze(build)
-    if not report.complete then
+    if not EZOArmory.Builds.Analyze(build).complete then
         if EZOArmory.Print then
             EZOArmory.Print(GetString(EZOARM_MSG_BUILD_INCOMPLETE))
         end
         return
     end
 
-    local PART_STRING = {
-        gear = EZOARM_MSG_BUILD_PART_GEAR,
-        skills = EZOARM_MSG_BUILD_PART_SKILLS,
-        cp = EZOARM_MSG_BUILD_PART_CP,
-    }
-
-    EZOArmory.Builds.Equip(build.id, function(part, state)
-        if not EZOArmory.Print then return end
-        local prefix = GetString(PART_STRING[part] or "")
-        if state.error == "noLibAsync" then
-            EZOArmory.Print(prefix .. " " .. GetString(EZOARM_MSG_EQUIP_NO_LIBASYNC))
-            return
-        end
-        if state.error == "empty" then
-            return
-        end
-        if part == "gear" then
-            EZOArmory.Print(prefix .. " " .. zo_strformat(
-                GetString(EZOARM_MSG_EQUIP_DONE), state.equipped, state.already, state.missing))
-        else
-            local doneString = (part == "skills") and EZOARM_MSG_SKILL_EQUIP_DONE or EZOARM_MSG_CP_EQUIP_DONE
-            EZOArmory.Print(prefix .. " " .. zo_strformat(
-                GetString(doneString), state.slotted, state.already, state.skipped))
-        end
-    end)
+    EZOArmory.Builds.Equip(build.id, WB.ReportEquipPart)
 end
 
 -- ---------------------------------------------------------- Construccion ----

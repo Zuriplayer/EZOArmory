@@ -24,9 +24,10 @@ full gear snapshot for every boss:
   without either is flagged as unclear (some tanks run ice staff without a
   shield), and attack weapons on both bars mean damage. You can override it. This
   role is internal to EZOArmory and never touches your group finder role.
-- **Assign kits per encounter**: each trial has a default set of kits, and you
-  only override the trash or the specific bosses that need something different.
-  Change a kit and every encounter using it updates automatically.
+- **Assign a build per encounter**: each trial has a default build, and you only
+  override the trash or the specific bosses that need something different. One
+  build per target, since a build already covers everything. Change the build
+  and every encounter using it follows automatically.
 - **Three role profiles** per character: damage, tank and healer. Kits are shared
   across the character; the assignments belong to each role.
 - **Automatic or manual gear swap**, chosen per trial.
@@ -49,8 +50,8 @@ full gear snapshot for every boss:
   real in-game tooltip — and equips a whole build in one click. A separate editor
   view builds one up from your kits and reports what still needs fixing. The
   remaining tabs browse gear, skill and Champion Point kits with the same real
-  tooltips, and assign kits per trial and boss. The twelve-slot coherence grid is
-  still being built here.
+  tooltips, and assign a build to each trial and boss. The twelve-slot coherence
+  grid is still being built here.
 
 Gear pieces must be in your backpack: moving items out of the bank requires
 direct player interaction and cannot be automated. Skills and Champion Points can

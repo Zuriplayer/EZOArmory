@@ -132,6 +132,7 @@ function Builds.DeleteBuild(id)
     local sv = Store()
     if not sv or id == nil or sv.builds[id] == nil then return false end
     sv.builds[id] = nil
+    Builds.ForgetBuildAssignments(id)
     return true
 end
 
@@ -459,6 +460,139 @@ function Builds.GetTrialReadyBuilds()
     return ready
 end
 
+-- ------------------------------------------- Asignacion a trials/bosses ----
+--
+-- Las trials asignan BUILDS, no kits sueltos: una build ya lo lleva todo, asi
+-- que a cada objetivo le corresponde UNA build (no una lista, como pasaba con
+-- los kits, que habia que combinar para completar el equipo).
+--
+-- Misma herencia que tenian los kits: un objetivo sin build propia usa la
+-- "default" de su trial. Guardado aparte de las asignaciones por kits
+-- (profiles[role].buildAssignments) para no pisarlas mientras dura la
+-- transicion; ver Builds.ResolveForTarget.
+
+Builds.TARGET_DEFAULT = "default"
+
+local function EnsureProfile(sv, role)
+    sv.profiles = sv.profiles or {}
+    sv.profiles[role] = sv.profiles[role] or {}
+    sv.profiles[role].buildAssignments = sv.profiles[role].buildAssignments or {}
+    return sv.profiles[role]
+end
+
+local function IsValidRole(role)
+    for _, known in ipairs(EZOArmory.Kits.ROLES) do
+        if known == role then return true end
+    end
+    return false
+end
+
+local function TrialTable(sv, role, trialTag, create)
+    local profile = EnsureProfile(sv, role)
+    local assignments = profile.buildAssignments
+    if assignments[trialTag] == nil then
+        if not create then return nil end
+        assignments[trialTag] = {}
+    end
+    return assignments[trialTag]
+end
+
+-- Asigna una build a un objetivo. targetKey puede ser "default", "trash" o la
+-- clave de un boss. buildId = nil borra la asignacion.
+function Builds.SetTrialAssignment(role, trialTag, targetKey, buildId)
+    local sv = Store()
+    if not sv or not IsValidRole(role) or trialTag == nil or targetKey == nil then
+        return false
+    end
+
+    local trial = TrialTable(sv, role, tostring(trialTag), true)
+    if not trial then return false end
+
+    if buildId == nil or not Builds.GetBuild(buildId) then
+        trial[tostring(targetKey)] = nil
+        return true
+    end
+    trial[tostring(targetKey)] = tostring(buildId)
+    return true
+end
+
+-- Build asignada a un objetivo, aplicando herencia. Segundo valor: "own" si es
+-- suya, "inherited" si viene del default de la trial, o nil si no hay nada.
+function Builds.GetTrialAssignment(role, trialTag, targetKey)
+    local sv = Store()
+    if not sv or not IsValidRole(role) or trialTag == nil then
+        return nil, nil
+    end
+
+    local trial = TrialTable(sv, role, tostring(trialTag), false)
+    if not trial then return nil, nil end
+
+    local own = targetKey and trial[tostring(targetKey)] or nil
+    if own and Builds.GetBuild(own) then
+        return own, "own"
+    end
+
+    local fallback = trial[Builds.TARGET_DEFAULT]
+    if fallback and Builds.GetBuild(fallback) then
+        return fallback, "inherited"
+    end
+
+    return nil, nil
+end
+
+-- Build guardada EN el objetivo, sin herencia. Para editar: refleja lo que hay
+-- puesto en ese objetivo concreto (nil si hereda del default).
+function Builds.GetStoredTrialAssignment(role, trialTag, targetKey)
+    local sv = Store()
+    if not sv or not IsValidRole(role) or trialTag == nil or targetKey == nil then
+        return nil
+    end
+    local trial = TrialTable(sv, role, tostring(trialTag), false)
+    local stored = trial and trial[tostring(targetKey)]
+    if stored and Builds.GetBuild(stored) then
+        return stored
+    end
+    return nil
+end
+
+-- Quita una build borrada de todas las asignaciones, para no dejar objetivos
+-- apuntando a una build que ya no existe. La llama Builds.DeleteBuild, que
+-- esta definida antes en el archivo: por eso vive en la tabla Builds y no como
+-- local (la busqueda se resuelve al llamar, no al crear la funcion).
+function Builds.ForgetBuildAssignments(buildId)
+    local sv = Store()
+    if not sv or buildId == nil then return end
+    for _, profile in pairs(sv.profiles or {}) do
+        for _, trial in pairs(profile.buildAssignments or {}) do
+            for targetKey, assigned in pairs(trial) do
+                if assigned == buildId then
+                    trial[targetKey] = nil
+                end
+            end
+        end
+    end
+end
+
+-- Que aplica en un objetivo, resolviendo la transicion de kits a builds: manda
+-- la build asignada y, si no hay ninguna, se recurre a los kits que ese
+-- objetivo tuviera asignados de antes (asignaciones heredadas del modelo
+-- anterior, todavia editables desde el panel de opciones).
+--
+-- Devuelve { kind = "build", buildId, source } o { kind = "kits", kitIds } o nil.
+function Builds.ResolveForTarget(role, trialTag, targetKey)
+    local buildId, source = Builds.GetTrialAssignment(role, trialTag, targetKey)
+    if buildId then
+        return { kind = "build", buildId = buildId, source = source }
+    end
+
+    local kitIds = EZOArmory.Kits.GetAssignment(role, trialTag, targetKey)
+    if kitIds and #kitIds > 0 then
+        return { kind = "kits", kitIds = kitIds }
+    end
+
+    return nil
+end
+
 -- --------------------------------------------------------- Equipado ----
 
 -- Equipa una build entera: equipo, habilidades y CP. Cada parte respeta sus
@@ -486,4 +620,44 @@ function Builds.Equip(buildId, onReport)
     end
 
     return true
+end
+
+-- Equipa lo que corresponda a un objetivo de una trial. Devuelve el modo
+-- aplicado ("build" | "kits") o nil si no habia nada asignado; el segundo
+-- valor es el motivo cuando no se equipa ("none" | "incomplete").
+--
+-- onReport es el mismo callback por partes de Builds.Equip; con asignaciones
+-- antiguas por kits solo llega la parte "gear", que es todo lo que aquellas
+-- sabian describir.
+function Builds.EquipForTarget(role, trialTag, targetKey, onReport)
+    local resolved = Builds.ResolveForTarget(role, trialTag, targetKey)
+    if not resolved then
+        return nil, "none"
+    end
+
+    if resolved.kind == "kits" then
+        EZOArmory.Equip.ApplyKits(resolved.kitIds, function(state)
+            if onReport then onReport("gear", state) end
+        end)
+        return "kits"
+    end
+
+    -- Una build incompleta no se equipa, igual que desde la pestana Builds.
+    if not Builds.Analyze(Builds.GetBuild(resolved.buildId)).complete then
+        return nil, "incomplete"
+    end
+
+    Builds.Equip(resolved.buildId, onReport)
+    return "build"
+end
+
+-- Objetivo aplicable donde estas ahora mismo: el boss detectado o, si no hay
+-- ninguno, el trash de la trial (que a su vez hereda del default).
+-- Devuelve (trial, targetKey) o nil si no estas en una trial.
+function Builds.GetCurrentTarget()
+    local context = EZOArmory.Context and EZOArmory.Context.GetState and EZOArmory.Context.GetState()
+    local trial = context and context.trial
+    if not trial then return nil end
+    local targetKey = context.matchedBoss and context.matchedBoss.key or EZOArmory.Kits.TARGET_TRASH
+    return trial, targetKey
 end

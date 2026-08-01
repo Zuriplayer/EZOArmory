@@ -26,9 +26,10 @@ guardar una foto completa del equipo para cada boss:
   que no llevan escudo pero si baston de hielo), y armas de ataque en ambas
   barras es dano. Puedes forzarlo. Este rol es interno de EZOArmory y nunca toca
   tu rol del buscador de grupo.
-- **Asignacion por encuentro**: cada trial tiene unos kits por defecto, y solo
-  sobrescribes el trash o los bosses concretos que necesiten algo distinto. Si
-  cambias un kit, se actualiza en todos los encuentros que lo usan.
+- **Una build por encuentro**: cada trial tiene una build por defecto, y solo
+  sobrescribes el trash o los bosses concretos que necesiten algo distinto. Una
+  sola build por objetivo, porque una build ya lo cubre todo. Si cambias la
+  build, se actualiza en todos los encuentros que la usan.
 - **Tres perfiles de rol** por personaje: dano, tanque y sanador. Los kits son
   comunes al personaje; las asignaciones pertenecen a cada rol.
 - **Cambio de equipo automatico o manual**, a elegir por trial.
@@ -53,9 +54,9 @@ guardar una foto completa del equipo para cada boss:
   cursor por cualquiera para ver su tooltip real del juego— y equipa una build
   entera de una vez. Una vista de editor aparte la construye a partir de tus
   kits e indica que queda por corregir. Las demas pestanas navegan los kits de
-  equipo, habilidades y CP con esos mismos tooltips reales, y asignan kits por
-  trial y boss. La rejilla de coherencia de doce slots se sigue construyendo
-  aqui.
+  equipo, habilidades y CP con esos mismos tooltips reales, y asignan una build
+  a cada trial y boss. La rejilla de coherencia de doce slots se sigue
+  construyendo aqui.
 
 Las piezas deben estar en la mochila: sacar items del banco requiere
 interaccion directa del jugador y no se puede automatizar. Las habilidades y los

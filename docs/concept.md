@@ -58,8 +58,9 @@ PERSONAJE
 │     varios kits de equipo + un kit de habilidades + un kit de CP
 │     rol propio (automatico por armas, o forzado)
 └── Perfiles de rol: DD / Tanque / Sanador
-      ├── Asignaciones: [trial][trash|boss] -> { kit, ... }   <- hoy
-      │                                     -> build          <- destino
+      ├── buildAssignments: [trial][trash|boss] -> build       <- una build
+      ├── assignments:      [trial][trash|boss] -> { kit, ... } <- modelo
+      │     anterior, se sigue respetando como respaldo
       └── autoEquip por trial: automatico | manual
 ```
 
@@ -83,10 +84,21 @@ Build = {
 ```
 
 **Cambio de foco**: el addon pasa de estar orientado a trials (asignar kits a
-cada boss) a estar orientado a builds. Las trials no equiparan kits sueltos:
-equiparan una build entera. Las asignaciones actuales por kits se mantienen
-mientras dura la transicion (`Builds.GetTrialReadyBuilds` ya devuelve las
-builds completas para el paso siguiente).
+cada boss) a estar orientado a builds. Las trials ya no equipan kits sueltos:
+equipan una build entera.
+
+Cada objetivo tiene **UNA** build (no una lista): una build ya lo lleva todo,
+mientras que con kits habia que combinar varios hasta completar el equipo. Se
+mantiene la herencia de siempre: un objetivo sin build propia usa la de
+`default` de su trial.
+
+Las asignaciones por kits del modelo anterior **no se borran ni se migran**: si
+un objetivo no tiene build asignada pero si kits, se siguen equipando esos
+kits. `Builds.ResolveForTarget` es el unico punto donde se decide, y devuelve
+`{ kind = "build" }` o `{ kind = "kits" }` para que la interfaz pueda avisar de
+que esa asignacion es del modelo antiguo.
+
+### Herencia de asignaciones
 
 ### Rol de una build (solo interno)
 
@@ -122,11 +134,9 @@ Kit = {
 }
 ```
 
-### Herencia de asignaciones
-
-Para no repetir trabajo: se define un conjunto de kits **por defecto de la
-trial**, y solo se sobrescribe en los bosses que lo necesiten. Un boss sin
-asignacion propia hereda el de la trial.
+Para no repetir trabajo: se define una build **por defecto de la trial**, y
+solo se sobrescribe en los bosses que lo necesiten. Un boss sin asignacion
+propia hereda la de la trial.
 
 ## 4. Hallazgos tecnicos que condicionan el diseno
 
@@ -257,8 +267,10 @@ Una build con cualquier error no se deja equipar. Con solo avisos si.
    con las restricciones de la seccion 4.3.
 5. **Fase 5 — builds.** El concepto pasa a girar sobre la build: crearla
    componiendo kits, validarla entera, verla con su rol y equiparla de una
-   vez. Siguiente paso de esta fase: que las trials asignen **builds** en vez
-   de kits sueltos (el modelo ya esta preparado, ver seccion 3).
+   vez. Las trials asignan **builds**, no kits sueltos (ver seccion 3); las
+   asignaciones antiguas por kits se siguen respetando como respaldo.
+6. **Fase 6 — automatismo.** Auto-equipado al detectar el boss, usando la
+   misma resolucion (`Builds.ResolveForTarget`) que el equipado manual.
 
 ## 6.1 Revisiones de la ventana (Fase 3)
 
