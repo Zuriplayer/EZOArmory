@@ -704,6 +704,14 @@ end
 
 -- --------------------------------------------------------- Barra de accion ----
 
+-- Etiqueta del boton de captura segun la categoria: lo que se lee del
+-- personaje es distinto en cada una.
+local CAPTURE_STRING = {
+    [CATEGORY_GEAR] = "EZOARM_WINDOW_CAPTURE_GEAR",
+    [CATEGORY_SKILLS] = "EZOARM_WINDOW_CAPTURE_SKILLS",
+    [CATEGORY_CP] = "EZOARM_WINDOW_CAPTURE_CP",
+}
+
 function WK.RefreshActionBar()
     if not WK.deleteButton then return end
     local hasSelection = WK.state.selectedId ~= nil
@@ -714,12 +722,59 @@ function WK.RefreshActionBar()
     if WK.equipButton then
         WK.equipButton:SetHidden(not hasSelection or WK.state.category == CATEGORY_ASSIGN)
     end
+    if WK.captureButton then
+        local stringName = CAPTURE_STRING[WK.state.category]
+        WK.captureButton:SetHidden(stringName == nil)
+        if stringName then
+            WK.captureButton:SetText(GetString(_G[stringName]))
+        end
+    end
 end
 
 local function OnDeleteClicked()
     if not WK.state.selectedId then return end
     DeleteKit(WK.state.category, WK.state.selectedId)
     WK.state.selectedId = nil
+    WK.Refresh()
+end
+
+-- Captura desde el personaje lo que corresponda a la pestana actual. Las tres
+-- categorias ya deduplican por contenido real en el modelo, asi que capturar
+-- algo que ya esta memorizado no crea un kit repetido: se avisa y se deja como
+-- estaba.
+local function OnCaptureClicked()
+    local category = WK.state.category
+    if not EZOArmory.Print then return end
+
+    if category == CATEGORY_GEAR then
+        local _, created, reused = EZOArmory.Kits.CaptureWornAsKits(nil, EZOArmory.BuildKitName)
+        EZOArmory.Print(zo_strformat(GetString(EZOARM_MSG_KITS_CAPTURED_ALL), created, reused))
+    elseif category == CATEGORY_SKILLS then
+        local name = EZOArmory.AutoKitName(EZOARM_AUTONAME_SKILLS, EZOArmory.Skills.ListKits)
+        local id, existing, reason = EZOArmory.Skills.CreateKitFromCurrent(name)
+        if id then
+            EZOArmory.Print(zo_strformat(GetString(EZOARM_MSG_SKILL_KIT_CREATED), name))
+        elseif reason == "duplicate" and existing then
+            EZOArmory.Print(zo_strformat(
+                GetString(EZOARM_MSG_SKILL_KIT_DUPLICATE), tostring(existing.name)))
+        else
+            EZOArmory.Print(GetString(EZOARM_MSG_SKILL_KIT_EMPTY))
+        end
+    elseif category == CATEGORY_CP then
+        local name = EZOArmory.AutoKitName(EZOARM_AUTONAME_CP, EZOArmory.Champion.ListKits)
+        local id, existing, reason = EZOArmory.Champion.CreateKitFromCurrent(name)
+        if id then
+            EZOArmory.Print(zo_strformat(GetString(EZOARM_MSG_CP_KIT_CREATED), name))
+        elseif reason == "duplicate" and existing then
+            EZOArmory.Print(zo_strformat(
+                GetString(EZOARM_MSG_CP_KIT_DUPLICATE), tostring(existing.name)))
+        else
+            EZOArmory.Print(GetString(EZOARM_MSG_CP_KIT_EMPTY))
+        end
+    else
+        return
+    end
+
     WK.Refresh()
 end
 
@@ -1315,6 +1370,18 @@ function WK.Create(parent)
     renameButton:SetHandler("OnClicked", OnRenameClicked)
     renameButton:SetHidden(true)
     WK.renameButton = renameButton
+
+    -- A la izquierda, separado de las acciones sobre el kit seleccionado: no
+    -- opera sobre la seleccion, lee del personaje.
+    local captureButton = WM:CreateControl(nil, actionBar, CT_BUTTON)
+    captureButton:SetDimensions(240, 24)
+    captureButton:SetAnchor(BOTTOMLEFT, actionBar, BOTTOMLEFT, 0, 0)
+    captureButton:SetFont("ZoFontGameBold")
+    captureButton:SetNormalFontColor(0.85, 0.85, 0.9, 1)
+    captureButton:SetMouseOverFontColor(1, 1, 1, 1)
+    captureButton:SetText(GetString(EZOARM_WINDOW_CAPTURE_GEAR))
+    captureButton:SetHandler("OnClicked", OnCaptureClicked)
+    WK.captureButton = captureButton
 
     local equipButton = WM:CreateControl(nil, actionBar, CT_BUTTON)
     equipButton:SetDimensions(160, 24)

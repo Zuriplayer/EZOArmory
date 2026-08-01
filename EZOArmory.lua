@@ -129,6 +129,61 @@ function EZOA.ArmorTypeLabel(armorType)
     return nil
 end
 
+local CATEGORY_STRING = {
+    armor = "EZOARM_CAT_ARMOR",
+    jewelry = "EZOARM_CAT_JEWELRY",
+    weaponsFront = "EZOARM_CAT_WEAPONS_FRONT",
+    weaponsBack = "EZOARM_CAT_WEAPONS_BACK",
+}
+
+-- Pista textual compacta de donde va un kit: categorias presentes.
+local function CategoryHint(slots)
+    local parts = {}
+    for _, category in ipairs(EZOArmory.Gear.GetCategoryKeys(slots)) do
+        local stringId = _G[CATEGORY_STRING[category] or ""]
+        parts[#parts + 1] = stringId and GetString(stringId) or category
+    end
+    return table.concat(parts, " + ")
+end
+
+-- Nombre sugerido al capturar: palabra clave del set mas su ubicacion, para que
+-- dos kits del mismo set en sitios distintos no se confundan. Para una pieza
+-- unica se usa el slot exacto y, si es armadura, su peso (asi una cabeza ligera
+-- y una media del mismo set no acaban con el mismo nombre numerado).
+-- Compartido por el panel LAM y por la captura desde la ventana propia.
+function EZOA.BuildKitName(setName, slots, entry)
+    local keyword = EZOArmory.Kits.KeywordFromSetName(setName)
+    local hint
+    if slots and #slots == 1 then
+        hint = EZOA.SlotLabel(slots[1])
+        local armorLabel = entry and EZOA.ArmorTypeLabel(entry.armorType)
+        if armorLabel then
+            hint = string.format("%s (%s)", hint, armorLabel)
+        end
+    else
+        hint = CategoryHint(slots)
+    end
+    if hint == nil or hint == "" then
+        return keyword
+    end
+    return string.format("%s - %s", keyword, hint)
+end
+
+-- Nombre automatico libre dentro de una lista de kits ya existentes:
+-- "Skills 1", "Skills 2"... Se usa al capturar sin dar nombre.
+function EZOA.AutoKitName(baseStringId, listFn)
+    local taken = {}
+    for _, kit in ipairs(listFn()) do
+        taken[tostring(kit.name)] = true
+    end
+    local base = GetString(baseStringId)
+    local index = 1
+    while taken[base .. " " .. index] do
+        index = index + 1
+    end
+    return base .. " " .. index
+end
+
 function EZOA.IsRoleAuto()
     return EZOA.sv
         and EZOA.sv.general

@@ -247,10 +247,16 @@ end
 -- palabra clave.
 --
 -- Los nombres repetidos se numeran en vez de saltarse, para no perder capturas
--- en silencio. Devuelve (creados, omitidos).
-function Kits.CaptureAllSets(role, nameBuilder)
+-- en silencio.
+--
+-- Devuelve (kitIds, creados, reutilizados): la lista incluye TANTO los kits
+-- recien creados COMO los que ya existian con exactamente el mismo contenido,
+-- porque quien compone una build desde el equipo puesto necesita los ids de
+-- todos ellos, no solo de los nuevos. Es la aplicacion del principio de no
+-- duplicar lo que ya esta memorizado.
+function Kits.CaptureWornAsKits(role, nameBuilder)
     if not (EZOArmory.Gear and EZOArmory.Gear.GetCaptureEntries) then
-        return 0, 0
+        return {}, 0, 0
     end
 
     local taken = {}
@@ -258,7 +264,7 @@ function Kits.CaptureAllSets(role, nameBuilder)
         taken[tostring(kit.name)] = true
     end
 
-    local created, skipped = 0, 0
+    local kitIds, created, reused = {}, 0, 0
     for _, entry in ipairs(EZOArmory.Gear.GetCaptureEntries()) do
         if entry.kind == "set" or entry.kind == "slot" then
             local base
@@ -271,17 +277,26 @@ function Kits.CaptureAllSets(role, nameBuilder)
             base = base or Kits.KeywordFromSetName(entry.name)
 
             local name = Kits.UniqueKitName(base, taken)
-            local id = Kits.CreateKitFromWorn(name, entry.slots, role)
+            local id, existing, reason = Kits.CreateKitFromWorn(name, entry.slots, role)
             if id then
+                kitIds[#kitIds + 1] = id
                 created = created + 1
                 taken[name] = true
-            else
-                skipped = skipped + 1
+            elseif reason == "duplicate" and existing then
+                kitIds[#kitIds + 1] = existing.id
+                reused = reused + 1
             end
         end
     end
 
-    return created, skipped
+    return kitIds, created, reused
+end
+
+-- Igual, pero devolviendo solo el recuento (creados, omitidos), que es lo que
+-- necesita el panel LAM.
+function Kits.CaptureAllSets(role, nameBuilder)
+    local _, created, reused = Kits.CaptureWornAsKits(role, nameBuilder)
+    return created, reused
 end
 
 function Kits.GetKit(id)

@@ -84,7 +84,10 @@ EZOARMORY_STRINGS_EN = {
 
     EZOARM_OPTION_KIT_CAPTURE_ALL = "Capture everything worn as kits",
     EZOARM_OPTION_KIT_CAPTURE_ALL_TOOLTIP = "Create kits from everything you are wearing in a single step: one per multi-piece set, plus one for each loose piece (mythics, setless weapons, or a single piece of a set such as a Slimecraw head). It also captures your current skill bars and Champion stars as their own kits, listed in their own sections. Each gear kit is named after its key word plus where it sits, for example \"Null Arca - armour\". Anything identical to an existing kit is skipped, so re-running never creates duplicates.",
-    EZOARM_MSG_KITS_CAPTURED_ALL = "Created <<1>> kits, skipped <<2>>.",
+    EZOARM_MSG_KITS_CAPTURED_ALL = "Created <<1>> kits, <<2>> already existed.",
+    EZOARM_WINDOW_CAPTURE_GEAR = "Capture the gear I'm wearing",
+    EZOARM_WINDOW_CAPTURE_SKILLS = "Capture my current bars",
+    EZOARM_WINDOW_CAPTURE_CP = "Capture my current stars",
 
     EZOARM_OPTION_KIT_LIST = "Saved kits",
     EZOARM_OPTION_KIT_LIST_TOOLTIP = "Select a saved kit. The number in brackets is how many pieces it holds.",
@@ -153,6 +156,8 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_BUILD_EDIT_HINT = "Select a build to equip or edit it. Double-click it to jump straight to its kits.",
     EZOARM_BUILD_EDITOR_TITLE = "Build: <<1>>",
     EZOARM_BUILD_NEW = "New build",
+    EZOARM_BUILD_FROM_WORN = "Copy everything I'm wearing",
+    EZOARM_MSG_BUILD_FROM_WORN = "Build <<1>> created from what you are wearing: <<2>> new kit(s), <<3>> reused.",
     EZOARM_BUILD_EDIT = "Edit build",
     EZOARM_BUILD_BACK = "Back to list",
     EZOARM_BUILD_AUTONAME = "Build",

@@ -78,6 +78,50 @@ function Builds.CreateBuild(name)
     return id, build
 end
 
+-- Crea una build entera desde lo que se lleva puesto ahora mismo, sin tener
+-- que preparar los kits antes: captura el equipo (un kit por set, mas cada
+-- pieza suelta), las dos barras de habilidades y las estrellas de CP, y compone
+-- la build con todo ello.
+--
+-- Nada se duplica: si ya existe un kit con exactamente ese contenido se
+-- reutiliza en vez de crear otro igual (principio de aplicacion idempotente,
+-- docs/concept.md 4.3.1). Asi, copiar dos veces el mismo equipo no llena el
+-- listado de kits repetidos.
+--
+-- Devuelve (buildId, summary) con
+-- summary = { gearCreated, gearReused, skillNew, cpNew }.
+function Builds.CreateFromCurrent(name)
+    local sv = Store()
+    if not sv then return nil end
+
+    local gearKitIds, gearCreated, gearReused =
+        EZOArmory.Kits.CaptureWornAsKits(nil, EZOArmory.BuildKitName)
+
+    -- Habilidades y CP: se reutiliza el kit existente si el contenido coincide
+    -- (CreateKitFromCurrent devuelve el kit ya guardado como "duplicate").
+    local skillId, skillExisting = EZOArmory.Skills.CreateKitFromCurrent(
+        EZOArmory.AutoKitName(EZOARM_AUTONAME_SKILLS, EZOArmory.Skills.ListKits))
+    local skillKitId = skillId or (skillExisting and skillExisting.id) or nil
+
+    local cpId, cpExisting = EZOArmory.Champion.CreateKitFromCurrent(
+        EZOArmory.AutoKitName(EZOARM_AUTONAME_CP, EZOArmory.Champion.ListKits))
+    local cpKitId = cpId or (cpExisting and cpExisting.id) or nil
+
+    local buildId, build = Builds.CreateBuild(name)
+    if not build then return nil end
+
+    build.gearKitIds = gearKitIds
+    build.skillKitId = skillKitId
+    build.cpKitId = cpKitId
+
+    return buildId, {
+        gearCreated = gearCreated,
+        gearReused = gearReused,
+        skillNew = skillId ~= nil,
+        cpNew = cpId ~= nil,
+    }
+end
+
 function Builds.GetBuild(id)
     local sv = Store()
     if not sv or id == nil then return nil end

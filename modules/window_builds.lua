@@ -674,6 +674,24 @@ local function OnNewClicked()
     end)
 end
 
+-- Crea una build con todo lo que se lleva puesto, sin tener que preparar kits
+-- antes: los crea (o reutiliza los que ya existan con el mismo contenido) y
+-- compone la build de una vez. Es el atajo para memorizar la build que llevas
+-- ahora mismo.
+local function OnCopyWornClicked()
+    AskForName(AutoBuildName(), function(name)
+        local id, summary = EZOArmory.Builds.CreateFromCurrent(name)
+        if not id then return end
+        if EZOArmory.Print then
+            EZOArmory.Print(zo_strformat(GetString(EZOARM_MSG_BUILD_FROM_WORN),
+                name, summary.gearCreated, summary.gearReused))
+        end
+        WB.state.editingId = id
+        WB.state.selectedId = id
+        WB.SetView("list")
+    end)
+end
+
 local function OnRenameClicked()
     local build = EditingBuild()
     if not build then return end
@@ -813,9 +831,13 @@ local function CreateListPanel(content)
     equipButton:SetHidden(true)
     WB.equipButton = equipButton
 
-    local newButton = CreateActionButton(actionBar, 160, GetString(EZOARM_BUILD_NEW),
+    local newButton = CreateActionButton(actionBar, 140, GetString(EZOARM_BUILD_NEW),
         { 0.85, 0.85, 0.9 }, { 1, 1, 1 }, OnNewClicked)
     newButton:SetAnchor(BOTTOMLEFT, actionBar, BOTTOMLEFT, 0, 0)
+
+    local copyWornButton = CreateActionButton(actionBar, 250, GetString(EZOARM_BUILD_FROM_WORN),
+        { 0.6, 1, 0.6 }, { 0.4, 1, 0.4 }, OnCopyWornClicked)
+    copyWornButton:SetAnchor(LEFT, newButton, RIGHT, 12, 0)
 
     -- Cartel de ayuda entre el contador y la lista. Su alto cambia con el
     -- texto y la lista se ancla debajo, asi que la cadena de anclas absorbe

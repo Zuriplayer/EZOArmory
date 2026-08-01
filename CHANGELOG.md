@@ -2,6 +2,28 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.9.2
+
+- Add: a capture button in the Gear, Skill and CP kit tabs, so you can read
+  what you are currently wearing or have slotted straight from the window
+  instead of going to the settings panel. All three already deduplicated by
+  real content, so capturing something you have already saved does not create
+  a twin: it tells you which existing kit already holds it and leaves things
+  alone. Gear reports how many kits were new and how many already existed.
+- Add: **"Copy everything I'm wearing"** in the Builds tab. It creates a whole
+  build from your current gear, bars and Champion stars without you having to
+  prepare any kits first - it captures them for you (one kit per set plus each
+  loose piece, a skill kit and a CP kit), reuses any that already exist with
+  the same content, and composes the build out of them. Copying the same setup
+  twice therefore does not fill your kit list with duplicates.
+- Kits.CaptureWornAsKits now returns the ids of every kit covering what you
+  wear, both freshly created and pre-existing, which is what makes composing a
+  build from worn gear possible. CaptureAllSets keeps its old counting
+  signature on top of it for the settings panel.
+- BuildKitName and the auto-naming helper moved to shared EZOArmory.*
+  functions, since both the settings panel and the window now capture kits and
+  must name them identically.
+
 ## 0.9.1
 
 - Fix: there was no visible way to find where kits get added to a build. The

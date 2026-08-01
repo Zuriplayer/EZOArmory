@@ -128,13 +128,6 @@ end
 
 -- ---------------------------------------------------------- Presets kit ----
 
-local CATEGORY_STRING = {
-    armor = "EZOARM_CAT_ARMOR",
-    jewelry = "EZOARM_CAT_JEWELRY",
-    weaponsFront = "EZOARM_CAT_WEAPONS_FRONT",
-    weaponsBack = "EZOARM_CAT_WEAPONS_BACK",
-}
-
 local ICON_SIZE = 24
 local ICON_MAX = 6
 
@@ -162,39 +155,8 @@ local function IconStrip(iconPaths)
     return table.concat(parts, "")
 end
 
--- Pista textual compacta de donde va un kit: categorias presentes.
-local function CategoryHint(slots)
-    local parts = {}
-    for _, category in ipairs(EZOArmory.Gear.GetCategoryKeys(slots)) do
-        local sid = _G[CATEGORY_STRING[category] or ""]
-        parts[#parts + 1] = sid and GetString(sid) or category
-    end
-    return table.concat(parts, " + ")
-end
-
 local ArmorTypeLabel = EZOArmory.ArmorTypeLabel
-
--- Nombre sugerido al capturar: palabra clave del set mas su ubicacion, para que
--- dos kits del mismo set en sitios distintos no se confundan. Para una pieza
--- unica se usa el slot exacto y, si es armadura, su peso (asi una cabeza ligera
--- y una media del mismo set no acaban con el mismo nombre numerado).
-local function BuildKitName(setName, slots, entry)
-    local keyword = EZOArmory.Kits.KeywordFromSetName(setName)
-    local hint
-    if slots and #slots == 1 then
-        hint = SlotLabel(slots[1])
-        local armorLabel = entry and ArmorTypeLabel(entry.armorType)
-        if armorLabel then
-            hint = string.format("%s (%s)", hint, armorLabel)
-        end
-    else
-        hint = CategoryHint(slots)
-    end
-    if hint == nil or hint == "" then
-        return keyword
-    end
-    return string.format("%s - %s", keyword, hint)
-end
+local BuildKitName = EZOArmory.BuildKitName
 
 -- Construye las opciones del selector de captura leyendo el equipo puesto:
 -- "todo", cada set de dos o mas piezas, y solo las piezas realmente sueltas
@@ -335,19 +297,7 @@ local function CaptureKit()
     Print(zo_strformat(GetString(EZOARM_MSG_KIT_CREATED), name, pieceCount))
 end
 
--- Nombre automatico unico dentro de una lista de kits existentes.
-local function AutoName(baseStringId, listFn)
-    local taken = {}
-    for _, kit in ipairs(listFn()) do
-        taken[tostring(kit.name)] = true
-    end
-    local base = GetString(baseStringId)
-    local index = 1
-    while taken[base .. " " .. index] do
-        index = index + 1
-    end
-    return base .. " " .. index
-end
+local AutoName = EZOArmory.AutoKitName
 
 local function CaptureAllSets()
     local role = GetActiveRole()
