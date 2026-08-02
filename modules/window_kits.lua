@@ -141,25 +141,46 @@ end
 -- en las bolsas (banco, otro personaje...) no hay link real que mostrar; en
 -- vez de un generico "no disponible" sin mas, se usan los datos capturados
 -- (nombre, set, peso) para que la pieza se pueda identificar igualmente.
+-- Todo el camino del tooltip de item va protegido: si InitializeTooltip o
+-- SetLink fallan, un error sin capturar aborta el manejador entero y no se
+-- muestra NADA, ni siquiera el texto de respaldo. Es la diferencia entre "no
+-- se puede leer el item" (aceptable, hay respaldo) y "no sale ningun
+-- emergente" (que es lo que se estaba viendo).
 local function ShowItemTooltip(anchor, piece, slotKey)
     local itemId = piece and piece.itemId
     local location = itemId
         and EZOArmory.Gear and EZOArmory.Gear.FindItemById and EZOArmory.Gear.FindItemById(itemId)
+
     if location and type(GetItemLink) == "function"
         and type(InitializeTooltip) == "function" and ItemTooltip then
         local ok, link = pcall(GetItemLink, location.bag, location.slot)
         if ok and link and link ~= "" then
-            InitializeTooltip(ItemTooltip, anchor, RIGHT, 6, 0, LEFT)
-            ItemTooltip:SetLink(link)
-            return
+            local shown = pcall(function()
+                InitializeTooltip(ItemTooltip, anchor, RIGHT, 6, 0, LEFT)
+                ItemTooltip:SetLink(link)
+            end)
+            if EZOArmory.DebugLog then
+                EZOArmory.DebugLog(string.format(
+                    "ItemTooltip %s (%s)", shown and "shown" or "FAILED", tostring(slotKey)))
+            end
+            if shown then return end
+        elseif EZOArmory.DebugLog then
+            EZOArmory.DebugLog("ItemTooltip: no link for " .. tostring(slotKey))
         end
+    elseif EZOArmory.DebugLog then
+        EZOArmory.DebugLog("ItemTooltip: item not found for " .. tostring(slotKey))
     end
+
     if type(ZO_Tooltips_ShowTextTooltip) == "function" then
-        local text = GetString(EZOARM_WINDOW_TOOLTIP_NOT_AVAILABLE)
-        if piece then
-            text = PieceSummaryLabel(piece, slotKey) .. "\n" .. text
-        end
-        ZO_Tooltips_ShowTextTooltip(anchor, RIGHT, text)
+        local okText, text = pcall(function()
+            local summary = GetString(EZOARM_WINDOW_TOOLTIP_NOT_AVAILABLE)
+            if piece then
+                summary = PieceSummaryLabel(piece, slotKey) .. "\n" .. summary
+            end
+            return summary
+        end)
+        ZO_Tooltips_ShowTextTooltip(anchor, RIGHT,
+            okText and text or GetString(EZOARM_WINDOW_TOOLTIP_NOT_AVAILABLE))
     end
 end
 
@@ -438,7 +459,13 @@ local function FillGearRow(row, kit)
             else
                 icon:SetAnchor(LEFT, row.icons[index - 1], RIGHT, ICON_GAP, 0)
             end
-            icon:SetHandler("OnMouseEnter", function(control) ShowItemTooltip(control, piece, slotKey) end)
+            icon:SetHandler("OnMouseEnter", function(control)
+                -- Sonda de depuracion: confirma que el cursor llega al icono.
+                if EZOArmory.DebugLog then
+                    EZOArmory.DebugLog("Gear row: hover " .. tostring(slotKey))
+                end
+                ShowItemTooltip(control, piece, slotKey)
+            end)
             icon:SetHandler("OnMouseExit", HideItemTooltip)
         end
     end

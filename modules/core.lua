@@ -2,5 +2,5 @@
 EZOArmory = EZOArmory or {}
 
 EZOArmory.ADDON_NAME    = "EZOArmory"
-EZOArmory.ADDON_VERSION = "0.11.5"
+EZOArmory.ADDON_VERSION = "0.11.6"
 EZOArmory.AUTHOR        = "@Zuriplayer"

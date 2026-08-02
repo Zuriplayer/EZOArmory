@@ -2,6 +2,17 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.6
+
+- The item tooltip path is now fully guarded. If InitializeTooltip or SetLink
+  raised, the error aborted the whole hover handler and nothing at all was
+  shown - not even the fallback text that exists precisely for pieces that
+  cannot be read. A failure there now falls through to that text instead of
+  killing the tooltip outright. This is the one thing gear hovering does that
+  the working ability and CP hovers do not.
+- With debug mode on, gear icons now log the hover and which tooltip path was
+  taken, matching the probe added to build rows in 0.11.5.
+
 ## 0.11.5
 
 - Revert the two changes from 0.11.3 and 0.11.4 that were meant to fix hover
