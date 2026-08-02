@@ -253,6 +253,9 @@ end
 -- scroll, porque el ScrollChild se desplaza y el contenedor no.
 local function CreateRow(parent, index)
     local row = WM:CreateControl("EZOArmoryKitRow" .. index, parent, CT_CONTROL)
+    -- Igual que en las filas de build: hace falta para su propio OnMouseUp y
+    -- para que el area de la fila cuente en la deteccion del cursor.
+    row:SetMouseEnabled(true)
 
     local bg = WM:CreateControl(nil, row, CT_BACKDROP)
     bg:SetAnchorFill(row)

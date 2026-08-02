@@ -108,6 +108,10 @@ end
 local function CreateBuildRow(parent, index)
     local row = WM:CreateControl("EZOArmoryBuildRow" .. index, parent, CT_CONTROL)
     row:SetHeight(BUILD_ROW_HEIGHT)
+    -- La fila necesita raton para sus propios OnMouseUp/OnMouseDoubleClick, y
+    -- para que el area de la fila participe en la deteccion del cursor: sin
+    -- ello los iconos hijos pueden quedarse sin recibir OnMouseEnter.
+    row:SetMouseEnabled(true)
 
     local bg = WM:CreateControl(nil, row, CT_BACKDROP)
     bg:SetAnchorFill(row)

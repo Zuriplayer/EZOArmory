@@ -2,6 +2,13 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.3
+
+- Fix attempt: hovering the pieces, abilities and CP inside a build row gave no
+  tooltip. The row control that holds them was never mouse-enabled, so the row
+  area did not take part in cursor detection and its children could be skipped.
+  Both the build rows and the kit rows are now mouse-enabled.
+
 ## 0.11.2
 
 - The Assign tab's dropdowns were far wider than their contents needed. They
