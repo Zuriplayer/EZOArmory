@@ -30,7 +30,11 @@ full gear snapshot for every boss:
   and every encounter using it follows automatically.
 - **Three role profiles** per character: damage, tank and healer. Kits are shared
   across the character; the assignments belong to each role.
-- **Automatic or manual gear swap**, chosen per trial.
+- **Substitute builds**: a trash build and a boss build used wherever nothing is
+  assigned - a trial you never set up, a dungeon, the open world. EZOArmory
+  equips the boss one while a boss is present and the trash one otherwise.
+  Off by default, with a switch per zone type, and experimental outside trials:
+  it depends on the zone declaring its bosses, which not all of them do.
 - **Coherence engine**: validates a build **per weapon bar** — only 12 pieces
   count at a time, since armour and jewelry always apply but weapons only count
   on the active bar. It flags slot conflicts, sets asking for more pieces than

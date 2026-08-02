@@ -24,6 +24,17 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_ASSIGN_INCOMPLETE = "incompleta, no se equipara",
     EZOARM_ASSIGN_INCOMPLETE_MARK = "(!)",
     EZOARM_ASSIGN_LEGACY_KITS = "Asignacion antigua por kits: <<1>>. Asigna una build para sustituirla.",
+
+    -- Builds sustitutas
+    EZOARM_SUBSTITUTE_HEADER = "Builds sustitutas",
+    EZOARM_SUBSTITUTE_HINT = "Se usan donde no haya nada asignado: con boss delante se equipa la build de boss, si no la de trash. Fuera de las trials esto depende de que la zona declare sus bosses, y no todas lo hacen: las mazmorras antiguas suelen ir peor que las nuevas.",
+    EZOARM_SUBSTITUTE_ENABLED = "Activar",
+    EZOARM_SUBSTITUTE_TRIALS = "Trials",
+    EZOARM_SUBSTITUTE_DUNGEONS = "Mazmorras",
+    EZOARM_SUBSTITUTE_OVERLAND = "Mundo",
+    EZOARM_SUBSTITUTE_TRASH = "Build de trash",
+    EZOARM_SUBSTITUTE_BOSS = "Build de boss",
+    EZOARM_MSG_AUTO_EQUIP = "Equipando <<1>>.",
     EZOARM_WINDOW_KIT_COUNT = "<<1>> kit(s)",
     EZOARM_WINDOW_NO_KITS = "Aun no hay kits en esta categoria. Captura alguno desde Ajustes > EZO > EZOArmory.",
     EZOARM_WINDOW_TOOLTIP_NOT_AVAILABLE = "No disponible ahora mismo en tu mochila.",

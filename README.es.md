@@ -32,7 +32,12 @@ guardar una foto completa del equipo para cada boss:
   build, se actualiza en todos los encuentros que la usan.
 - **Tres perfiles de rol** por personaje: dano, tanque y sanador. Los kits son
   comunes al personaje; las asignaciones pertenecen a cada rol.
-- **Cambio de equipo automatico o manual**, a elegir por trial.
+- **Builds sustitutas**: una build de trash y otra de boss que se usan donde no
+  haya nada asignado: una trial sin configurar, una mazmorra o el mundo
+  abierto. EZOArmory equipa la de boss mientras hay un boss delante y la de
+  trash el resto del tiempo. Desactivado por defecto, con interruptor por tipo
+  de zona, y experimental fuera de las trials: depende de que la zona declare
+  sus bosses, y no todas lo hacen.
 - **Motor de coherencia**: valida la build **por barra de armas** — solo cuentan
   12 piezas a la vez, porque la armadura y la joyeria aplican siempre pero las
   armas solo cuentan en la barra activa. Avisa de conflictos de slot, sets que

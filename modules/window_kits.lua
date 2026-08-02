@@ -1204,9 +1204,49 @@ local function OnAssignEquipHereClicked()
     end
 end
 
+-- Selector de una de las dos builds sustitutas (trash / boss).
+local function PopulateSubstituteCombo(comboControl, kind)
+    local labels = { GetString(EZOARM_BUILD_NONE_SELECTED) }
+    local values = { "" }
+    for _, build in ipairs(EZOArmory.Builds.ListBuilds()) do
+        local label = tostring(build.name)
+        if not EZOArmory.Builds.Analyze(build).complete then
+            label = label .. " " .. GetString(EZOARM_ASSIGN_INCOMPLETE_MARK)
+        end
+        labels[#labels + 1] = label
+        values[#values + 1] = build.id
+    end
+
+    local role = EZOArmory.GetActiveRole()
+    local stored = EZOArmory.Builds.GetSubstitute(role, kind) or ""
+
+    PopulateCombo(comboControl, labels, values, stored, function(value)
+        EZOArmory.Builds.SetSubstitute(
+            EZOArmory.GetActiveRole(), kind, value ~= "" and value or nil)
+        -- Cambiar la sustituta debe poder reaplicarse aunque sea la misma zona.
+        if EZOArmory.AutoEquip then EZOArmory.AutoEquip.Reset() end
+        WK.RefreshAssignPanel()
+    end)
+end
+
+-- Las casillas por zona se dejan siempre pulsables aunque el modo este
+-- apagado: deshabilitarlas llevaria el boton a BSTATE_DISABLED y perderia el
+-- estado marcado que acaba de fijarse (ZO_CheckButton guarda "marcado" en el
+-- propio estado del boton, no aparte). Que no hagan nada con el modo apagado
+-- lo explica el texto de ayuda.
+local function RefreshSubstituteChecks()
+    local settings = EZOArmory.Builds.GetSubstituteSettings()
+    for key, check in pairs(WK.substituteChecks or {}) do
+        ZO_CheckButton_SetCheckState(check, settings[key] == true)
+    end
+end
+
 function WK.RefreshAssignPanel()
     if not WK.assignRoot then return end
     EnsureAssignState()
+    RefreshSubstituteChecks()
+    PopulateSubstituteCombo(WK.substituteTrashCombo, EZOArmory.Builds.SUBSTITUTE_TRASH)
+    PopulateSubstituteCombo(WK.substituteBossCombo, EZOArmory.Builds.SUBSTITUTE_BOSS)
     if WK.assignRoleLabel then
         WK.assignRoleLabel:SetText(zo_strformat(
             GetString(EZOARM_WINDOW_ASSIGN_ROLE), EZOArmory.RoleLabel(EZOArmory.GetActiveRole())))
@@ -1279,6 +1319,66 @@ local function CreateAssignPanel(content)
     summaryLabel:SetAnchor(TOPLEFT, assignRoot, TOPLEFT, 0, summaryHeaderY + 22)
     summaryLabel:SetAnchor(TOPRIGHT, assignRoot, TOPRIGHT, 0, summaryHeaderY + 22)
     WK.assignSummaryLabel = summaryLabel
+
+    -- Bloque de builds sustitutas: el respaldo para cuando aqui no hay nada
+    -- asignado (trial sin asignar, mazmorra o mundo).
+    local subHeaderY = summaryHeaderY + 48
+    local subHeader = WM:CreateControl(nil, assignRoot, CT_LABEL)
+    subHeader:SetFont("ZoFontGameBold")
+    subHeader:SetColor(0.85, 0.85, 0.9, 1)
+    subHeader:SetAnchor(TOPLEFT, assignRoot, TOPLEFT, 0, subHeaderY)
+    subHeader:SetText(GetString(EZOARM_SUBSTITUTE_HEADER))
+
+    local subHintLabel = WM:CreateControl(nil, assignRoot, CT_LABEL)
+    subHintLabel:SetFont("ZoFontGameSmall")
+    subHintLabel:SetColor(0.65, 0.65, 0.72, 1)
+    subHintLabel:SetAnchor(TOPLEFT, assignRoot, TOPLEFT, 0, subHeaderY + 20)
+    subHintLabel:SetAnchor(TOPRIGHT, assignRoot, TOPRIGHT, 0, subHeaderY + 20)
+    subHintLabel:SetText(GetString(EZOARM_SUBSTITUTE_HINT))
+
+    -- Casillas nativas (ZO_CheckButton + ZO_CheckButton_SetToggleFunction,
+    -- verificado en esoui/libraries/zo_templates/buttontemplates).
+    local CHECKS = {
+        { key = "enabled", stringName = "EZOARM_SUBSTITUTE_ENABLED" },
+        { key = "trials", stringName = "EZOARM_SUBSTITUTE_TRIALS" },
+        { key = "dungeons", stringName = "EZOARM_SUBSTITUTE_DUNGEONS" },
+        { key = "overland", stringName = "EZOARM_SUBSTITUTE_OVERLAND" },
+    }
+    WK.substituteChecks = {}
+    local checkY = subHeaderY + 56
+    local previousCheckLabel
+    for _, entry in ipairs(CHECKS) do
+        local check = WM:CreateControlFromVirtual(
+            "EZOArmorySubstitute" .. entry.key, assignRoot, "ZO_CheckButton")
+        if previousCheckLabel then
+            check:SetAnchor(LEFT, previousCheckLabel, RIGHT, 18, 0)
+        else
+            check:SetAnchor(TOPLEFT, assignRoot, TOPLEFT, 2, checkY)
+        end
+
+        local checkLabel = WM:CreateControl(nil, assignRoot, CT_LABEL)
+        checkLabel:SetFont("ZoFontGame")
+        checkLabel:SetColor(0.85, 0.85, 0.9, 1)
+        checkLabel:SetAnchor(LEFT, check, RIGHT, 6, 0)
+        checkLabel:SetText(GetString(_G[entry.stringName]))
+
+        local key = entry.key
+        ZO_CheckButton_SetToggleFunction(check, function(_, checked)
+            EZOArmory.Builds.SetSubstituteSetting(key, checked)
+            if EZOArmory.AutoEquip then EZOArmory.AutoEquip.Reset() end
+            WK.RefreshAssignPanel()
+        end)
+
+        WK.substituteChecks[key] = check
+        previousCheckLabel = checkLabel
+    end
+
+    local subTrashY = checkY + 26
+    local subBossY = subTrashY + ASSIGN_ROW_HEIGHT + ASSIGN_ROW_GAP
+    WK.substituteTrashCombo = CreateAssignComboRow(
+        assignRoot, "EZOArmorySubstituteTrashCombo", EZOARM_SUBSTITUTE_TRASH, subTrashY)
+    WK.substituteBossCombo = CreateAssignComboRow(
+        assignRoot, "EZOArmorySubstituteBossCombo", EZOARM_SUBSTITUTE_BOSS, subBossY)
 
     -- Barra de accion fija abajo (Equip Target / Equip Here / Clear), mismo
     -- estilo y orden (dangerous a la derecha) que la barra de Gear/Skills/CP.

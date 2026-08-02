@@ -571,6 +571,9 @@ function Builds.ForgetBuildAssignments(buildId)
             end
         end
     end
+    if Builds.ForgetSubstitute then
+        Builds.ForgetSubstitute(sv, buildId)
+    end
 end
 
 -- Que aplica en un objetivo, resolviendo la transicion de kits a builds: manda
@@ -590,6 +593,144 @@ function Builds.ResolveForTarget(role, trialTag, targetKey)
         return { kind = "kits", kitIds = kitIds }
     end
 
+    return nil
+end
+
+-- ------------------------------------------------- Builds sustitutas ----
+--
+-- Dos builds de respaldo (trash y boss) que se usan cuando en donde estas no
+-- hay nada asignado: una trial sin asignacion, una mazmorra o el mundo. Con
+-- boss delante se equipa la de boss; sin boss, la de trash.
+--
+-- Mismo concepto que las "substitute setups" de Wizard's Wardrobe, incluida su
+-- advertencia: fuera de las trials la deteccion de boss depende de que la zona
+-- declare unidades "bossN", y no todas lo hacen (las mazmorras antiguas suelen
+-- ir peor que las nuevas). Por eso viene desactivado y con interruptor por
+-- tipo de zona.
+
+Builds.SUBSTITUTE_TRASH = "trash"
+Builds.SUBSTITUTE_BOSS = "boss"
+
+local SUBSTITUTE_DEFAULTS = {
+    enabled = false,
+    trials = true,
+    dungeons = true,
+    overland = false,
+}
+
+function Builds.GetSubstituteSettings()
+    local sv = EZOArmory.sv
+    if not sv then return SUBSTITUTE_DEFAULTS end
+    sv.general = sv.general or {}
+    local settings = sv.general.substitute
+    if type(settings) ~= "table" then
+        settings = {}
+        sv.general.substitute = settings
+    end
+    for key, value in pairs(SUBSTITUTE_DEFAULTS) do
+        if settings[key] == nil then
+            settings[key] = value
+        end
+    end
+    return settings
+end
+
+function Builds.SetSubstituteSetting(key, value)
+    local settings = Builds.GetSubstituteSettings()
+    if SUBSTITUTE_DEFAULTS[key] == nil then return false end
+    settings[key] = value == true
+    return true
+end
+
+function Builds.SetSubstitute(role, kind, buildId)
+    local sv = Store()
+    if not sv or not IsValidRole(role) then return false end
+    if kind ~= Builds.SUBSTITUTE_TRASH and kind ~= Builds.SUBSTITUTE_BOSS then
+        return false
+    end
+    local profile = EnsureProfile(sv, role)
+    profile.substitute = profile.substitute or {}
+    profile.substitute[kind] = (buildId and Builds.GetBuild(buildId)) and tostring(buildId) or nil
+    return true
+end
+
+function Builds.GetSubstitute(role, kind)
+    local sv = Store()
+    if not sv or not IsValidRole(role) then return nil end
+    local profile = sv.profiles and sv.profiles[role]
+    local stored = profile and profile.substitute and profile.substitute[kind]
+    if stored and Builds.GetBuild(stored) then
+        return stored
+    end
+    return nil
+end
+
+-- Quita una build borrada tambien de las sustitutas. En la tabla Builds
+-- porque la llama ForgetBuildAssignments, definida antes en el archivo.
+function Builds.ForgetSubstitute(sv, buildId)
+    for _, profile in pairs(sv.profiles or {}) do
+        local substitute = profile.substitute
+        if substitute then
+            for kind, assigned in pairs(substitute) do
+                if assigned == buildId then
+                    substitute[kind] = nil
+                end
+            end
+        end
+    end
+end
+
+-- Si el tipo de zona actual admite sustitutas segun los interruptores.
+-- Verificado contra WW: GetCurrentZoneDungeonDifficulty() devuelve
+-- DUNGEON_DIFFICULTY_NONE (0) en mundo abierto y > 0 en mazmorra.
+local function SubstituteAllowedHere(inTrial)
+    local settings = Builds.GetSubstituteSettings()
+    if not settings.enabled then return false end
+    if inTrial then
+        return settings.trials == true
+    end
+    if type(GetCurrentZoneDungeonDifficulty) ~= "function" then
+        return settings.overland == true
+    end
+    local ok, difficulty = pcall(GetCurrentZoneDungeonDifficulty)
+    if not ok then return false end
+    if (tonumber(difficulty) or 0) > 0 then
+        return settings.dungeons == true
+    end
+    return settings.overland == true
+end
+
+-- Build sustituta aplicable ahora mismo, o nil. bossActive decide cual de las
+-- dos; el tipo de zona decide si se usa alguna.
+function Builds.ResolveSubstitute(role, inTrial, bossActive)
+    if not SubstituteAllowedHere(inTrial) then return nil end
+    local kind = bossActive and Builds.SUBSTITUTE_BOSS or Builds.SUBSTITUTE_TRASH
+    return Builds.GetSubstitute(role, kind), kind
+end
+
+-- Que corresponde equipar en el sitio exacto donde estas ahora mismo, incluida
+-- la sustituta si no hay nada asignado. Es el punto unico que usa el equipado
+-- automatico.
+--
+-- Devuelve la misma forma que ResolveForTarget, con kind = "substitute"
+-- cuando el respaldo es el que aplica.
+function Builds.ResolveForCurrentContext(role)
+    local context = EZOArmory.Context and EZOArmory.Context.GetState and EZOArmory.Context.GetState()
+    if not context then return nil end
+
+    -- Lo asignado explicitamente manda siempre sobre la sustituta.
+    if context.trial then
+        local targetKey = context.matchedBoss and context.matchedBoss.key or EZOArmory.Kits.TARGET_TRASH
+        local resolved = Builds.ResolveForTarget(role, context.trial.tag, targetKey)
+        if resolved then
+            return resolved
+        end
+    end
+
+    local buildId, kind = Builds.ResolveSubstitute(role, context.trial ~= nil, context.bossActive == true)
+    if buildId then
+        return { kind = "substitute", buildId = buildId, substituteKind = kind }
+    end
     return nil
 end
 

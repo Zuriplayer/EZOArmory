@@ -360,6 +360,11 @@ function EZOA:Initialize()
         EZOArmory.Context.Init()
     end
 
+    -- Despues del contexto: se suscribe a sus cambios.
+    if EZOArmory.AutoEquip and EZOArmory.AutoEquip.Init then
+        EZOArmory.AutoEquip.Init()
+    end
+
     if EZOArmory_Menu and EZOArmory_Menu.Init then
         EZOArmory_Menu.Init()
     end

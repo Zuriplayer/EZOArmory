@@ -1,8 +1,8 @@
 ## Title: E|cB040FFZ|rOArmory
 ## Author: @Zuriplayer
 ## Description: Loadout, gear-set, CP and skill manager for ESO trials and bosses. Optional add-ons: LibChatMessage, LibDebugLogger, DebugLogViewer, LibAsync, EZOCore.
-## Version: 0.10.1
-## AddOnVersion: 140
+## Version: 0.11.0
+## AddOnVersion: 141
 ## APIVersion: 101049 101050
 ## DependsOn: LibAddonMenu-2.0
 ## OptionalDependsOn: LibChatMessage LibDebugLogger DebugLogViewer LibAsync EZOCore
@@ -24,6 +24,7 @@ modules/skills.lua
 modules/champion.lua
 modules/equip.lua
 modules/builds.lua
+modules/auto_equip.lua
 modules/window_kits.lua
 modules/window_builds.lua
 modules/window.lua

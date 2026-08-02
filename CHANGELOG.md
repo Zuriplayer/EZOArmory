@@ -2,6 +2,28 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.0
+
+- Add: **substitute builds** and the automatic equipping that drives them. Two
+  fallback builds, a trash one and a boss one, are used wherever nothing is
+  assigned - a trial you never set up, a dungeon, the open world. When a boss
+  is present the boss build is equipped, otherwise the trash one. Same idea as
+  Wizard's Wardrobe's substitute setups.
+- Off by default, with a switch per zone type (trials / dungeons / overland),
+  set from the Assign tab. Outside trials this leans on the zone declaring
+  "boss" units, which not every zone does - older dungeons tend to be worse
+  than newer ones - so it is worth treating as experimental.
+- Anything explicitly assigned to a trial target still wins over the
+  substitute; the substitute only fills the gaps.
+- Auto equipping refuses to apply an incomplete build, ignores the legacy kit
+  assignments (equipping those automatically would silently give you a
+  half-build with no skills or CP), and will not re-apply a build it just
+  applied - repeated context changes would otherwise stack identical LibAsync
+  tasks and burn part of the ~30s Champion Point cooldown for nothing.
+- Note that gear cannot change during combat: if the boss appears once you are
+  already fighting, the swap lands when combat ends. Walking into the boss
+  area beforehand is what makes it arrive in time.
+
 ## 0.10.1
 
 - Fix: with more builds (or kits) than fit on screen, scrolling down never
