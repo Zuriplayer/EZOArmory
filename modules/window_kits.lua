@@ -421,7 +421,6 @@ end
 local function FillGearRow(row, kit)
     local slots = EZOArmory.Kits.GetKitSlots(kit)
     local index = 0
-    local summaryLines = {}
     for _, slotKey in ipairs(slots) do
         local piece = kit.pieces[slotKey]
         if piece and index < MAX_ROW_ICONS then
@@ -429,6 +428,9 @@ local function FillGearRow(row, kit)
             local icon = row.icons[index]
             icon:SetTexture(piece.icon)
             icon:SetHidden(false)
+            -- Por encima del resto de hijos de la fila, para que sea el icono
+            -- (y no una etiqueta que lo solape) quien reciba el cursor.
+            icon:SetDrawLevel(2)
             icon:ClearAnchors()
             if index == 1 then
                 -- LEFT (no TOPLEFT): punto verticalmente centrado, para que el
@@ -439,9 +441,6 @@ local function FillGearRow(row, kit)
             end
             icon:SetHandler("OnMouseEnter", function(control) ShowItemTooltip(control, piece, slotKey) end)
             icon:SetHandler("OnMouseExit", HideItemTooltip)
-        end
-        if piece then
-            summaryLines[#summaryLines + 1] = string.format("%s: %s", slotKey, PieceSummaryLabel(piece, slotKey))
         end
     end
 
@@ -456,10 +455,12 @@ local function FillGearRow(row, kit)
     end
     row.nameLabel:SetAnchor(RIGHT, row, RIGHT, -6, 0)
 
-    row.nameLabel:SetHandler("OnMouseEnter", function(control)
-        ShowTextSummary(control, kit.name, summaryLines)
-    end)
-    row.nameLabel:SetHandler("OnMouseExit", HideTextSummary)
+    -- El nombre NO lleva emergente: repetia el set de cada slot, que es justo
+    -- lo que ya se lee en la propia fila, y al ocupar casi todo el ancho se
+    -- comia el hover de los iconos. La informacion util es la de cada pieza,
+    -- y esa vive en su icono.
+    row.nameLabel:SetHandler("OnMouseEnter", nil)
+    row.nameLabel:SetHandler("OnMouseExit", nil)
 
     return GEAR_ROW_HEIGHT
 end

@@ -230,6 +230,9 @@ local function FillRowGear(row, report)
             local icon = row.gearIcons[index]
             icon:SetTexture(entry.icon)
             icon:SetHidden(false)
+            -- Por encima del resto de hijos de la fila para la deteccion del
+            -- cursor: el icono es lo que debe recibir el hover, no la fila.
+            icon:SetDrawLevel(2)
             icon:ClearAnchors()
             if previous then
                 icon:SetAnchor(LEFT, previous, RIGHT, GEAR_ICON_GAP, 0)
@@ -264,6 +267,7 @@ local function FillRowSkillsAndCp(row, build)
                     local icon = row.abilityIcons[index]
                     icon:SetTexture(entry.icon)
                     icon:SetHidden(false)
+                    icon:SetDrawLevel(2)
                     icon:ClearAnchors()
                     if previous then
                         -- Un hueco algo mayor separa la barra trasera de la frontal.

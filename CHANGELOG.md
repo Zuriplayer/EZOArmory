@@ -2,6 +2,18 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.4
+
+- Gear kit rows no longer show a tooltip on the kit name. It listed the set in
+  each slot, which is exactly what the row already shows, so it added nothing -
+  and since the name spans most of the row width it was the thing under the
+  cursor most of the time, hiding the per-piece tooltips behind it. The useful
+  information is per piece, and that lives on each icon: hover an icon to get
+  that item's real tooltip, including its armour weight.
+- Interactive icons in both the kit and build rows are now drawn above their
+  siblings, so the icon is what receives the cursor rather than whatever label
+  happens to sit near it.
+
 ## 0.11.3
 
 - Fix attempt: hovering the pieces, abilities and CP inside a build row gave no
