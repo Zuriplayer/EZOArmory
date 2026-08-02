@@ -251,11 +251,13 @@ end
 -- asi que anclarle el ancho crea un ciclo que colapsa al minimo del contenido;
 -- y anclar el lado derecho al contenedor externo deforma la fila al hacer
 -- scroll, porque el ScrollChild se desplaza y el contenedor no.
+-- OJO: la fila NO se habilita para el raton. Se probo en 0.11.3 pensando que
+-- hacia falta para que el cursor llegase a los iconos hijos, y el efecto fue el
+-- contrario: la fila pasaba a quedarse con el cursor y los iconos que si
+-- funcionaban (habilidades, estrellas) dejaron de responder. El clic sobre la
+-- fila se sigue atendiendo desde el nombre, que si tiene raton.
 local function CreateRow(parent, index)
     local row = WM:CreateControl("EZOArmoryKitRow" .. index, parent, CT_CONTROL)
-    -- Igual que en las filas de build: hace falta para su propio OnMouseUp y
-    -- para que el area de la fila cuente en la deteccion del cursor.
-    row:SetMouseEnabled(true)
 
     local bg = WM:CreateControl(nil, row, CT_BACKDROP)
     bg:SetAnchorFill(row)
@@ -428,9 +430,6 @@ local function FillGearRow(row, kit)
             local icon = row.icons[index]
             icon:SetTexture(piece.icon)
             icon:SetHidden(false)
-            -- Por encima del resto de hijos de la fila, para que sea el icono
-            -- (y no una etiqueta que lo solape) quien reciba el cursor.
-            icon:SetDrawLevel(2)
             icon:ClearAnchors()
             if index == 1 then
                 -- LEFT (no TOPLEFT): punto verticalmente centrado, para que el

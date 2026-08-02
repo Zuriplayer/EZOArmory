@@ -105,13 +105,12 @@ end
 
 -- ------------------------------------------------------- Fila de build ----
 
+-- OJO: la fila NO se habilita para el raton (ver el mismo aviso en
+-- window_kits): al hacerlo en 0.11.3 se quedaba ella con el cursor y los
+-- iconos hijos dejaban de recibir OnMouseEnter.
 local function CreateBuildRow(parent, index)
     local row = WM:CreateControl("EZOArmoryBuildRow" .. index, parent, CT_CONTROL)
     row:SetHeight(BUILD_ROW_HEIGHT)
-    -- La fila necesita raton para sus propios OnMouseUp/OnMouseDoubleClick, y
-    -- para que el area de la fila participe en la deteccion del cursor: sin
-    -- ello los iconos hijos pueden quedarse sin recibir OnMouseEnter.
-    row:SetMouseEnabled(true)
 
     local bg = WM:CreateControl(nil, row, CT_BACKDROP)
     bg:SetAnchorFill(row)
@@ -230,9 +229,6 @@ local function FillRowGear(row, report)
             local icon = row.gearIcons[index]
             icon:SetTexture(entry.icon)
             icon:SetHidden(false)
-            -- Por encima del resto de hijos de la fila para la deteccion del
-            -- cursor: el icono es lo que debe recibir el hover, no la fila.
-            icon:SetDrawLevel(2)
             icon:ClearAnchors()
             if previous then
                 icon:SetAnchor(LEFT, previous, RIGHT, GEAR_ICON_GAP, 0)
@@ -241,6 +237,12 @@ local function FillRowGear(row, report)
             end
             local slotKey = def.key
             icon:SetHandler("OnMouseEnter", function(control)
+                -- Con el modo depuracion activo deja constancia de que el
+                -- cursor SI llega al icono, para poder distinguir "no llega el
+                -- raton" de "llega pero el emergente no se ve".
+                if EZOArmory.DebugLog then
+                    EZOArmory.DebugLog("Build row: hover gear " .. tostring(slotKey))
+                end
                 WK.ShowItemTooltip(control, entry, slotKey)
             end)
             icon:SetHandler("OnMouseExit", WK.HideItemTooltip)
@@ -267,7 +269,6 @@ local function FillRowSkillsAndCp(row, build)
                     local icon = row.abilityIcons[index]
                     icon:SetTexture(entry.icon)
                     icon:SetHidden(false)
-                    icon:SetDrawLevel(2)
                     icon:ClearAnchors()
                     if previous then
                         -- Un hueco algo mayor separa la barra trasera de la frontal.
@@ -278,6 +279,9 @@ local function FillRowSkillsAndCp(row, build)
                     end
                     local abilityId = entry.abilityId
                     icon:SetHandler("OnMouseEnter", function(control)
+                        if EZOArmory.DebugLog then
+                            EZOArmory.DebugLog("Build row: hover ability " .. tostring(abilityId))
+                        end
                         WK.ShowAbilityTooltip(control, abilityId)
                     end)
                     icon:SetHandler("OnMouseExit", WK.HideAbilityTooltip)

@@ -2,6 +2,19 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.5
+
+- Revert the two changes from 0.11.3 and 0.11.4 that were meant to fix hover
+  tooltips and made things worse. Mouse-enabling the row was wrong: the row
+  then took the cursor itself and the icons that previously did work - skill
+  abilities and CP stars - stopped responding. The explicit draw level on
+  icons did not help either, so it is gone too.
+- Kept from 0.11.4: the gear kit name no longer shows its redundant tooltip.
+  That part was a real improvement and is unrelated to the hover problem.
+- With debug mode on, hovering a gear or ability icon in a build row now logs
+  it. That tells apart "the cursor never reaches the icon" from "it reaches it
+  but the tooltip does not appear", which is the thing still to determine.
+
 ## 0.11.4
 
 - Gear kit rows no longer show a tooltip on the kit name. It listed the set in
