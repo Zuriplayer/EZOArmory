@@ -453,9 +453,12 @@ local function FillGearRow(row, kit)
             icon:SetHidden(false)
             icon:ClearAnchors()
             if index == 1 then
-                -- LEFT (no TOPLEFT): punto verticalmente centrado, para que el
-                -- icono quede centrado en el alto completo de la fila.
-                icon:SetAnchor(LEFT, row, LEFT, 6, 0)
+                -- TOPLEFT con desplazamiento calculado, NO el punto LEFT
+                -- (centrado vertical). Los iconos de habilidad, que si reciben
+                -- el cursor, se anclan asi; los de equipo usaban LEFT y no
+                -- recibian OnMouseEnter (confirmado: con depuracion activa no
+                -- registraban ni una sola entrada al pasar el raton por encima).
+                icon:SetAnchor(TOPLEFT, row, TOPLEFT, 6, (GEAR_ROW_HEIGHT - ICON_SIZE) / 2)
             else
                 icon:SetAnchor(LEFT, row.icons[index - 1], RIGHT, ICON_GAP, 0)
             end

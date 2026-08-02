@@ -2,6 +2,15 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.7
+
+- Gear icons in kit rows anchored their first icon by the LEFT point, which is
+  vertically centred, while the skill and CP elements that do receive the
+  cursor anchor from TOPLEFT. The debug log settled it: hovering a gear icon
+  logged nothing at all, so the handler was never running and the problem was
+  the icon's hit area, not the tooltip. Gear icons now use the same anchoring
+  as the elements that work.
+
 ## 0.11.6
 
 - The item tooltip path is now fully guarded. If InitializeTooltip or SetLink
