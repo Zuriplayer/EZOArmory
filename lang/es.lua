@@ -117,6 +117,7 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_WINDOW_BTN_EQUIP = "Equipar kit",
     EZOARM_WINDOW_BTN_RENAME = "Renombrar",
     EZOARM_WINDOW_BTN_DELETE = "Borrar",
+    EZOARM_BTN_EQUIP_SHORT = "Equipar",
 
     EZOARM_OPTION_KIT_LIST = "Kits guardados",
     EZOARM_OPTION_KIT_LIST_TOOLTIP = "Selecciona un kit guardado. El numero entre parentesis son las piezas que contiene.",

@@ -2,6 +2,19 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.2
+
+- The Assign tab's dropdowns were far wider than their contents needed. They
+  are now trimmed on the right, and the space that frees up holds a small
+  Equip button on each row that has a build behind it: the build assigned to
+  the selected target, and the two substitute builds. One click equips it,
+  which makes trying a substitute out without travelling to the zone
+  practical. Every dropdown reserves the same right-hand gap so they all line
+  up whether or not they have a button.
+- Those buttons equip exactly what the dropdown shows, with no inheritance -
+  that is what "Equip this target's kits" in the action bar is for. They
+  refuse incomplete builds, like every other equip path.
+
 ## 0.11.1
 
 - Add: **inventory marker**. Any item that belongs to one of your kits gets a

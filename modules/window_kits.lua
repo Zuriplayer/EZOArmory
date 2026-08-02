@@ -83,6 +83,9 @@ local CATEGORIES = {
 local ASSIGN_LABEL_WIDTH = 115
 local ASSIGN_ROW_HEIGHT = 26
 local ASSIGN_ROW_GAP = 6
+-- Hueco reservado a la derecha de cada desplegable para el boton de equipar.
+local ASSIGN_ACTION_WIDTH = 86
+local ASSIGN_ACTION_GAP = 8
 local ASSIGN_TARGET_DEFAULT = "default"
 
 WK.state = WK.state or {
@@ -1168,6 +1171,20 @@ local function ReportEquipPart(part, state)
     end
 end
 
+-- Equipa una build concreta, la que muestre el desplegable de esa fila. A
+-- diferencia de "Equip target", no aplica herencia: equipa exactamente lo que
+-- se ve. Sirve para probar una build sustituta sin ir a la zona.
+local function EquipBuildById(buildId)
+    if not buildId then return end
+    local build = EZOArmory.Builds.GetBuild(buildId)
+    if not build then return end
+    if not EZOArmory.Builds.Analyze(build).complete then
+        if EZOArmory.Print then EZOArmory.Print(GetString(EZOARM_MSG_BUILD_INCOMPLETE)) end
+        return
+    end
+    EZOArmory.Builds.Equip(buildId, ReportEquipPart)
+end
+
 -- Traduce a chat el motivo por el que no se ha equipado nada.
 local function PrintNotEquipped(reason, trialTag)
     if not EZOArmory.Print then return end
@@ -1264,7 +1281,11 @@ end
 -- la da SetHeight). El combo se crea con CreateControlFromVirtual "ZO_ComboBox"
 -- + ZO_ComboBox_ObjectFromContainer, patron verificado (LibScrollableMenu,
 -- BanditsUserInterface) para crear dropdowns nativos sin XML propio.
-local function CreateAssignComboRow(parent, name, labelStringId, y)
+--
+-- Todas las filas reservan a la derecha el hueco del boton de equipar, tengan
+-- boton o no, para que los desplegables acaben todos a la misma altura. Con
+-- onEquip se anade el boton en ese hueco.
+local function CreateAssignComboRow(parent, name, labelStringId, y, onEquip)
     local label = WM:CreateControl(nil, parent, CT_LABEL)
     label:SetFont("ZoFontGame")
     label:SetColor(0.75, 0.75, 0.8, 1)
@@ -1276,7 +1297,19 @@ local function CreateAssignComboRow(parent, name, labelStringId, y)
     local combo = WM:CreateControlFromVirtual(name, parent, "ZO_ComboBox")
     combo:SetHeight(ASSIGN_ROW_HEIGHT)
     combo:SetAnchor(TOPLEFT, label, TOPRIGHT, 8, 0)
-    combo:SetAnchor(TOPRIGHT, parent, TOPRIGHT, 0, y)
+    combo:SetAnchor(TOPRIGHT, parent, TOPRIGHT, -(ASSIGN_ACTION_WIDTH + ASSIGN_ACTION_GAP), y)
+
+    if onEquip then
+        local button = WM:CreateControl(nil, parent, CT_BUTTON)
+        button:SetDimensions(ASSIGN_ACTION_WIDTH, 24)
+        button:SetAnchor(TOPRIGHT, parent, TOPRIGHT, 0, y + 1)
+        button:SetFont("ZoFontGameBold")
+        button:SetNormalFontColor(0.6, 1, 0.6, 1)
+        button:SetMouseOverFontColor(0.4, 1, 0.4, 1)
+        button:SetText(GetString(EZOARM_BTN_EQUIP_SHORT))
+        button:SetHandler("OnClicked", onEquip)
+    end
+
     return combo
 end
 
@@ -1304,7 +1337,11 @@ local function CreateAssignPanel(content)
     -- Una build por objetivo: basta un desplegable, sin lista que componer.
     local buildY = targetY + ASSIGN_ROW_HEIGHT + ASSIGN_ROW_GAP
     WK.assignBuildCombo = CreateAssignComboRow(
-        assignRoot, "EZOArmoryAssignBuildCombo", EZOARM_WINDOW_TAB_BUILDS, buildY)
+        assignRoot, "EZOArmoryAssignBuildCombo", EZOARM_WINDOW_TAB_BUILDS, buildY,
+        function()
+            EquipBuildById(EZOArmory.Builds.GetStoredTrialAssignment(
+                EZOArmory.GetActiveRole(), WK.state.assignTrialTag, WK.state.assignTargetKey))
+        end)
 
     local summaryHeaderY = buildY + ASSIGN_ROW_HEIGHT + 14
     local summaryHeader = WM:CreateControl(nil, assignRoot, CT_LABEL)
@@ -1378,9 +1415,17 @@ local function CreateAssignPanel(content)
     local subTrashY = checkY + 26
     local subBossY = subTrashY + ASSIGN_ROW_HEIGHT + ASSIGN_ROW_GAP
     WK.substituteTrashCombo = CreateAssignComboRow(
-        assignRoot, "EZOArmorySubstituteTrashCombo", EZOARM_SUBSTITUTE_TRASH, subTrashY)
+        assignRoot, "EZOArmorySubstituteTrashCombo", EZOARM_SUBSTITUTE_TRASH, subTrashY,
+        function()
+            EquipBuildById(EZOArmory.Builds.GetSubstitute(
+                EZOArmory.GetActiveRole(), EZOArmory.Builds.SUBSTITUTE_TRASH))
+        end)
     WK.substituteBossCombo = CreateAssignComboRow(
-        assignRoot, "EZOArmorySubstituteBossCombo", EZOARM_SUBSTITUTE_BOSS, subBossY)
+        assignRoot, "EZOArmorySubstituteBossCombo", EZOARM_SUBSTITUTE_BOSS, subBossY,
+        function()
+            EquipBuildById(EZOArmory.Builds.GetSubstitute(
+                EZOArmory.GetActiveRole(), EZOArmory.Builds.SUBSTITUTE_BOSS))
+        end)
 
     -- Barra de accion fija abajo (Equip Target / Equip Here / Clear), mismo
     -- estilo y orden (dangerous a la derecha) que la barra de Gear/Skills/CP.

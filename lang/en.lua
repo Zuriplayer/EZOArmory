@@ -117,6 +117,7 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_WINDOW_BTN_EQUIP = "Equip kit",
     EZOARM_WINDOW_BTN_RENAME = "Rename",
     EZOARM_WINDOW_BTN_DELETE = "Delete",
+    EZOARM_BTN_EQUIP_SHORT = "Equip",
 
     EZOARM_OPTION_KIT_LIST = "Saved kits",
     EZOARM_OPTION_KIT_LIST_TOOLTIP = "Select a saved kit. The number in brackets is how many pieces it holds.",
