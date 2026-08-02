@@ -239,17 +239,15 @@ end
 -- Crea una fila reutilizable con todos los controles que puede necesitar
 -- cualquiera de las tres categorias (se muestran/ocultan segun corresponda).
 --
--- widthAnchor es el ZO_ScrollContainer EXTERNO, no el ScrollChild que aloja la
--- fila. Confirmado contra la plantilla oficial de ZOS
--- (esoui/libraries/zo_templates/scrolltemplates.xml): el ScrollChild solo
--- lleva un ancla TOPLEFT y "resizeToFitDescendents=true", asi que su ancho se
--- autoajusta al de SUS hijos en vez de estirarse al contenedor. Anclar el
--- ancho de la fila a el mismo (su propio padre) crea un ciclo que colapsa al
--- ancho minimo del contenido. El contenedor externo si tiene anclas
--- TOPLEFT/BOTTOMRIGHT propias y un ancho deterministico.
-local function CreateRow(parent, index, widthAnchor)
+-- La fila se posiciona con UNA sola ancla dentro del ScrollChild y su ancho se
+-- fija en WK.Refresh midiendo el contenedor externo. Confirmado contra la
+-- plantilla oficial de ZOS (esoui/libraries/zo_templates/scrolltemplates.xml):
+-- el ScrollChild solo lleva un ancla TOPLEFT y "resizeToFitDescendents=true",
+-- asi que anclarle el ancho crea un ciclo que colapsa al minimo del contenido;
+-- y anclar el lado derecho al contenedor externo deforma la fila al hacer
+-- scroll, porque el ScrollChild se desplaza y el contenedor no.
+local function CreateRow(parent, index)
     local row = WM:CreateControl("EZOArmoryKitRow" .. index, parent, CT_CONTROL)
-    row.widthAnchor = widthAnchor
 
     local bg = WM:CreateControl(nil, row, CT_BACKDROP)
     bg:SetAnchorFill(row)
@@ -322,11 +320,11 @@ local function CreateRow(parent, index, widthAnchor)
     return row
 end
 
-local function EnsureRows(parent, widthAnchor)
+local function EnsureRows(parent)
     WK.rows = WK.rows or {}
     if #WK.rows > 0 then return WK.rows end
     for i = 1, MAX_ROWS do
-        WK.rows[i] = CreateRow(parent, i, widthAnchor)
+        WK.rows[i] = CreateRow(parent, i)
     end
     return WK.rows
 end
@@ -537,7 +535,10 @@ local function FillCpRow(row, kit)
     row.nameLabel:SetHandler("OnMouseEnter", nil)
     row.nameLabel:SetHandler("OnMouseExit", nil)
 
-    local availableWidth = (row.widthAnchor and row.widthAnchor.GetWidth and row.widthAnchor:GetWidth() or 400) - 40
+    -- La fila ya tiene ancho propio (fijado en WK.Refresh), asi que se mide
+    -- ella misma para repartir los chips en lineas.
+    local rowWidth = row.GetWidth and row:GetWidth() or 0
+    local availableWidth = (rowWidth > 0 and rowWidth or 400) - 40
     local groups = EZOArmory.Champion.GetStarsByDiscipline(kit)
 
     local marginLeft = 6
@@ -619,6 +620,22 @@ function WK.RefreshVisibility()
     end
 end
 
+-- Refresca la vista que este activa. La usa Window.Show: al abrir la ventana
+-- hay que refrescar la pestana en la que se quedo, no siempre la lista de
+-- kits. Ademas es cuando los contenedores ya tienen ancho real, del que
+-- dependen las filas para dimensionarse.
+function WK.RefreshActive()
+    if WK.state.category == CATEGORY_ASSIGN then
+        WK.RefreshAssignPanel()
+    elseif WK.state.category == CATEGORY_BUILDS then
+        if EZOArmory.WindowBuilds and EZOArmory.WindowBuilds.Refresh then
+            EZOArmory.WindowBuilds.Refresh()
+        end
+    else
+        WK.Refresh()
+    end
+end
+
 function WK.SetCategory(category)
     WK.state.category = category
     WK.state.selectedId = nil
@@ -646,13 +663,25 @@ function WK.Refresh()
     local scrollbarWidth = (type(ZO_SCROLL_BAR_WIDTH) == "number" and ZO_SCROLL_BAR_WIDTH or 16) + 8
     local yOffset = 0
 
+    -- Ancho explicito medido del contenedor externo. Anclar el lado derecho de
+    -- la fila a ese contenedor deformaba la fila al hacer scroll (el ScrollChild
+    -- se desplaza, el contenedor no) y falseaba el alto del contenido, que es
+    -- lo que impedia llegar a la ultima fila. Anclarlo al ScrollChild tampoco
+    -- vale: se autoajusta a sus hijos y colapsa por dependencia circular.
+    local rowWidth = (WK.scrollContainer and WK.scrollContainer:GetWidth() or 0) - scrollbarWidth
+    if rowWidth <= 0 then
+        rowWidth = nil
+    end
+
     for index, row in ipairs(WK.rows) do
         local kit = list[index]
         if kit then
             row.kitId = kit.id
             row:ClearAnchors()
             row:SetAnchor(TOPLEFT, WK.listRoot, TOPLEFT, 0, yOffset)
-            row:SetAnchor(TOPRIGHT, row.widthAnchor, TOPRIGHT, -scrollbarWidth, yOffset)
+            if rowWidth then
+                row:SetWidth(rowWidth)
+            end
             row:SetHidden(false)
             ClearRowContent(row)
 
@@ -1376,7 +1405,7 @@ function WK.Create(parent)
     WK.listRoot = listRoot
     WK.scrollContainer = scrollContainer
 
-    EnsureRows(listRoot, scrollContainer)
+    EnsureRows(listRoot)
 
     CreateAssignPanel(content)
     EZOArmory.WindowBuilds.Create(content)

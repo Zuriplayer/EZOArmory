@@ -105,9 +105,8 @@ end
 
 -- ------------------------------------------------------- Fila de build ----
 
-local function CreateBuildRow(parent, index, widthAnchor)
+local function CreateBuildRow(parent, index)
     local row = WM:CreateControl("EZOArmoryBuildRow" .. index, parent, CT_CONTROL)
-    row.widthAnchor = widthAnchor
     row:SetHeight(BUILD_ROW_HEIGHT)
 
     local bg = WM:CreateControl(nil, row, CT_BACKDROP)
@@ -373,8 +372,20 @@ function WB.RefreshList()
 
     local list = EZOArmory.Builds.ListBuilds()
     local scrollbarWidth = (type(ZO_SCROLL_BAR_WIDTH) == "number" and ZO_SCROLL_BAR_WIDTH or 16) + 8
+    local row1Width = WB.scrollContainer and WB.scrollContainer:GetWidth() or 0
     local yOffset = 0
     local stillSelected = false
+
+    -- Ancho explicito, medido del contenedor externo. NO se ancla el lado
+    -- derecho de la fila a ese contenedor: el ScrollChild se desplaza al hacer
+    -- scroll y el contenedor no, asi que una fila anclada a ambos se deforma al
+    -- desplazarse y el alto real del contenido sale mal (por eso el scroll no
+    -- llegaba a la ultima fila). Tampoco se puede anclar al ScrollChild, que se
+    -- autoajusta a sus hijos y crearia un ciclo.
+    local rowWidth = (row1Width or 0) - scrollbarWidth
+    if rowWidth <= 0 then
+        rowWidth = nil
+    end
 
     for index, row in ipairs(WB.rows) do
         local build = list[index]
@@ -382,7 +393,9 @@ function WB.RefreshList()
             row.buildId = build.id
             row:ClearAnchors()
             row:SetAnchor(TOPLEFT, WB.listRoot, TOPLEFT, 0, yOffset)
-            row:SetAnchor(TOPRIGHT, row.widthAnchor, TOPRIGHT, -scrollbarWidth, yOffset)
+            if rowWidth then
+                row:SetWidth(rowWidth)
+            end
             row:SetHidden(false)
             ClearBuildRow(row)
             FillBuildRow(row, build)
@@ -867,10 +880,11 @@ local function CreateListPanel(content)
     local listRoot = scrollContainer:GetNamedChild("ScrollChild")
     listRoot:SetResizeToFitPadding(0, 20)
     WB.listRoot = listRoot
+    WB.scrollContainer = scrollContainer
 
     WB.rows = {}
     for i = 1, MAX_BUILD_ROWS do
-        WB.rows[i] = CreateBuildRow(listRoot, i, scrollContainer)
+        WB.rows[i] = CreateBuildRow(listRoot, i)
     end
 end
 

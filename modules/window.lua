@@ -197,9 +197,10 @@ function Window.Show()
     Window.requestedVisible = true
     Window.RefreshContext()
     Window.RefreshVisibility()
-    if EZOArmory.WindowKits and EZOArmory.WindowKits.Refresh then
-        -- Refleja cambios hechos por el panel LAM mientras la ventana estaba cerrada.
-        EZOArmory.WindowKits.Refresh()
+    if EZOArmory.WindowKits and EZOArmory.WindowKits.RefreshActive then
+        -- Refleja cambios hechos por el panel LAM mientras la ventana estaba
+        -- cerrada, en la pestana en la que se quedo el jugador.
+        EZOArmory.WindowKits.RefreshActive()
     end
 
     -- El raton hace falta para interactuar con la ventana.

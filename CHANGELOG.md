@@ -2,6 +2,22 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.10.1
+
+- Fix: with more builds (or kits) than fit on screen, scrolling down never
+  fully revealed the last one. Rows anchored their left edge to the scroll
+  child and their right edge to the outer container - but the scroll child
+  moves as you scroll while the container does not, so rows were skewed while
+  scrolling and the content height the scrollbar is computed from came out
+  wrong. Rows are now positioned with a single anchor inside the scroll child
+  and given an explicit width measured from the container, which is both stable
+  while scrolling and correct for the height calculation. Affects every
+  scrolling list: builds and the three kit tabs.
+- Opening the window now refreshes whichever tab you left it on, instead of
+  always refreshing the kit list. Besides being correct, that is the point
+  where containers finally have their real width, which the rows need in order
+  to size themselves.
+
 ## 0.10.0
 
 Trials now assign builds instead of loose kits, completing the pivot started
