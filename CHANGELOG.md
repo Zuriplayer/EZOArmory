@@ -2,6 +2,19 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.1
+
+- Add: **inventory marker**. Any item that belongs to one of your kits gets a
+  purple Z in the inventory, so you can see at a glance what not to
+  deconstruct or sell; hovering it lists the kits and builds that use it.
+  Marks the backpack, bank, guild bank and the deconstruction and improvement
+  panels - the places where a piece of a build actually gets destroyed. On by
+  default, switchable in the settings panel. It matches by the same item
+  identity the kits store, so it marks the exact saved instance rather than
+  another copy of the same item.
+- Fix: the substitute build labels were cut off ("Trash bui"). The label column
+  was sized for the shortest label rather than the longest.
+
 ## 0.11.0
 
 - Add: **substitute builds** and the automatic equipping that drives them. Two

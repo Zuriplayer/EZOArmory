@@ -35,6 +35,12 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_SUBSTITUTE_TRASH = "Trash build",
     EZOARM_SUBSTITUTE_BOSS = "Boss build",
     EZOARM_MSG_AUTO_EQUIP = "Equipping <<1>>.",
+
+    -- Inventory marker
+    EZOARM_OPTION_INVENTORY_MARKER = "Mark saved pieces in the inventory",
+    EZOARM_OPTION_INVENTORY_MARKER_TOOLTIP = "Puts a purple Z on any inventory item that belongs to one of your kits, so you can see at a glance what not to deconstruct or sell. Hovering it tells you where it is used. Takes effect after a reload.",
+    EZOARM_MARKER_IN_KITS = "Kits: <<1>>",
+    EZOARM_MARKER_IN_BUILDS = "Builds: <<1>>",
     EZOARM_WINDOW_KIT_COUNT = "<<1>> kit(s)",
     EZOARM_WINDOW_NO_KITS = "No kits in this category yet. Capture some from Settings > EZO > EZOArmory.",
     EZOARM_WINDOW_TOOLTIP_NOT_AVAILABLE = "Not currently available in your bags.",

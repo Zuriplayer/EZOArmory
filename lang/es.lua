@@ -35,6 +35,12 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_SUBSTITUTE_TRASH = "Build de trash",
     EZOARM_SUBSTITUTE_BOSS = "Build de boss",
     EZOARM_MSG_AUTO_EQUIP = "Equipando <<1>>.",
+
+    -- Marca en inventario
+    EZOARM_OPTION_INVENTORY_MARKER = "Marcar en el inventario las piezas guardadas",
+    EZOARM_OPTION_INVENTORY_MARKER_TOOLTIP = "Pone una Z morada sobre cualquier item del inventario que forme parte de alguno de tus kits, para ver de un vistazo lo que no debes descomponer ni vender. Al pasar el cursor te dice donde se usa. Se aplica tras recargar la interfaz.",
+    EZOARM_MARKER_IN_KITS = "Kits: <<1>>",
+    EZOARM_MARKER_IN_BUILDS = "Builds: <<1>>",
     EZOARM_WINDOW_KIT_COUNT = "<<1>> kit(s)",
     EZOARM_WINDOW_NO_KITS = "Aun no hay kits en esta categoria. Captura alguno desde Ajustes > EZO > EZOArmory.",
     EZOARM_WINDOW_TOOLTIP_NOT_AVAILABLE = "No disponible ahora mismo en tu mochila.",

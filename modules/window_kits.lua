@@ -78,7 +78,9 @@ local CATEGORIES = {
 -- proposito (no por contenido, como Gear/Skills/CP) para evitar los bugs de
 -- anclaje variable ya sufridos en esas categorias: la pestana Assign es un
 -- panel corto y de forma estable, no una lista larga.
-local ASSIGN_LABEL_WIDTH = 70
+-- Ancho de etiqueta pensado para la mas larga ("Build de trash"), no para la
+-- mas corta: con 70 se cortaba en "Trash bui".
+local ASSIGN_LABEL_WIDTH = 115
 local ASSIGN_ROW_HEIGHT = 26
 local ASSIGN_ROW_GAP = 6
 local ASSIGN_TARGET_DEFAULT = "default"

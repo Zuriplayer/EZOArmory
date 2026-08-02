@@ -32,6 +32,10 @@ guardar una foto completa del equipo para cada boss:
   build, se actualiza en todos los encuentros que la usan.
 - **Tres perfiles de rol** por personaje: dano, tanque y sanador. Los kits son
   comunes al personaje; las asignaciones pertenecen a cada rol.
+- **Marca en el inventario**: las piezas que forman parte de alguno de tus kits
+  llevan una Z morada en la mochila, el banco, el banco de hermandad y los
+  paneles de descomponer y mejorar, para ver de un vistazo lo que no debes
+  destruir. Al pasar el cursor te dice en que kits y builds se usa.
 - **Builds sustitutas**: una build de trash y otra de boss que se usan donde no
   haya nada asignado: una trial sin configurar, una mazmorra o el mundo
   abierto. EZOArmory equipa la de boss mientras hay un boss delante y la de

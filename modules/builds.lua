@@ -133,6 +133,7 @@ function Builds.DeleteBuild(id)
     if not sv or id == nil or sv.builds[id] == nil then return false end
     sv.builds[id] = nil
     Builds.ForgetBuildAssignments(id)
+    if EZOArmory.Markers then EZOArmory.Markers.Invalidate() end
     return true
 end
 
@@ -140,6 +141,7 @@ function Builds.RenameBuild(id, name)
     local build = Builds.GetBuild(id)
     if not build then return false end
     build.name = tostring(name or build.name)
+    if EZOArmory.Markers then EZOArmory.Markers.Invalidate() end
     return true
 end
 
@@ -180,6 +182,7 @@ function Builds.AddGearKit(id, kitId)
     if not build or not EZOArmory.Kits.GetKit(kitId) then return false end
     if Builds.HasGearKit(build, kitId) then return false end
     build.gearKitIds[#build.gearKitIds + 1] = kitId
+    if EZOArmory.Markers then EZOArmory.Markers.Invalidate() end
     return true
 end
 
@@ -189,6 +192,7 @@ function Builds.RemoveGearKit(id, kitId)
     for index = #build.gearKitIds, 1, -1 do
         if build.gearKitIds[index] == kitId then
             table.remove(build.gearKitIds, index)
+            if EZOArmory.Markers then EZOArmory.Markers.Invalidate() end
             return true
         end
     end

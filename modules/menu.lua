@@ -766,6 +766,26 @@ local function BuildOptions()
         },
         {
             type = "checkbox",
+            name = GetString(EZOARM_OPTION_INVENTORY_MARKER),
+            tooltip = GetString(EZOARM_OPTION_INVENTORY_MARKER_TOOLTIP),
+            getFunc = function()
+                return EZOArmory.Markers and EZOArmory.Markers.IsEnabled() or false
+            end,
+            setFunc = function(value)
+                if EZOArmory.sv and EZOArmory.sv.general then
+                    EZOArmory.sv.general.inventoryMarker = value == true
+                end
+                if EZOArmory.Markers then
+                    EZOArmory.Markers.Invalidate()
+                    -- Enganchar los inventarios solo se puede hacer una vez;
+                    -- si estaba apagado al cargar, hace falta recargar.
+                    EZOArmory.Markers.Init()
+                end
+            end,
+            default = true,
+        },
+        {
+            type = "checkbox",
             name = GetString(EZOARM_OPTION_DEBUG_MODE),
             tooltip = GetString(EZOARM_OPTION_DEBUG_MODE_TOOLTIP),
             getFunc = function()

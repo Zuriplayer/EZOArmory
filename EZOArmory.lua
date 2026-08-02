@@ -365,6 +365,10 @@ function EZOA:Initialize()
         EZOArmory.AutoEquip.Init()
     end
 
+    if EZOArmory.Markers and EZOArmory.Markers.Init then
+        EZOArmory.Markers.Init()
+    end
+
     if EZOArmory_Menu and EZOArmory_Menu.Init then
         EZOArmory_Menu.Init()
     end

@@ -84,6 +84,7 @@ function Kits.CreateKit(name, pieces, role)
         pieces = stored,
     }
     sv.kits[id] = kit
+    if EZOArmory.Markers then EZOArmory.Markers.Invalidate() end
     return id, kit
 end
 
@@ -309,6 +310,7 @@ function Kits.RenameKit(id, name)
     local kit = Kits.GetKit(id)
     if not kit then return false end
     kit.name = tostring(name or kit.name)
+    if EZOArmory.Markers then EZOArmory.Markers.Invalidate() end
     return true
 end
 
@@ -322,6 +324,7 @@ function Kits.SetKitPiece(id, slotKey, piece)
     else
         kit.pieces[tostring(slotKey)] = CopyPiece(piece)
     end
+    if EZOArmory.Markers then EZOArmory.Markers.Invalidate() end
     return true
 end
 
@@ -334,6 +337,7 @@ function Kits.DeleteKit(id)
     if EZOArmory.Builds and EZOArmory.Builds.ForgetKit then
         EZOArmory.Builds.ForgetKit(id)
     end
+    if EZOArmory.Markers then EZOArmory.Markers.Invalidate() end
 
     -- Limpia referencias en todas las asignaciones de todos los roles.
     for _, profile in pairs(sv.profiles) do

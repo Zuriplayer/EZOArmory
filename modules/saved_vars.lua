@@ -12,6 +12,9 @@ function EZOArmory.savedVars.Init()
             -- auto: el rol activo se detecta del rol elegido en el buscador de
             -- grupo; manual: se usa el seleccionado en el panel.
             roleMode = "auto",
+            -- Marca morada en el inventario sobre las piezas que estan en
+            -- algun kit o build (modules/markers.lua).
+            inventoryMarker = true,
         },
         -- Kits de piezas concretas (piedra angular), comunes al personaje.
         -- Esquema completo en modules/kits.lua.
@@ -44,6 +47,9 @@ function EZOArmory.savedVars.Init()
     EZOArmory.sv.general.language = EZOArmory.sv.general.language or defaults.general.language
     EZOArmory.sv.general.debugMode = EZOArmory.sv.general.debugMode or defaults.general.debugMode
     EZOArmory.sv.general.unlockHud = false
+    if EZOArmory.sv.general.inventoryMarker == nil then
+        EZOArmory.sv.general.inventoryMarker = defaults.general.inventoryMarker
+    end
     EZOArmory.sv.general.role = EZOArmory.sv.general.role or defaults.general.role
     if EZOArmory.sv.general.roleMode ~= "manual" then
         EZOArmory.sv.general.roleMode = "auto"
