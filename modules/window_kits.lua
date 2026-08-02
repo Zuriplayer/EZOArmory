@@ -758,7 +758,12 @@ function WK.Refresh()
         end
     end
 
-    WK.listRoot:SetHeight(math.max(1, yOffset))
+    -- El alto del ScrollChild NO se fija a mano: lleva resizeToFitDescendents
+    -- y se ajusta solo a sus filas (mas SetResizeToFitPadding). Fijarlo pelea
+    -- con ese autoajuste y deja su rectangulo incoherente con lo que se dibuja;
+    -- las filas seguian viendose pero dejaban de recibir el cursor, y solo
+    -- pasaba con contenido desplazable, que es cuando ambos valores difieren.
+    -- LibAddonMenu monta este mismo contenedor y tampoco lo fija.
 
     if WK.RefreshActionBar then
         WK.RefreshActionBar()

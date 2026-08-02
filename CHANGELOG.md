@@ -2,6 +2,18 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.8
+
+- Fix: hovering elements gave no tooltip in exactly the lists that had a
+  scrollbar, and worked in the ones that fitted on screen. The scroll child
+  auto-sizes to its rows, and the code was also setting its height by hand.
+  The two disagree once the content is taller than the visible area - which is
+  precisely when a scrollbar appears - leaving the container's rectangle
+  inconsistent with what is drawn: rows still rendered but stopped receiving
+  the cursor. The manual height is gone; the container sizes itself, which is
+  what LibAddonMenu does with this same container and why its controls keep
+  their tooltips inside a scrolling panel.
+
 ## 0.11.7
 
 - Gear icons in kit rows anchored their first icon by the LEFT point, which is

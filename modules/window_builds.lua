@@ -444,7 +444,8 @@ function WB.RefreshList()
             or GetString(EZOARM_BUILD_EDIT_HINT))
     end
 
-    WB.listRoot:SetHeight(math.max(1, yOffset))
+    -- Sin SetHeight a mano: el ScrollChild se autoajusta a sus filas. Ver el
+    -- comentario equivalente en window_kits.
     WB.RefreshActionBar()
 end
 
