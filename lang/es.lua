@@ -58,10 +58,13 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_OPTION_DEBUG_MODE = "Modo depuracion",
     EZOARM_OPTION_DEBUG_MODE_TOOLTIP = "Envia diagnostico tecnico a LibDebugLogger. No afecta al juego normal.",
 
-    -- Kits
-    EZOARM_OPTION_KITS = "Kits",
-    EZOARM_OPTION_KITS_HEADER_TOOLTIP = "Un kit es un bloque reutilizable de piezas, por ejemplo cinco piezas de ropa de un set o un monster set de dos piezas. Creas el kit una vez y lo asignas a todos los encuentros que quieras. Los kits son comunes a todo el personaje; solo las asignaciones pertenecen a cada rol.",
+    EZOARM_OPTION_RESET_DEFAULTS = "Restaurar valores por defecto",
+    EZOARM_OPTION_RESET_DEFAULTS_TOOLTIP = "Restaura idioma, modo de rol, marca de inventario, equipado automatico y la posicion/tamano de la ventana a sus valores por defecto. No toca tus kits, builds ni asignaciones.",
+    EZOARM_DIALOG_RESET_TITLE = "Restaurar valores por defecto",
+    EZOARM_DIALOG_RESET_TEXT = "Esto restaura idioma, modo de rol, marca de inventario, equipado automatico y la ventana a sus valores por defecto. Tus kits, builds y asignaciones no se tocan. ¿Continuar?",
+    EZOARM_MSG_RESET_DONE = "Ajustes restaurados a sus valores por defecto.",
 
+    -- Rol
     EZOARM_OPTION_ROLE = "Rol activo",
     EZOARM_OPTION_ROLE_TOOLTIP = "Perfil de rol que se usa para las asignaciones de kits. Los kits en si son comunes al personaje.",
     EZOARM_OPTION_ROLE_AUTO = "Detectar el rol automaticamente",
@@ -71,13 +74,6 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_ROLE_HEALER = "Sanador",
     EZOARM_ROLE_UNCERTAIN = "Duda",
     EZOARM_ROLE_UNKNOWN = "Sin rol",
-
-    EZOARM_OPTION_KIT_NAME = "Nombre del nuevo kit",
-    EZOARM_OPTION_KIT_NAME_TOOLTIP = "Nombre del kit que vas a capturar, por ejemplo \"Arca Nula 5 ropa\".",
-
-    EZOARM_OPTION_KIT_PRESET = "Piezas a capturar",
-    EZOARM_OPTION_KIT_PRESET_TOOLTIP = "Se construye con el equipo que llevas puesto: todo, un set entero con su numero de piezas, o una pieza suelta por su nombre. La lista se actualiza al reabrir el panel o tras capturar un kit.",
-    EZOARM_PRESET_ALL = "Todo el equipo puesto",
 
     EZOARM_SLOT_HEAD = "Cabeza",
     EZOARM_SLOT_SHOULDERS = "Hombros",
@@ -104,11 +100,6 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_CAT_WEAPONS_FRONT = "armas",
     EZOARM_CAT_WEAPONS_BACK = "armas (T)",
 
-    EZOARM_OPTION_KIT_CAPTURE = "Capturar del equipo puesto",
-    EZOARM_OPTION_KIT_CAPTURE_TOOLTIP = "Crea un kit con las piezas que llevas ahora mismo, limitado a la seleccion de arriba.",
-
-    EZOARM_OPTION_KIT_CAPTURE_ALL = "Capturar todo lo puesto como kits",
-    EZOARM_OPTION_KIT_CAPTURE_ALL_TOOLTIP = "Crea de una vez kits con todo lo que llevas puesto: uno por cada set de varias piezas, y ademas uno por cada pieza suelta (miticos, armas sin set, o una sola pieza de un set como una cabeza de Slimecraw). Tambien captura tus barras de habilidades y estrellas de Campeon actuales como kits propios, listados en sus propias secciones. Cada kit de equipo se nombra con su palabra clave mas donde va, por ejemplo \"Null Arca - armadura\". Todo lo identico a un kit existente se salta, asi repetir la captura nunca crea duplicados.",
     EZOARM_MSG_KITS_CAPTURED_ALL = "Creados <<1>> kits, <<2>> ya existian.",
     -- Textos de boton de la ventana: cortos a proposito, el ancho de la barra
     -- de acciones es fijo y los largos del panel de opciones no caben.
@@ -120,19 +111,9 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_WINDOW_BTN_DELETE = "Borrar",
     EZOARM_BTN_EQUIP_SHORT = "Equipar",
 
-    EZOARM_OPTION_KIT_LIST = "Kits guardados",
-    EZOARM_OPTION_KIT_LIST_TOOLTIP = "Selecciona un kit guardado. El numero entre parentesis son las piezas que contiene.",
-    EZOARM_OPTION_KIT_DELETE = "Eliminar el kit seleccionado",
-    EZOARM_OPTION_KIT_DELETE_TOOLTIP = "Borra el kit seleccionado y cualquier referencia a el en las asignaciones de rol.",
-    EZOARM_OPTION_KIT_RENAME = "Renombrar el kit seleccionado",
-    EZOARM_OPTION_KIT_RENAME_TOOLTIP = "Cambia el nombre del kit seleccionado.",
     EZOARM_DIALOG_RENAME_TITLE = "Renombrar kit",
     EZOARM_DIALOG_RENAME_TEXT = "Nuevo nombre para este kit:",
-    EZOARM_OPTION_KIT_SHOW = "Ver el kit seleccionado",
-    EZOARM_OPTION_KIT_SHOW_TOOLTIP = "Muestra las piezas guardadas en el kit seleccionado.",
 
-    EZOARM_OPTION_KIT_EQUIP = "Equipar el kit seleccionado",
-    EZOARM_OPTION_KIT_EQUIP_TOOLTIP = "Ponte las piezas del kit seleccionado. El equipo solo se puede cambiar fuera de combate, asi que si estas luchando espera y lo equipa en cuanto sales de combate. Las piezas deben estar en la mochila; lo que este en el banco se avisa como no disponible.",
     EZOARM_MSG_EQUIP_QUEUED = "En combate: EZOArmory equipara el kit en cuanto salgas de combate.",
     EZOARM_MSG_EQUIP_DONE = "Equipadas <<1>>, ya puestas <<2>>, no disponibles <<3>>.",
     EZOARM_MSG_EQUIP_MISSING = "No disponibles en la mochila: <<1>>.",
@@ -141,40 +122,18 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_MSG_EQUIP_QUEUED_CP_COOLDOWN = "Los CP estan en tiempo de espera: EZOArmory ranurara el kit en cuanto este disponible.",
 
     -- Kits de habilidades
-    EZOARM_OPTION_SKILL_KITS = "Kits de habilidades",
-    EZOARM_OPTION_SKILL_KITS_HEADER_TOOLTIP = "Un kit de habilidades memoriza las dos barras de accion (cinco habilidades mas la definitiva en cada una). Las armas equipadas al capturar se guardan con el y se muestran como iconos de la barra frontal y trasera, porque las habilidades dependen del tipo de arma. Los kits de habilidades viven aparte de los kits de equipo.",
-    EZOARM_OPTION_SKILL_KIT_NAME = "Nombre del nuevo kit de habilidades",
-    EZOARM_OPTION_SKILL_KIT_NAME_TOOLTIP = "Opcional. Dejalo vacio para nombrarlo automaticamente (Skills 1, Skills 2...).",
-    EZOARM_OPTION_SKILL_KIT_CAPTURE = "Capturar las barras de habilidades actuales",
-    EZOARM_OPTION_SKILL_KIT_CAPTURE_TOOLTIP = "Memoriza las habilidades slotteadas en ambas barras, junto con las armas que llevas. No se crea nada si ya existe un kit de habilidades identico.",
-    EZOARM_OPTION_SKILL_KIT_LIST = "Kits de habilidades guardados",
-    EZOARM_OPTION_SKILL_KIT_LIST_TOOLTIP = "Selecciona un kit de habilidades guardado. Los iconos son las armas de la barra frontal y trasera con las que se capturo; el numero son las habilidades que contiene.",
-    EZOARM_OPTION_SKILL_KIT_SHOW_TOOLTIP = "Muestra cada barra del kit seleccionado con su arma y habilidades.",
-    EZOARM_OPTION_SKILL_KIT_DELETE_TOOLTIP = "Borra el kit de habilidades seleccionado.",
     EZOARM_MSG_SKILL_KIT_CREATED = "Kit de habilidades creado: <<1>>.",
     EZOARM_MSG_SKILL_KIT_DUPLICATE = "No se ha creado: el kit de habilidades <<1>> ya contiene exactamente estas barras.",
     EZOARM_MSG_SKILL_KIT_EMPTY = "No hay habilidades slotteadas que capturar.",
-    EZOARM_MSG_SKILL_KIT_DELETED = "Kit de habilidades eliminado: <<1>>.",
     EZOARM_AUTONAME_SKILLS = "Skills",
     EZOARM_MSG_SKILL_EQUIP_DONE = "Ranuradas <<1>>, ya puestas <<2>>, omitidas <<3>>.",
     EZOARM_MSG_SKILL_EQUIP_SKIPPED = "No desbloqueadas, omitidas: <<1>>.",
     EZOARM_MSG_SKILL_EQUIP_EMPTY = "El kit de habilidades seleccionado no tiene nada que ranurar.",
 
     -- Kits de CP
-    EZOARM_OPTION_CP_KITS = "Kits de Puntos de Campeon",
-    EZOARM_OPTION_CP_KITS_HEADER_TOOLTIP = "Un kit de CP memoriza las doce estrellas de Campeon slotteadas. Kits con las mismas estrellas en distinto orden cuentan como el mismo kit. Aplicar CP tiene un tiempo de espera del juego, asi que estos kits estan pensados para aplicarse al prepararse, no en mitad del combate.",
-    EZOARM_OPTION_CP_KIT_NAME = "Nombre del nuevo kit de CP",
-    EZOARM_OPTION_CP_KIT_NAME_TOOLTIP = "Opcional. Dejalo vacio para nombrarlo automaticamente (CP 1, CP 2...).",
-    EZOARM_OPTION_CP_KIT_CAPTURE = "Capturar las estrellas de Campeon actuales",
-    EZOARM_OPTION_CP_KIT_CAPTURE_TOOLTIP = "Memoriza las estrellas de Campeon slotteadas ahora mismo. No se crea nada si ya existe un kit con las mismas estrellas.",
-    EZOARM_OPTION_CP_KIT_LIST = "Kits de CP guardados",
-    EZOARM_OPTION_CP_KIT_LIST_TOOLTIP = "Selecciona un kit de CP guardado. El numero son las estrellas que contiene.",
-    EZOARM_OPTION_CP_KIT_SHOW_TOOLTIP = "Muestra las estrellas del kit de CP seleccionado.",
-    EZOARM_OPTION_CP_KIT_DELETE_TOOLTIP = "Borra el kit de CP seleccionado.",
     EZOARM_MSG_CP_KIT_CREATED = "Kit de CP creado: <<1>>.",
     EZOARM_MSG_CP_KIT_DUPLICATE = "No se ha creado: el kit de CP <<1>> ya contiene exactamente estas estrellas.",
     EZOARM_MSG_CP_KIT_EMPTY = "No hay estrellas de Campeon slotteadas que capturar.",
-    EZOARM_MSG_CP_KIT_DELETED = "Kit de CP eliminado: <<1>>.",
     EZOARM_MSG_CP_EQUIP_DONE = "Ranuradas <<1>>, ya puestas <<2>>, omitidas <<3>>.",
     EZOARM_MSG_CP_EQUIP_SKIPPED = "No compradas, omitidas: <<1>>.",
     EZOARM_MSG_CP_EQUIP_EMPTY = "El kit de CP seleccionado no tiene nada que ranurar.",
@@ -227,30 +186,15 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_ISSUE_UNKNOWN_SLOT = "Slot desconocido en el kit <<1>>: <<2>>.",
     EZOARM_AUTONAME_CP = "CP",
 
-    EZOARM_OPTION_ASSIGN = "Asignaciones",
-    EZOARM_OPTION_ASSIGN_HEADER_TOOLTIP = "Asigna kits a cada trial y objetivo. Las asignaciones pertenecen al rol activo. Elige un kit arriba en Kits guardados y luego anadelo aqui. Un objetivo puede llevar un solo kit con todo o varios kits, y no hay que rellenarlos todos. Para cada trial defines el Trash y cada boss de forma independiente; un objetivo sin nada propio usa el default de la trial.",
     EZOARM_OPTION_ASSIGN_TRIAL = "Trial",
-    EZOARM_OPTION_ASSIGN_TRIAL_TOOLTIP = "Que trial estas configurando.",
     EZOARM_OPTION_ASSIGN_TARGET = "Objetivo",
-    EZOARM_OPTION_ASSIGN_TARGET_TOOLTIP = "Donde de la trial aplican estos kits: el default de la trial (se usa cuando un objetivo no tiene nada propio), el Trash, o un boss o miniboss concreto.",
     EZOARM_TARGET_DEFAULT = "Default de la trial (respaldo)",
     EZOARM_TARGET_TRASH = "Trash",
     EZOARM_OPTION_ASSIGN_PICK = "Kit",
-    EZOARM_OPTION_ASSIGN_PICK_TOOLTIP = "Elige el kit que quieres anadir o quitar de este objetivo. Los kits ya asignados aqui aparecen marcados en la lista.",
-    EZOARM_ASSIGNED_MARK = "|c00FF00+|r",
-    EZOARM_OPTION_ASSIGN_CURRENT = "Kits asignados aqui",
-    EZOARM_MSG_ASSIGN_EMPTY = "(ninguno - hereda el default de la trial)",
-    EZOARM_OPTION_ASSIGN_ADD = "Anadir el kit",
-    EZOARM_OPTION_ASSIGN_ADD_TOOLTIP = "Anade a este objetivo el kit elegido arriba. Un objetivo puede tener varios kits.",
-    EZOARM_OPTION_ASSIGN_REMOVE = "Quitar el kit",
-    EZOARM_OPTION_ASSIGN_REMOVE_TOOLTIP = "Quita de este objetivo el kit elegido arriba.",
     EZOARM_OPTION_ASSIGN_CLEAR = "Vaciar este objetivo",
-    EZOARM_OPTION_ASSIGN_CLEAR_TOOLTIP = "Quita todos los kits de este objetivo para que vuelva a heredar el default de la trial.",
 
     EZOARM_OPTION_EQUIP_TARGET = "Equipar los kits de este objetivo",
-    EZOARM_OPTION_EQUIP_TARGET_TOOLTIP = "Equipa los kits asignados a la trial y objetivo seleccionados arriba, estes donde estes. Util para probar y para prepararte antes de entrar.",
     EZOARM_OPTION_EQUIP_HERE = "Equipar para mi ubicacion actual",
-    EZOARM_OPTION_EQUIP_HERE_TOOLTIP = "Equipa los kits asignados a donde estas ahora: la build del rol activo para el boss actual, o la build de trash, de la trial en la que estas. Espera a estar fuera de combate.",
     EZOARM_MSG_EQUIP_NO_TRIAL = "Ahora mismo no estas en una trial.",
     EZOARM_MSG_EQUIP_NO_ASSIGNMENT = "No hay kits asignados para aqui en <<1>> (ni default de la trial).",
 
@@ -258,12 +202,6 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_OPTION_ANALYZE_WORN_TOOLTIP = "Indica que bonus de set tienes realmente activos en cada barra de armas con el equipo que llevas. Solo cuentan 12 piezas a la vez, asi que un set repartido entre joyeria y armas frontales no estara completo en la barra trasera.",
 
     -- Mensajes
-    EZOARM_MSG_KIT_NEED_NAME = "Ponle antes un nombre al kit.",
-    EZOARM_MSG_KIT_NO_PIECES = "No se ha capturado nada. Comprueba que llevas puestos los slots seleccionados.",
-    EZOARM_MSG_KIT_CREATED = "Kit creado: <<1>> (<<2>> piezas).",
-    EZOARM_MSG_KIT_DUPLICATE = "No se ha creado: el kit <<1>> ya contiene exactamente estas piezas.",
-    EZOARM_MSG_KIT_DELETED = "Kit eliminado: <<1>>.",
-    EZOARM_MSG_KIT_NONE_SELECTED = "No hay ningun kit seleccionado.",
     EZOARM_MSG_BAR_FRONT = "Barra frontal",
     EZOARM_MSG_BAR_BACK = "Barra trasera",
     EZOARM_MSG_PIECES = "piezas",

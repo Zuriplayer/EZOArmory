@@ -2,6 +2,30 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.13
+
+- Fix: the window did not reliably remember its position. Saving it only
+  happened from the header's OnMouseUp, which requires the cursor to still be
+  over the header at release - easy to miss on a fast drag. It now also saves
+  from the window's own native OnMoveStop event, which fires whenever a drag
+  ends regardless of where the cursor is (same verified pattern as EZOChat).
+  Also fixed a related bug: the saved defaults had x/y pre-set to 0, which
+  looks like "a saved position of the top-left corner" rather than "never
+  moved", so a fresh profile always spawned there instead of centred.
+- Add: **"Restore default settings"** button in the LAM panel, with a
+  confirmation dialog. Resets language, role mode, the inventory marker,
+  auto-equip and the window's position/size back to their defaults. Does not
+  touch kits, builds or assignments - this is for when settings get into a
+  bad state or the window wanders off-screen, not for clearing your library.
+- **Major LAM cleanup.** Removed everything the window now covers on its own:
+  capturing/listing/equipping/renaming/deleting gear, skill and CP kits, and
+  the old kit-based trial/boss assignment screen (superseded by the Assign
+  tab's build-based one, with inheritance, substitutes and auto-equip). LAM
+  keeps only what has no window equivalent: language, the inventory marker,
+  debug mode, role mode, a live analysis of gear currently worn, and the new
+  reset button. Also removed 64 language keys that were now unused in both
+  languages, keeping en/es in exact parity.
+
 ## 0.11.12
 
 - Add: a clear, prominent **"Auto-equip"** master switch at the top of the

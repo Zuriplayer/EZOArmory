@@ -30,11 +30,13 @@ function EZOArmory.savedVars.Init()
         -- Kits de habilidades (modules/skills.lua) y de CP (modules/champion.lua).
         skillKits = {},
         cpKits = {},
-        -- Ventana emergente (HUD). Posicion y aspecto.
+        -- Ventana emergente (HUD). Posicion y aspecto. x/y NO llevan valor por
+        -- defecto a proposito: window.lua los usa como senal de "nunca se ha
+        -- movido" (SetAnchor CENTER en vez de TOPLEFT+x,y). Si aqui llevaran 0,
+        -- tonumber(0) es verdadero y la ventana se ancalaria siempre en la
+        -- esquina superior izquierda en un perfil nuevo, nunca centrada.
         window = {
             enabled = true,
-            x = 0,
-            y = 0,
             backgroundOpacity = 86,
             showBorder = true,
         },
@@ -69,4 +71,35 @@ function EZOArmory.savedVars.Init()
     EZOArmory.sv.cpGroups = nil
     EZOArmory.sv.skillSets = nil
     EZOArmory.sv.window = EZOArmory.sv.window or defaults.window
+end
+
+-- Restaura los AJUSTES a sus valores por defecto: idioma, rol, marca de
+-- inventario, equipado automatico y posicion/tamano de la ventana. NO toca el
+-- contenido guardado del jugador (kits/builds/asignaciones): "restaurar
+-- valores por defecto" es para cuando la configuracion se ha desordenado o la
+-- ventana se ha perdido fuera de pantalla, no para vaciar la biblioteca de
+-- kits. Boton en el panel de opciones (menu.lua), con dialogo de confirmacion.
+function EZOArmory.savedVars.ResetToDefaults()
+    local sv = EZOArmory.sv
+    if not sv then return false end
+
+    sv.general = sv.general or {}
+    sv.general.language = EZOArmory.GetDefaultLanguage()
+    sv.general.debugMode = false
+    sv.general.role = "dd"
+    sv.general.roleMode = "auto"
+    sv.general.inventoryMarker = true
+    -- Se reconstruye solo con SUBSTITUTE_DEFAULTS en el siguiente acceso
+    -- (Builds.GetSubstituteSettings), sin duplicar aqui esos valores.
+    sv.general.substitute = nil
+
+    -- x/y fuera a proposito, igual que en los defaults de Init: sin ellos la
+    -- ventana nace centrada en vez de en la esquina superior izquierda.
+    sv.window = {
+        enabled = true,
+        backgroundOpacity = 86,
+        showBorder = true,
+    }
+
+    return true
 end

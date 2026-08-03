@@ -52,6 +52,20 @@ function Window.SavePosition()
     saved.y = Window.control:GetTop()
 end
 
+-- Vuelve a centrar la ventana y su tamano por defecto, en vivo (sin esperar a
+-- un reload). Lo usa "Restaurar valores por defecto" del panel de opciones.
+function Window.ResetPosition()
+    local saved = SavedWindow()
+    if saved then
+        saved.x = nil
+        saved.y = nil
+    end
+    if not Window.control then return end
+    Window.control:ClearAnchors()
+    Window.control:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
+    Window.control:SetDimensions(DEFAULT_WIDTH, DEFAULT_HEIGHT)
+end
+
 -- Aplica la visibilidad efectiva: solo se ve si el jugador la ha abierto y
 -- ademas estamos en una escena permitida.
 function Window.RefreshVisibility()
@@ -145,6 +159,17 @@ function Window.Create()
     w:SetMovable(true)
     w:SetMouseEnabled(true)
     w:SetClampedToScreen(true)
+    -- Disparador principal del guardado de posicion: el evento nativo
+    -- OnMoveStop, que la TopLevelControl dispara ella misma al terminar
+    -- CUALQUIER arrastre, independientemente de donde acabe el cursor.
+    -- Patron verificado en produccion (EZOChat, modules/ui.lua): mas fiable
+    -- que depender solo del OnMouseUp del hijo que inicio el arrastre, que
+    -- podria no dispararse si el cursor se separa del header durante un
+    -- arrastre rapido. El OnMouseUp de la cabecera (mas abajo) se deja como
+    -- respaldo; llamar SavePosition dos veces no tiene coste.
+    w:SetHandler("OnMoveStop", function()
+        Window.SavePosition()
+    end)
 
     local background = WM:CreateControl(nil, w, CT_BACKDROP)
     background:SetAnchorFill(w)
