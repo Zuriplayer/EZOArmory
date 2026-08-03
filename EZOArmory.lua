@@ -22,6 +22,38 @@ end
 
 EZOA.Print = Print
 
+-- Neutraliza el area de rueda de raton de un ZO_ScrollContainer (su hijo
+-- llamado "Scroll", NO el ScrollChild que aloja el contenido, y NO la barra de
+-- desplazamiento). Verificado en esoui/libraries/zo_templates/scrolltemplates
+-- (ZO_Scroll_Initialize guarda ese hijo como self.scroll) y confirmado con
+-- log de depuracion propio: esa area cubre TODO el visible de la lista, por
+-- delante de las filas, y el motor la vuelve a habilitar sola
+-- (ZO_Scroll_UpdateScrollBar: scroll:SetMouseEnabled(scrollEnabled)) cada vez
+-- que hay contenido para desplazar. Justo entonces dejaban de recibir el
+-- cursor los elementos de las filas por debajo (iconos de equipo, de
+-- habilidad, chips de CP): con listas cortas (sin scroll) nunca se activaba y
+-- funcionaba; con listas largas si, y dejaba de funcionar.
+--
+-- Se sobreescribe el metodo por instancia (no una funcion global) para que
+-- cualquier futura llamada del propio motor tambien quede anulada, sin tener
+-- que perseguir cuando se dispara. Coste: se pierde poder girar la rueda del
+-- raton estando encima de la lista; la barra de desplazamiento de al lado
+-- sigue funcionando igual (arrastrar, clic).
+function EZOA.DisableScrollWheelArea(scrollContainer)
+    if not scrollContainer or type(scrollContainer.GetNamedChild) ~= "function" then
+        return
+    end
+    local scrollArea = scrollContainer:GetNamedChild("Scroll")
+    if not scrollArea or type(scrollArea.SetMouseEnabled) ~= "function" then
+        return
+    end
+    scrollArea:SetMouseEnabled(false)
+    scrollArea.SetMouseEnabled = function() end
+    if EZOA.DebugLog then
+        EZOA.DebugLog("DisableScrollWheelArea: applied to " .. tostring(scrollContainer:GetName()))
+    end
+end
+
 local function GetClientLanguage()
     if type(GetCVar) == "function" then
         local language = zo_strlower(tostring(GetCVar("Language.2") or ""))

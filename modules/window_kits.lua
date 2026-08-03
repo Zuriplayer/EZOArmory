@@ -1604,6 +1604,12 @@ function WK.Create(parent)
     listRoot:SetResizeToFitPadding(0, 20)
     WK.listRoot = listRoot
     WK.scrollContainer = scrollContainer
+    -- Solo aqui por ahora, no en window_builds.lua: Builds ya funciona segun
+    -- confirmo Ricardo (2026-08-03) tras 0.11.8, mientras que Gear/Skill/CP
+    -- seguia sin recibir el cursor en sus iconos con la lista desplazable.
+    -- Aislar el cambio a este contenedor permite confirmar la hipotesis sin
+    -- arriesgar una regresion en lo que ya funciona.
+    EZOArmory.DisableScrollWheelArea(scrollContainer)
 
     EnsureRows(listRoot)
 

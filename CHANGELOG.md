@@ -2,6 +2,21 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.10
+
+- Experimental fix for the Gear/Skill/CP kit list still not showing hover
+  tooltips despite the geometry looking correct in the 0.11.9 diagnostic dump:
+  ZOS's own scroll template auto-enables the mouse on the scroll area's "Scroll"
+  child (distinct from the scrollbar) whenever there is content to scroll,
+  covering the whole visible list in front of the rows. That is a real,
+  source-verified ZOS behaviour, and it correlates with when the icons stopped
+  receiving the cursor. That area is now permanently disabled for the kit
+  list's scroll container. Cost: no more mouse-wheel scrolling while hovering
+  the list itself; dragging the scrollbar still works.
+- Applied only to the kit tabs for now, not to Builds, which already works -
+  isolating the change avoids risking a regression in what is currently fine
+  while this gets confirmed.
+
 ## 0.11.9
 
 - Diagnostic only, no behaviour change. With debug mode on, refreshing a kit or
