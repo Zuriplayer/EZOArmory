@@ -270,6 +270,109 @@ function Equip.IsCpReady()
     return cpCooldownRemaining <= 0
 end
 
+-- Maximo de reintentos automaticos ante un fallo transitorio (cooldown o
+-- entrar en combate justo entre la comprobacion previa y el envio). Acotado
+-- para no reintentar sin fin si el fallo resulta no ser transitorio de
+-- verdad.
+local MAX_CP_RETRIES = 1
+local cpRequestCounter = 0
+
+-- Envia las estrellas que difieren y ESPERA la confirmacion real del
+-- servidor (EVENT_CHAMPION_PURCHASE_RESULT) antes de contarlas como
+-- ranuradas. Antes se contaban en el momento de enviar la peticion, sin saber
+-- si el servidor la habia aceptado; con el cooldown de por medio, un fallo
+-- silencioso ahi habria informado "ranuradas" sin que lo estuvieran de
+-- verdad.
+--
+-- CHAMPION_PURCHASE_CHAMPION_BAR_ON_COOLDOWN / _IN_COMBAT se tratan como
+-- transitorios: se reintenta una vez, esperando a que vuelva a cumplirse la
+-- condicion. Cualquier otro resultado de fallo (disciplina equivocada,
+-- estrella no comprada, CP desactivado en esta zona...) no es transitorio:
+-- reintentar la misma peticion fallaria igual, asi que se cuenta como
+-- omitida en vez de como ranurada.
+local function SendAndVerifyCp(diffs, state, attempt, onReport)
+    if #diffs == 0 then
+        if onReport then onReport(state) end
+        return
+    end
+
+    if type(PrepareChampionPurchaseRequest) ~= "function"
+        or type(AddHotbarSlotToChampionPurchaseRequest) ~= "function"
+        or type(SendChampionPurchaseRequest) ~= "function"
+        or type(EVENT_MANAGER) ~= "table" or EVENT_CHAMPION_PURCHASE_RESULT == nil then
+        if onReport then onReport({ error = "empty" }) end
+        return
+    end
+
+    PrepareChampionPurchaseRequest()
+    for _, diff in ipairs(diffs) do
+        AddHotbarSlotToChampionPurchaseRequest(diff.slot, diff.starId)
+    end
+
+    cpRequestCounter = cpRequestCounter + 1
+    local eventNamespace = "EZOArmory_CPResult_" .. tostring(cpRequestCounter)
+    local settled = false
+
+    local function Settle(result)
+        if settled then return end
+        settled = true
+        EVENT_MANAGER:UnregisterForEvent(eventNamespace, EVENT_CHAMPION_PURCHASE_RESULT)
+
+        if result == CHAMPION_PURCHASE_SUCCESS then
+            state.slotted = state.slotted + #diffs
+            if onReport then onReport(state) end
+            return
+        end
+
+        local transient = result == CHAMPION_PURCHASE_CHAMPION_BAR_ON_COOLDOWN
+            or result == CHAMPION_PURCHASE_IN_COMBAT
+
+        -- attempt cuenta intentos ya hechos (1 = el primer envio, no un
+        -- reintento). "<=" y no "<": con MAX_CP_RETRIES=1 debe reintentar
+        -- tras el primer fallo (1 <= 1) y parar tras el segundo (2 <= 1 es
+        -- falso), es decir, 1 reintento real = 2 intentos en total.
+        if transient and attempt <= MAX_CP_RETRIES then
+            if result == CHAMPION_PURCHASE_CHAMPION_BAR_ON_COOLDOWN then
+                -- El servidor dice que aun hay cooldown aunque nuestro
+                -- contador local ya hubiera llegado a 0: se resincroniza con
+                -- la realidad en vez de reintentar de inmediato otra vez.
+                cpCooldownRemaining = 31
+            end
+            local retryTask = LibAsync:Create("EZOArmory_EquipCp_Retry")
+            retryTask:WaitUntil(function()
+                return Equip.IsReady() and Equip.IsCpReady()
+            end):Then(function()
+                SendAndVerifyCp(diffs, state, attempt + 1, onReport)
+            end)
+            return
+        end
+
+        -- Fallo no transitorio, o reintentos agotados: se cuentan como
+        -- omitidas para que el informe no diga "ranuradas" sin serlo.
+        for _, diff in ipairs(diffs) do
+            state.skipped = state.skipped + 1
+            local okName, name = pcall(GetChampionSkillName, diff.starId)
+            state.skippedNames[#state.skippedNames + 1] =
+                (okName and name and name ~= "") and zo_strformat("<<C:1>>", name) or tostring(diff.starId)
+        end
+        if onReport then onReport(state) end
+    end
+
+    EVENT_MANAGER:RegisterForEvent(eventNamespace, EVENT_CHAMPION_PURCHASE_RESULT, function(_, result)
+        Settle(result)
+    end)
+    SendChampionPurchaseRequest()
+
+    -- Salvaguarda: si por lo que sea el evento nunca llega (desconexion,
+    -- caso raro no contemplado), el informe no se queda colgado para
+    -- siempre esperando.
+    zo_callLater(function()
+        if not settled then
+            Settle(CHAMPION_PURCHASE_INTERNAL_ERROR)
+        end
+    end, 8000)
+end
+
 -- Aplica un kit de CP. onReport(state) al terminar.
 -- state al terminar: { slotted, already, skipped, skippedNames }
 -- state de error: { error = "noLibAsync" | "empty" }
@@ -342,26 +445,7 @@ function Equip.ApplyCpKit(kitId, onReport)
             end
         end
 
-        if #diffs == 0 then
-            if onReport then onReport(state) end
-            return
-        end
-
-        if type(PrepareChampionPurchaseRequest) ~= "function"
-            or type(AddHotbarSlotToChampionPurchaseRequest) ~= "function"
-            or type(SendChampionPurchaseRequest) ~= "function" then
-            if onReport then onReport({ error = "empty" }) end
-            return
-        end
-
-        PrepareChampionPurchaseRequest()
-        for _, diff in ipairs(diffs) do
-            AddHotbarSlotToChampionPurchaseRequest(diff.slot, diff.starId)
-            state.slotted = state.slotted + 1
-        end
-        SendChampionPurchaseRequest()
-
-        if onReport then onReport(state) end
+        SendAndVerifyCp(diffs, state, 1, onReport)
     end)
 
     return true

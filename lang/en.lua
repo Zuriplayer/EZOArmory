@@ -135,7 +135,12 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_MSG_CP_KIT_DUPLICATE = "Not created: the CP kit <<1>> already holds exactly these stars.",
     EZOARM_MSG_CP_KIT_EMPTY = "No Champion stars slotted to capture.",
     EZOARM_MSG_CP_EQUIP_DONE = "Slotted <<1>>, already set <<2>>, skipped <<3>>.",
-    EZOARM_MSG_CP_EQUIP_SKIPPED = "Not purchased, skipped: <<1>>.",
+    -- No dice "not purchased": desde que se verifica el resultado real del
+    -- servidor (equip.lua SendAndVerifyCp), una estrella tambien puede
+    -- quedar aqui por otro motivo (disciplina equivocada, CP desactivado en
+    -- esta zona, cooldown agotados los reintentos...), no solo por no estar
+    -- comprada.
+    EZOARM_MSG_CP_EQUIP_SKIPPED = "Skipped, not slotted: <<1>>.",
     EZOARM_MSG_CP_EQUIP_EMPTY = "The selected CP kit has nothing to slot.",
 
     -- Builds

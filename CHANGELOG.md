@@ -2,6 +2,22 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.14
+
+- Fix: applying a CP kit reported stars as "slotted" the moment the purchase
+  request was sent, without waiting for the server's actual confirmation
+  (`EVENT_CHAMPION_PURCHASE_RESULT`). On a rejection - wrong bar discipline,
+  CP disabled here, cooldown, in combat, etc. - the kit report would still
+  claim success even though nothing changed on the CP bar.
+- Now waits for the real result before counting a star as slotted. Transient
+  failures (cooldown, in combat - a timing race, not a real rejection)
+  automatically retry once after the bar is ready again; everything else is
+  honestly counted as skipped instead of slotted, with a safety timeout in
+  case the server never answers.
+- Reworded the "skipped" CP chat message: it no longer says "not purchased",
+  since a skip can now also mean the server rejected the request for another
+  reason, not just that the star wasn't unlocked.
+
 ## 0.11.13
 
 - Fix: the window did not reliably remember its position. Saving it only
