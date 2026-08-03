@@ -2,6 +2,18 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.11
+
+- Confirmed fixed: hover tooltips now work in every scrollable list. Applied
+  the same scroll-wheel-area fix from 0.11.10 to the Builds tab too, since it
+  is the identical ZOS control and would hit the same problem once a build
+  list grows long enough to need scrolling, even though it happened to work
+  with the shorter list already tested.
+- Removed the diagnostic logging added in 0.11.9/0.11.10 (control geometry
+  dumps, per-hover log lines) now that it has done its job. The defensive
+  pcall guard around the item tooltip call from 0.11.6 stays, since a raised
+  error there could still silently kill the whole hover handler.
+
 ## 0.11.10
 
 - Experimental fix for the Gear/Skill/CP kit list still not showing hover

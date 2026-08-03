@@ -141,11 +141,9 @@ end
 -- en las bolsas (banco, otro personaje...) no hay link real que mostrar; en
 -- vez de un generico "no disponible" sin mas, se usan los datos capturados
 -- (nombre, set, peso) para que la pieza se pueda identificar igualmente.
--- Todo el camino del tooltip de item va protegido: si InitializeTooltip o
--- SetLink fallan, un error sin capturar aborta el manejador entero y no se
--- muestra NADA, ni siquiera el texto de respaldo. Es la diferencia entre "no
--- se puede leer el item" (aceptable, hay respaldo) y "no sale ningun
--- emergente" (que es lo que se estaba viendo).
+-- Protegido con pcall: si InitializeTooltip o SetLink fallan, un error sin
+-- capturar abortaria el manejador entero y no se mostraria NADA, ni siquiera
+-- el texto de respaldo.
 local function ShowItemTooltip(anchor, piece, slotKey)
     local itemId = piece and piece.itemId
     local location = itemId
@@ -159,16 +157,8 @@ local function ShowItemTooltip(anchor, piece, slotKey)
                 InitializeTooltip(ItemTooltip, anchor, RIGHT, 6, 0, LEFT)
                 ItemTooltip:SetLink(link)
             end)
-            if EZOArmory.DebugLog then
-                EZOArmory.DebugLog(string.format(
-                    "ItemTooltip %s (%s)", shown and "shown" or "FAILED", tostring(slotKey)))
-            end
             if shown then return end
-        elseif EZOArmory.DebugLog then
-            EZOArmory.DebugLog("ItemTooltip: no link for " .. tostring(slotKey))
         end
-    elseif EZOArmory.DebugLog then
-        EZOArmory.DebugLog("ItemTooltip: item not found for " .. tostring(slotKey))
     end
 
     if type(ZO_Tooltips_ShowTextTooltip) == "function" then
@@ -453,22 +443,13 @@ local function FillGearRow(row, kit)
             icon:SetHidden(false)
             icon:ClearAnchors()
             if index == 1 then
-                -- TOPLEFT con desplazamiento calculado, NO el punto LEFT
-                -- (centrado vertical). Los iconos de habilidad, que si reciben
-                -- el cursor, se anclan asi; los de equipo usaban LEFT y no
-                -- recibian OnMouseEnter (confirmado: con depuracion activa no
-                -- registraban ni una sola entrada al pasar el raton por encima).
+                -- TOPLEFT con desplazamiento calculado, para que el icono
+                -- quede centrado en el alto completo de la fila.
                 icon:SetAnchor(TOPLEFT, row, TOPLEFT, 6, (GEAR_ROW_HEIGHT - ICON_SIZE) / 2)
             else
                 icon:SetAnchor(LEFT, row.icons[index - 1], RIGHT, ICON_GAP, 0)
             end
-            icon:SetHandler("OnMouseEnter", function(control)
-                -- Sonda de depuracion: confirma que el cursor llega al icono.
-                if EZOArmory.DebugLog then
-                    EZOArmory.DebugLog("Gear row: hover " .. tostring(slotKey))
-                end
-                ShowItemTooltip(control, piece, slotKey)
-            end)
+            icon:SetHandler("OnMouseEnter", function(control) ShowItemTooltip(control, piece, slotKey) end)
             icon:SetHandler("OnMouseExit", HideItemTooltip)
         end
     end
@@ -759,26 +740,8 @@ function WK.Refresh()
     end
 
     -- El alto del ScrollChild NO se fija a mano: lleva resizeToFitDescendents
-    -- y se ajusta solo a sus filas (mas SetResizeToFitPadding). Fijarlo pelea
-    -- con ese autoajuste y deja su rectangulo incoherente con lo que se dibuja;
-    -- las filas seguian viendose pero dejaban de recibir el cursor, y solo
-    -- pasaba con contenido desplazable, que es cuando ambos valores difieren.
-    -- LibAddonMenu monta este mismo contenedor y tampoco lo fija.
-
-    -- Diagnostico: vuelca la cadena contenedor -> Scroll -> ScrollChild ->
-    -- fila -> icono para poder comparar rectangulos y quien acepta raton. Es
-    -- la unica forma de ver por que el cursor no llega a los iconos sin poder
-    -- ejecutar el juego.
-    if EZOArmory.DebugDumpControl and count > 0 then
-        local firstRow = WK.rows[1]
-        EZOArmory.DebugDumpControl("KIT container", WK.scrollContainer)
-        EZOArmory.DebugDumpControl("KIT scroll",
-            WK.scrollContainer and WK.scrollContainer:GetNamedChild("Scroll"))
-        EZOArmory.DebugDumpControl("KIT scrollChild", WK.listRoot)
-        EZOArmory.DebugDumpControl("KIT row1", firstRow)
-        EZOArmory.DebugDumpControl("KIT row1 icon1", firstRow and firstRow.icons[1])
-        EZOArmory.DebugDumpControl("KIT row1 name", firstRow and firstRow.nameLabel)
-    end
+    -- y se ajusta solo a sus filas (mas SetResizeToFitPadding). LibAddonMenu
+    -- monta este mismo contenedor y tampoco lo fija.
 
     if WK.RefreshActionBar then
         WK.RefreshActionBar()
@@ -1604,11 +1567,6 @@ function WK.Create(parent)
     listRoot:SetResizeToFitPadding(0, 20)
     WK.listRoot = listRoot
     WK.scrollContainer = scrollContainer
-    -- Solo aqui por ahora, no en window_builds.lua: Builds ya funciona segun
-    -- confirmo Ricardo (2026-08-03) tras 0.11.8, mientras que Gear/Skill/CP
-    -- seguia sin recibir el cursor en sus iconos con la lista desplazable.
-    -- Aislar el cambio a este contenedor permite confirmar la hipotesis sin
-    -- arriesgar una regresion en lo que ya funciona.
     EZOArmory.DisableScrollWheelArea(scrollContainer)
 
     EnsureRows(listRoot)

@@ -237,12 +237,6 @@ local function FillRowGear(row, report)
             end
             local slotKey = def.key
             icon:SetHandler("OnMouseEnter", function(control)
-                -- Con el modo depuracion activo deja constancia de que el
-                -- cursor SI llega al icono, para poder distinguir "no llega el
-                -- raton" de "llega pero el emergente no se ve".
-                if EZOArmory.DebugLog then
-                    EZOArmory.DebugLog("Build row: hover gear " .. tostring(slotKey))
-                end
                 WK.ShowItemTooltip(control, entry, slotKey)
             end)
             icon:SetHandler("OnMouseExit", WK.HideItemTooltip)
@@ -279,9 +273,6 @@ local function FillRowSkillsAndCp(row, build)
                     end
                     local abilityId = entry.abilityId
                     icon:SetHandler("OnMouseEnter", function(control)
-                        if EZOArmory.DebugLog then
-                            EZOArmory.DebugLog("Build row: hover ability " .. tostring(abilityId))
-                        end
                         WK.ShowAbilityTooltip(control, abilityId)
                     end)
                     icon:SetHandler("OnMouseExit", WK.HideAbilityTooltip)
@@ -446,18 +437,6 @@ function WB.RefreshList()
 
     -- Sin SetHeight a mano: el ScrollChild se autoajusta a sus filas. Ver el
     -- comentario equivalente en window_kits.
-
-    -- Mismo diagnostico de geometria que en window_kits.
-    if EZOArmory.DebugDumpControl and #list > 0 then
-        local firstRow = WB.rows[1]
-        EZOArmory.DebugDumpControl("BUILD container", WB.scrollContainer)
-        EZOArmory.DebugDumpControl("BUILD scroll",
-            WB.scrollContainer and WB.scrollContainer:GetNamedChild("Scroll"))
-        EZOArmory.DebugDumpControl("BUILD scrollChild", WB.listRoot)
-        EZOArmory.DebugDumpControl("BUILD row1", firstRow)
-        EZOArmory.DebugDumpControl("BUILD row1 gear1", firstRow and firstRow.gearIcons[1])
-        EZOArmory.DebugDumpControl("BUILD row1 cpLabel", firstRow and firstRow.cpLabel)
-    end
 
     WB.RefreshActionBar()
 end
@@ -907,6 +886,11 @@ local function CreateListPanel(content)
     listRoot:SetResizeToFitPadding(0, 20)
     WB.listRoot = listRoot
     WB.scrollContainer = scrollContainer
+    -- Mismo motivo que en window_kits.lua: el area de rueda de raton del
+    -- ZO_ScrollContainer se auto-habilita al desbordar contenido y cubre toda
+    -- la lista por delante de las filas. Aqui no se habia notado con pocas
+    -- builds, pero es el mismo control de ZOS y le pasaria lo mismo con mas.
+    EZOArmory.DisableScrollWheelArea(scrollContainer)
 
     WB.rows = {}
     for i = 1, MAX_BUILD_ROWS do
