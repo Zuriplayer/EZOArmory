@@ -2,6 +2,15 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.9
+
+- Diagnostic only, no behaviour change. With debug mode on, refreshing a kit or
+  build list now records the geometry of the whole chain - scroll container,
+  scroll area, scroll child, first row, first icon - along with which of them
+  accept the mouse. Four attempts at fixing the missing hover tooltips by
+  reasoning have failed, so this measures the controls instead of guessing at
+  them.
+
 ## 0.11.8
 
 - Fix: hovering elements gave no tooltip in exactly the lists that had a

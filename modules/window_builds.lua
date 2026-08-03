@@ -446,6 +446,19 @@ function WB.RefreshList()
 
     -- Sin SetHeight a mano: el ScrollChild se autoajusta a sus filas. Ver el
     -- comentario equivalente en window_kits.
+
+    -- Mismo diagnostico de geometria que en window_kits.
+    if EZOArmory.DebugDumpControl and #list > 0 then
+        local firstRow = WB.rows[1]
+        EZOArmory.DebugDumpControl("BUILD container", WB.scrollContainer)
+        EZOArmory.DebugDumpControl("BUILD scroll",
+            WB.scrollContainer and WB.scrollContainer:GetNamedChild("Scroll"))
+        EZOArmory.DebugDumpControl("BUILD scrollChild", WB.listRoot)
+        EZOArmory.DebugDumpControl("BUILD row1", firstRow)
+        EZOArmory.DebugDumpControl("BUILD row1 gear1", firstRow and firstRow.gearIcons[1])
+        EZOArmory.DebugDumpControl("BUILD row1 cpLabel", firstRow and firstRow.cpLabel)
+    end
+
     WB.RefreshActionBar()
 end
 

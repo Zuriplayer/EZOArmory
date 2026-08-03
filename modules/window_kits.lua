@@ -765,6 +765,21 @@ function WK.Refresh()
     -- pasaba con contenido desplazable, que es cuando ambos valores difieren.
     -- LibAddonMenu monta este mismo contenedor y tampoco lo fija.
 
+    -- Diagnostico: vuelca la cadena contenedor -> Scroll -> ScrollChild ->
+    -- fila -> icono para poder comparar rectangulos y quien acepta raton. Es
+    -- la unica forma de ver por que el cursor no llega a los iconos sin poder
+    -- ejecutar el juego.
+    if EZOArmory.DebugDumpControl and count > 0 then
+        local firstRow = WK.rows[1]
+        EZOArmory.DebugDumpControl("KIT container", WK.scrollContainer)
+        EZOArmory.DebugDumpControl("KIT scroll",
+            WK.scrollContainer and WK.scrollContainer:GetNamedChild("Scroll"))
+        EZOArmory.DebugDumpControl("KIT scrollChild", WK.listRoot)
+        EZOArmory.DebugDumpControl("KIT row1", firstRow)
+        EZOArmory.DebugDumpControl("KIT row1 icon1", firstRow and firstRow.icons[1])
+        EZOArmory.DebugDumpControl("KIT row1 name", firstRow and firstRow.nameLabel)
+    end
+
     if WK.RefreshActionBar then
         WK.RefreshActionBar()
     end
