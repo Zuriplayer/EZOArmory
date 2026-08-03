@@ -1271,6 +1271,9 @@ end
 -- lo explica el texto de ayuda.
 local function RefreshSubstituteChecks()
     local settings = EZOArmory.Builds.GetSubstituteSettings()
+    if WK.autoEquipCheck then
+        ZO_CheckButton_SetCheckState(WK.autoEquipCheck, settings.enabled == true)
+    end
     for key, check in pairs(WK.substituteChecks or {}) do
         ZO_CheckButton_SetCheckState(check, settings[key] == true)
     end
@@ -1343,7 +1346,39 @@ local function CreateAssignPanel(content)
     roleLabel:SetAnchor(TOPLEFT, assignRoot, TOPLEFT, 0, 0)
     WK.assignRoleLabel = roleLabel
 
-    local trialY = 24
+    -- Interruptor maestro, arriba del todo y a proposito llamativo: gobierna
+    -- TODO el equipado automatico (asignaciones explicitas de trial/boss Y las
+    -- builds sustitutas de mas abajo), no solo las sustitutas. Antes vivia
+    -- como una casilla mas, pequena, dentro del bloque de sustitutas, y no
+    -- quedaba claro que controlaba el modo automatico en general.
+    local autoEquipY = 26
+    local autoEquipCheck = WM:CreateControlFromVirtual(
+        "EZOArmoryAutoEquipCheck", assignRoot, "ZO_CheckButton")
+    autoEquipCheck:SetDimensions(22, 22)
+    autoEquipCheck:SetAnchor(TOPLEFT, assignRoot, TOPLEFT, 2, autoEquipY)
+
+    local autoEquipLabel = WM:CreateControl(nil, assignRoot, CT_LABEL)
+    autoEquipLabel:SetFont("ZoFontGameLargeBold")
+    autoEquipLabel:SetColor(0.9, 0.85, 1, 1)
+    autoEquipLabel:SetAnchor(LEFT, autoEquipCheck, RIGHT, 8, 0)
+    autoEquipLabel:SetText(GetString(EZOARM_AUTOEQUIP_LABEL))
+
+    ZO_CheckButton_SetToggleFunction(autoEquipCheck, function(_, checked)
+        EZOArmory.Builds.SetSubstituteSetting("enabled", checked)
+        if EZOArmory.AutoEquip then EZOArmory.AutoEquip.Reset() end
+        WK.RefreshAssignPanel()
+    end)
+    WK.autoEquipCheck = autoEquipCheck
+
+    local autoEquipHint = WM:CreateControl(nil, assignRoot, CT_LABEL)
+    autoEquipHint:SetFont("ZoFontGameSmall")
+    autoEquipHint:SetColor(0.65, 0.65, 0.72, 1)
+    autoEquipHint:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+    autoEquipHint:SetAnchor(TOPLEFT, assignRoot, TOPLEFT, 0, autoEquipY + 26)
+    autoEquipHint:SetAnchor(TOPRIGHT, assignRoot, TOPRIGHT, 0, autoEquipY + 26)
+    autoEquipHint:SetText(GetString(EZOARM_AUTOEQUIP_HINT))
+
+    local trialY = autoEquipY + 26 + 32
     local targetY = trialY + ASSIGN_ROW_HEIGHT + ASSIGN_ROW_GAP
     WK.assignTrialCombo = CreateAssignComboRow(
         assignRoot, "EZOArmoryAssignTrialCombo", EZOARM_OPTION_ASSIGN_TRIAL, trialY)
@@ -1392,9 +1427,10 @@ local function CreateAssignPanel(content)
     subHintLabel:SetText(GetString(EZOARM_SUBSTITUTE_HINT))
 
     -- Casillas nativas (ZO_CheckButton + ZO_CheckButton_SetToggleFunction,
-    -- verificado en esoui/libraries/zo_templates/buttontemplates).
+    -- verificado en esoui/libraries/zo_templates/buttontemplates). El
+    -- interruptor maestro ("enabled") vive arriba, aparte: estas son solo el
+    -- alcance por tipo de zona.
     local CHECKS = {
-        { key = "enabled", stringName = "EZOARM_SUBSTITUTE_ENABLED" },
         { key = "trials", stringName = "EZOARM_SUBSTITUTE_TRIALS" },
         { key = "dungeons", stringName = "EZOARM_SUBSTITUTE_DUNGEONS" },
         { key = "overland", stringName = "EZOARM_SUBSTITUTE_OVERLAND" },

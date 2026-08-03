@@ -2,6 +2,20 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.12
+
+- Add: a clear, prominent **"Auto-equip"** master switch at the top of the
+  Assign tab, above the trial/target/build pickers. It governs all automatic
+  equipping - both the build explicitly assigned to wherever you are and the
+  substitute (trash/boss) builds below - not just the substitutes. Previously
+  this was one small checkbox labelled "Enable" buried inside the "Substitute
+  builds" block, which made it look like it only toggled the fallback feature
+  rather than automatic equipping as a whole.
+- The substitute block below it now only holds the per-zone-type scope
+  (Trials/Dungeons/Overland); the master switch replaces its old "Enable"
+  checkbox, so there is exactly one place that turns automatic equipping on or
+  off.
+
 ## 0.11.11
 
 - Confirmed fixed: hover tooltips now work in every scrollable list. Applied

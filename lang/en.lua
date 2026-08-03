@@ -26,9 +26,10 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_ASSIGN_LEGACY_KITS = "Old kit assignment: <<1>>. Assign a build to replace it.",
 
     -- Substitute builds
+    EZOARM_AUTOEQUIP_LABEL = "Auto-equip",
+    EZOARM_AUTOEQUIP_HINT = "When on, EZOArmory equips things for you as you move around: the build assigned to wherever you are (trial default, trash, a specific boss), or the substitute build below if nothing is assigned and it applies to this kind of zone. When off, nothing equips itself - everything stays manual.",
     EZOARM_SUBSTITUTE_HEADER = "Substitute builds",
     EZOARM_SUBSTITUTE_HINT = "Used wherever nothing is assigned: boss in sight equips the boss build, otherwise the trash one. Outside trials this depends on the zone declaring its bosses, which not every zone does - older dungeons tend to be worse than newer ones.",
-    EZOARM_SUBSTITUTE_ENABLED = "Enable",
     EZOARM_SUBSTITUTE_TRIALS = "Trials",
     EZOARM_SUBSTITUTE_DUNGEONS = "Dungeons",
     EZOARM_SUBSTITUTE_OVERLAND = "Overland",
