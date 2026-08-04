@@ -2,6 +2,13 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.16
+
+- The build name in the Builds list now also picks up the status color
+  (red for errors, amber for warnings), not just the little number next
+  to it. Same coherence check as before (`Builds.Analyze`), just easier
+  to spot without having to look for the number.
+
 ## 0.11.15
 
 - Add: when equipping a gear kit, a piece that isn't worn or in your backpack

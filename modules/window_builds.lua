@@ -52,6 +52,8 @@ local STATUS_COLOR = {
     error = { 1, 0.45, 0.45 },
 }
 
+local NAME_COLOR_DEFAULT = { 0.92, 0.92, 0.95 }
+
 WB.state = WB.state or {
     view = "list",     -- "list" | "editor"
     selectedId = nil,
@@ -128,7 +130,7 @@ local function CreateBuildRow(parent, index)
 
     local name = WM:CreateControl(nil, row, CT_LABEL)
     name:SetFont("ZoFontGameBold")
-    name:SetColor(0.92, 0.92, 0.95, 1)
+    name:SetColor(NAME_COLOR_DEFAULT[1], NAME_COLOR_DEFAULT[2], NAME_COLOR_DEFAULT[3], 1)
     name:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
     name:SetHeight(BUILD_ROW_HEADER_H)
     name:SetVerticalAlignment(TEXT_ALIGN_CENTER)
@@ -318,6 +320,15 @@ local function FillBuildRow(row, build)
     local report = EZOArmory.Builds.Analyze(build)
 
     row.nameLabel:SetText(tostring(build.name))
+    -- El nombre se tine tambien con el color de estado (igual que el numero
+    -- de la derecha) para que un problema salte a la vista sin tener que
+    -- fijarse en el numerito: rojo si hay algun error, ambar si solo son
+    -- avisos, y el color normal si todo esta bien.
+    if report.status == EZOArmory.Builds.STATUS_OK then
+        row.nameLabel:SetColor(NAME_COLOR_DEFAULT[1], NAME_COLOR_DEFAULT[2], NAME_COLOR_DEFAULT[3], 1)
+    else
+        row.nameLabel:SetColor(StatusColor(report.status))
+    end
 
     local roleIcon = EZOArmory.Builds.GetRoleIcon(report.role)
     if roleIcon then
