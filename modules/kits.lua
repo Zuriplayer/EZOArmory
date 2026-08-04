@@ -50,6 +50,11 @@ end
 local function CopyPiece(piece)
     return {
         itemId = piece.itemId and tostring(piece.itemId) or nil,
+        -- Se guarda para poder preguntar despues por GetItemLinkStacks (p.ej.
+        -- "esta en el banco") sin tener que recorrer bolsas. Los kits
+        -- capturados antes de que este campo existiera simplemente no lo
+        -- tendran (cadena vacia), sin romper nada.
+        itemLink = tostring(piece.itemLink or ""),
         itemName = tostring(piece.itemName or ""),
         icon = tostring(piece.icon or ""),
         armorType = tonumber(piece.armorType),

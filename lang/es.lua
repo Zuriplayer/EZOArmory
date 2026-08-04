@@ -117,6 +117,7 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_MSG_EQUIP_QUEUED = "En combate: EZOArmory equipara el kit en cuanto salgas de combate.",
     EZOARM_MSG_EQUIP_DONE = "Equipadas <<1>>, ya puestas <<2>>, no disponibles <<3>>.",
     EZOARM_MSG_EQUIP_MISSING = "No disponibles en la mochila: <<1>>.",
+    EZOARM_MSG_EQUIP_IN_BANK = "En el banco, no en la mochila: <<1>>.",
     EZOARM_MSG_EQUIP_NO_LIBASYNC = "El equipado necesita el addon LibAsync. Instalalo para activarlo.",
     EZOARM_MSG_EQUIP_EMPTY = "El kit seleccionado no tiene nada que equipar.",
     EZOARM_MSG_EQUIP_QUEUED_CP_COOLDOWN = "Los CP estan en tiempo de espera: EZOArmory ranurara el kit en cuanto este disponible.",

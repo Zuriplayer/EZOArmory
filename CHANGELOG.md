@@ -2,6 +2,17 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.15
+
+- Add: when equipping a gear kit, a piece that isn't worn or in your backpack
+  is now checked against your bank too. If it's sitting there, the chat
+  report says so explicitly instead of just "missing" - `GetItemLinkStacks`
+  gives an exact bank count remotely, the same API that shows "Bank: X" on
+  any item tooltip, so no visit to a banker or per-character log is needed.
+  Kits captured before this update don't have the item link stored yet, so
+  they'll keep reporting a plain "missing" until recaptured; new captures are
+  covered automatically.
+
 ## 0.11.14
 
 - Fix: applying a CP kit reported stars as "slotted" the moment the purchase

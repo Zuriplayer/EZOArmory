@@ -95,6 +95,7 @@ local function BuildAssignment(kits, issues)
                     assignment[slotKey] = {
                         kitName = kitName,
                         itemId = piece.itemId,
+                        itemLink = piece.itemLink,
                         itemName = piece.itemName,
                         -- icon/armorType/weaponType se arrastran para que la
                         -- interfaz pueda pintar y describir la pieza asignada

@@ -767,6 +767,14 @@ function WB.ReportEquipPart(part, state)
     if part == "gear" then
         EZOArmory.Print(prefix .. " " .. zo_strformat(
             GetString(EZOARM_MSG_EQUIP_DONE), state.equipped, state.already, state.missing))
+        if state.missing > 0 and state.missingNames and #state.missingNames > 0 then
+            EZOArmory.Print(zo_strformat(
+                GetString(EZOARM_MSG_EQUIP_MISSING), table.concat(state.missingNames, ", ")))
+        end
+        if state.inBank and state.inBank > 0 and state.inBankNames and #state.inBankNames > 0 then
+            EZOArmory.Print(zo_strformat(
+                GetString(EZOARM_MSG_EQUIP_IN_BANK), table.concat(state.inBankNames, ", ")))
+        end
     else
         local doneString = (part == "skills") and EZOARM_MSG_SKILL_EQUIP_DONE or EZOARM_MSG_CP_EQUIP_DONE
         EZOArmory.Print(prefix .. " " .. zo_strformat(

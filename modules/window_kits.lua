@@ -899,6 +899,10 @@ local function EquipKitIds(kitIds)
             EZOArmory.Print(zo_strformat(
                 GetString(EZOARM_MSG_EQUIP_MISSING), table.concat(state.missingNames, ", ")))
         end
+        if state.inBank and state.inBank > 0 and state.inBankNames and #state.inBankNames > 0 then
+            EZOArmory.Print(zo_strformat(
+                GetString(EZOARM_MSG_EQUIP_IN_BANK), table.concat(state.inBankNames, ", ")))
+        end
     end)
 end
 

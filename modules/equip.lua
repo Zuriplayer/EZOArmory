@@ -6,6 +6,11 @@
 --     cambio a not IsUnitInCombat("player") and not IsUnitDeadOrReincarnating.
 --   - Mover desde el banco SI es protegido, asi que las piezas deben estar en la
 --     mochila (BAG_BACKPACK) o ya puestas.
+--   - GetItemLinkStacks(itemLink) -> bagCount, bankCount, ... SI funciona a
+--     distancia (sin haber visitado el banco): es la misma API que pinta la
+--     linea "Bank: X" en cualquier tooltip de item, en cualquier sitio
+--     (verificado en esoui/publicallingames/tooltip/itemtooltips.lua). Se usa
+--     solo para avisar de donde esta una pieza que falta, nunca para moverla.
 --
 -- Este modulo no crea globales de trabajo pesado ni corre en cada frame salvo
 -- mientras aplica un equipado. LibAsync es opcional: sin el, el equipado no esta
@@ -47,12 +52,26 @@ local function BuildTargets(analysis)
                 slotKey = slotKey,
                 equipSlot = equipSlot,
                 itemId = piece.itemId,
+                itemLink = piece.itemLink,
                 itemName = piece.itemName,
                 setName = piece.setName,
             }
         end
     end
     return targets
+end
+
+-- Si un item no esta en equipo puesto ni mochila, pregunta si al menos esta en
+-- el banco (informativo: no se puede mover desde alli sin accion del jugador).
+-- GetItemLinkStacks es la misma API que alimenta la linea "Bank: X" de
+-- cualquier tooltip de item, en cualquier sitio - no hace falta haber entrado
+-- al banco ni llevar un registro por personaje.
+local function IsInBank(itemLink)
+    if not itemLink or itemLink == "" or type(GetItemLinkStacks) ~= "function" then
+        return false
+    end
+    local ok, _, bankCount = pcall(GetItemLinkStacks, itemLink)
+    return ok and (tonumber(bankCount) or 0) > 0
 end
 
 -- Equipa un objetivo. Muta el contador de estado.
@@ -67,9 +86,14 @@ local function EquipOne(target, state)
     -- Se localiza en el momento (las posiciones cambian al equipar).
     local location = EZOArmory.Gear.FindItemById(target.itemId)
     if not location then
-        state.missing = state.missing + 1
-        state.missingNames[#state.missingNames + 1] =
-            target.itemName ~= "" and target.itemName or (target.setName ~= "" and target.setName or target.slotKey)
+        local label = target.itemName ~= "" and target.itemName or (target.setName ~= "" and target.setName or target.slotKey)
+        if IsInBank(target.itemLink) then
+            state.inBank = state.inBank + 1
+            state.inBankNames[#state.inBankNames + 1] = label
+        else
+            state.missing = state.missing + 1
+            state.missingNames[#state.missingNames + 1] = label
+        end
         return
     end
 
@@ -90,7 +114,8 @@ end
 -- Aplica los kits indicados. onReport(state) se llama al terminar (o con un
 -- estado de error). Devuelve true si se ha iniciado el proceso.
 --
--- state al terminar: { equipped, already, missing, wornElsewhere, missingNames }
+-- state al terminar: { equipped, already, missing, wornElsewhere, missingNames,
+--                       inBank, inBankNames }
 -- state de error: { error = "noLibAsync" | "empty" }
 function Equip.ApplyKits(kitIds, onReport)
     if not Equip.IsAvailable() then
@@ -117,6 +142,8 @@ function Equip.ApplyKits(kitIds, onReport)
         missing = 0,
         wornElsewhere = 0,
         missingNames = {},
+        inBank = 0,
+        inBankNames = {},
         queued = not Equip.IsReady(),
     }
 

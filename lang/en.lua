@@ -117,6 +117,7 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_MSG_EQUIP_QUEUED = "In combat: EZOArmory will equip the kit as soon as you are out of combat.",
     EZOARM_MSG_EQUIP_DONE = "Equipped <<1>>, already on <<2>>, missing <<3>>.",
     EZOARM_MSG_EQUIP_MISSING = "Not available in your backpack: <<1>>.",
+    EZOARM_MSG_EQUIP_IN_BANK = "In your bank, not your backpack: <<1>>.",
     EZOARM_MSG_EQUIP_NO_LIBASYNC = "Equipping needs the LibAsync add-on. Install it to enable this.",
     EZOARM_MSG_EQUIP_EMPTY = "The selected kit has nothing to equip.",
     EZOARM_MSG_EQUIP_QUEUED_CP_COOLDOWN = "Champion Points are on cooldown: EZOArmory will slot the kit as soon as it is available.",
