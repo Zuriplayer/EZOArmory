@@ -2,6 +2,41 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.17
+
+- Fix: auto-equip could leave you with a partially applied build - missing
+  gear pieces that were actually in your bags, or skills slotted for a weapon
+  you weren't holding yet. Root cause, found by comparing against Wizard's
+  Wardrobe's production code: gear equip only checked "not in combat" once
+  before a whole batch of pieces, not before each individual piece, so combat
+  starting mid-batch (very plausible right when the boss that triggered the
+  auto-equip engages you) silently failed the remaining pieces while still
+  counting them as equipped. On top of that, gear/skills/CP were applied as
+  three independent parallel tasks with no ordering between them, so skills
+  could slot in before gear had actually finished.
+- Fix: `EquipOne` now re-reads the worn slot after calling `EquipItem` and only
+  counts a piece as equipped if the read-back confirms it - matches the same
+  reasoning that led to verifying CP purchases in 0.11.14 instead of trusting
+  the request was accepted. Failed pieces are reported separately in chat
+  (`EZOARM_MSG_EQUIP_FAILED`), the same way missing/in-bank pieces already are.
+- Fix: `Equip.ApplyKits` now re-checks "out of combat" before every single
+  piece, not once for the whole batch - verified against Wizard's Wardrobe's
+  `MoveItems`, which does the same per-item recheck in production.
+- Fix: `Builds.Equip` now applies gear, skills and CP strictly in sequence
+  (skills only start once gear's report has arrived, CP only once skills'
+  has) instead of three parallel LibAsync tasks - verified against Wizard's
+  Wardrobe's `LoadSetup`, which chains the three the same way.
+- Fix: auto-equip's "don't repeat what's already applied" guard used to mark
+  a build as done the instant it started equipping it, not when it actually
+  finished. A real equip failure (as opposed to a piece genuinely missing
+  from your bags) now clears that guard, so the next context change can
+  retry instead of staying half-applied until you change zone.
+- Boss/zone detection (world bosses, dungeons) was reviewed against Wizard's
+  Wardrobe too and found already equivalent: `EVENT_BOSSES_CHANGED` is a
+  generic engine event, not trial-specific, and the dungeon-vs-overland split
+  already uses the same `GetCurrentZoneDungeonDifficulty()` check WW uses. No
+  changes needed there.
+
 ## 0.11.16
 
 - The build name in the Builds list now also picks up the status color

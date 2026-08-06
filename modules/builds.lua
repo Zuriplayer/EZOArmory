@@ -744,6 +744,17 @@ end
 -- propias reglas (fuera de combate, cooldown de CP, aplicar solo lo que
 -- cambia); ver modules/equip.lua. onReport(part, state) se llama una vez por
 -- parte ("gear" | "skills" | "cp") para poder informar de cada una.
+--
+-- Las tres partes se aplican EN SECUENCIA, no en paralelo: skills no empieza
+-- hasta que el informe de gear ha llegado (gear ya terminado del todo,
+-- reintentos de combate incluidos), y CP no empieza hasta el informe de
+-- skills. Antes se lanzaban las tres a la vez como tareas LibAsync
+-- independientes, sin ningun orden garantizado entre ellas; si el gear
+-- tardaba mas (o fallaba parcialmente) las skills se ranuraban igual,
+-- dejando habilidades pensadas para un arma que todavia no llevabas puesta.
+-- Patron verificado contra Wizard's Wardrobe en produccion (WW.LoadSetup,
+-- WizardsWardrobe.lua): encadena gear -> skills -> CP con Then(), nunca en
+-- paralelo.
 function Builds.Equip(buildId, onReport)
     local build = Builds.GetBuild(buildId)
     if not build then return false end
@@ -754,14 +765,30 @@ function Builds.Equip(buildId, onReport)
         end
     end
 
+    local function applyCp()
+        if build.cpKitId then
+            EZOArmory.Equip.ApplyCpKit(build.cpKitId, report("cp"))
+        end
+    end
+
+    local function applySkills()
+        if build.skillKitId then
+            EZOArmory.Equip.ApplySkillKit(build.skillKitId, function(state)
+                report("skills")(state)
+                applyCp()
+            end)
+        else
+            applyCp()
+        end
+    end
+
     if #build.gearKitIds > 0 then
-        EZOArmory.Equip.ApplyKits(build.gearKitIds, report("gear"))
-    end
-    if build.skillKitId then
-        EZOArmory.Equip.ApplySkillKit(build.skillKitId, report("skills"))
-    end
-    if build.cpKitId then
-        EZOArmory.Equip.ApplyCpKit(build.cpKitId, report("cp"))
+        EZOArmory.Equip.ApplyKits(build.gearKitIds, function(state)
+            report("gear")(state)
+            applySkills()
+        end)
+    else
+        applySkills()
     end
 
     return true

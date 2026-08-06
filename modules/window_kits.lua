@@ -903,6 +903,10 @@ local function EquipKitIds(kitIds)
             EZOArmory.Print(zo_strformat(
                 GetString(EZOARM_MSG_EQUIP_IN_BANK), table.concat(state.inBankNames, ", ")))
         end
+        if state.failed and state.failed > 0 and state.failedNames and #state.failedNames > 0 then
+            EZOArmory.Print(zo_strformat(
+                GetString(EZOARM_MSG_EQUIP_FAILED), table.concat(state.failedNames, ", ")))
+        end
     end)
 end
 

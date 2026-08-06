@@ -105,17 +105,32 @@ local function EquipOne(target, state)
         return
     end
 
-    if type(EquipItem) == "function" then
-        EquipItem(location.bag, location.slot, target.equipSlot)
+    if type(EquipItem) ~= "function" then return end
+
+    EquipItem(location.bag, location.slot, target.equipSlot)
+
+    -- Verificacion real releyendo el slot, en vez de contar EquipItem como
+    -- exito solo por haberla llamado: si el combate empieza justo entre el
+    -- chequeo de listo y esta pieza concreta (dentro de un lote largo), la
+    -- llamada no hace nada y sin esta comprobacion se habria informado como
+    -- equipada sin estarlo. Mismo motivo que llevo a verificar el CP contra
+    -- EVENT_CHAMPION_PURCHASE_RESULT en 0.11.14 en vez de darlo por hecho al
+    -- enviar la peticion.
+    local nowWornId = EZOArmory.Gear.ReadItemId(BAG_WORN, target.equipSlot)
+    if nowWornId == target.itemId then
         state.equipped = state.equipped + 1
+    else
+        local label = target.itemName ~= "" and target.itemName or (target.setName ~= "" and target.setName or target.slotKey)
+        state.failed = state.failed + 1
+        state.failedNames[#state.failedNames + 1] = label
     end
 end
 
 -- Aplica los kits indicados. onReport(state) se llama al terminar (o con un
 -- estado de error). Devuelve true si se ha iniciado el proceso.
 --
--- state al terminar: { equipped, already, missing, wornElsewhere, missingNames,
---                       inBank, inBankNames }
+-- state al terminar: { equipped, already, missing, wornElsewhere, failed,
+--                       missingNames, inBank, inBankNames, failedNames }
 -- state de error: { error = "noLibAsync" | "empty" }
 function Equip.ApplyKits(kitIds, onReport)
     if not Equip.IsAvailable() then
@@ -141,9 +156,11 @@ function Equip.ApplyKits(kitIds, onReport)
         already = 0,
         missing = 0,
         wornElsewhere = 0,
+        failed = 0,
         missingNames = {},
         inBank = 0,
         inBankNames = {},
+        failedNames = {},
         queued = not Equip.IsReady(),
     }
 
@@ -155,8 +172,19 @@ function Equip.ApplyKits(kitIds, onReport)
     task:WaitUntil(function()
         return Equip.IsReady()
     end):Then(function(innerTask)
+        -- Se vuelve a comprobar "listo" ANTES DE CADA PIEZA, no solo una vez
+        -- para todo el lote: un lote largo se reparte entre varios frames
+        -- (For:Do de LibAsync), y si el combate empieza a mitad, las piezas
+        -- restantes fallarian en silencio sin este chequeo repetido. Patron
+        -- verificado contra Wizard's Wardrobe en produccion (WW.MoveItems,
+        -- WizardsWardrobe.lua): repite WaitUntil(IsReadyToSwap) dentro del
+        -- propio bucle, pieza a pieza, en vez de una vez para todo el lote.
         innerTask:For(1, #targets):Do(function(index)
-            EquipOne(targets[index], state)
+            innerTask:WaitUntil(function()
+                return Equip.IsReady()
+            end):Then(function()
+                EquipOne(targets[index], state)
+            end)
         end):Then(function()
             if onReport then onReport(state) end
         end)
