@@ -722,11 +722,18 @@ function Builds.ResolveForCurrentContext(role)
     local context = EZOArmory.Context and EZOArmory.Context.GetState and EZOArmory.Context.GetState()
     if not context then return nil end
 
-    -- Lo asignado explicitamente manda siempre sobre la sustituta.
+    -- Lo asignado explicitamente manda siempre sobre la sustituta, pero solo
+    -- cuenta una BUILD real. Una asignacion antigua por kits (antes del giro
+    -- a builds de 0.10.0) nunca la aplica el auto-equipado -- ApplyResolved
+    -- en auto_equip.lua la rechaza a proposito, porque es equipo suelto sin
+    -- habilidades ni CP -- asi que dejarla cortar aqui el paso a la
+    -- sustituta bloqueaba el auto-equipado entero en cualquier trial con
+    -- asignaciones viejas sin migrar, aunque hubiera una sustituta valida
+    -- configurada.
     if context.trial then
         local targetKey = context.matchedBoss and context.matchedBoss.key or EZOArmory.Kits.TARGET_TRASH
         local resolved = Builds.ResolveForTarget(role, context.trial.tag, targetKey)
-        if resolved then
+        if resolved and resolved.kind == "build" then
             return resolved
         end
     end

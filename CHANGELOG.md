@@ -2,6 +2,29 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.18
+
+- Fix: auto-equip did nothing at all in trials that still had old-style
+  per-kit assignments left over from before the 0.10.0 switch to builds (no
+  skills/CP, gear only) - even when a valid substitute build was configured
+  and would otherwise have applied. `Builds.ResolveForCurrentContext` was
+  treating "found an old kit assignment" the same as "found a build",
+  stopping before it ever tried the substitute fallback. Now it only counts
+  a real build assignment as a match; a leftover kit-only assignment falls
+  through to the substitute, same as if nothing had been assigned at all.
+- Fix: boss detection by name (`Zones.FindBossByName`) only ever compared
+  against the English boss name hardcoded in `zones_trials.lua`, while
+  `GetUnitName()` returns the name in the client's actual game language. On
+  a non-English client, per-boss build assignments (the kind already used
+  for Lucent Citadel and Hel Ra Citadel) silently never matched and always
+  fell back to the trash target. Added the verified Spanish name for each
+  boss (cross-checked against Wizard's Wardrobe's own per-language boss
+  matching in production) and match against either. Two exceptions remain
+  unverified - Lucent Citadel's "Arcane Knot" and all six Ossein Cage bosses
+  - because Wizard's Wardrobe itself has no Spanish translation for those
+  either; they'll keep falling back to trash on a Spanish client until the
+  real in-game name is confirmed.
+
 ## 0.11.17
 
 - Fix: auto-equip could leave you with a partially applied build - missing
