@@ -30,6 +30,13 @@ function EZOArmory.savedVars.Init()
         -- Kits de habilidades (modules/skills.lua) y de CP (modules/champion.lua).
         skillKits = {},
         cpKits = {},
+        -- Nombres de boss aprendidos del cliente: bossNames[trialTag][bossKey]
+        -- = nombre tal cual lo devuelve GetUnitName() en ESTE cliente. Lo
+        -- rellena el boton "aprender" de la pestana Assign. La clave sigue
+        -- siendo la key estable, asi que cambiar el idioma del juego no
+        -- invalida las asignaciones: como mucho hay que volver a aprender el
+        -- nombre. Ver modules/zones_trials.lua.
+        bossNames = {},
         -- Ventana emergente (HUD). Posicion y aspecto. x/y NO llevan valor por
         -- defecto a proposito: window.lua los usa como senal de "nunca se ha
         -- movido" (SetAnchor CENTER en vez de TOPLEFT+x,y). Si aqui llevaran 0,

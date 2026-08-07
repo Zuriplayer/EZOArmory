@@ -1,25 +1,43 @@
 -- Datos de referencia de las trials del juego y sus bosses.
 --
--- Modulo de datos puro: no llama a ninguna API de ESO. La deteccion en vivo
--- (zona actual, boss bajo combate) vive en context_tracker.lua, que compara
--- GetUnitName("boss1".."boss6") contra los nombres de esta tabla.
+-- No llama a ninguna API de ESO (solo lee/escribe la tabla de SavedVariables).
+-- La deteccion en vivo (zona actual, boss bajo combate) vive en
+-- context_tracker.lua, que resuelve GetUnitName("boss1".."boss6") a un boss de
+-- esta tabla con Z.FindBossByName.
 --
--- Nombres de trial y bosses en ingles, en orden de encuentro. "key" es un
--- identificador estable y minusculo para guardar asignaciones en
--- SavedVariables sin depender del idioma.
+-- "key" es el identificador estable y minusculo con el que se guardan las
+-- asignaciones en SavedVariables. NO depende del idioma ni del nombre: es lo
+-- unico que se persiste como identidad del boss.
 --
--- "nameEs" es el nombre real que devuelve GetUnitName() con el cliente en
--- espanol (verificado contra Wizard's Wardrobe en produccion, que ya
--- distingue boss por nombre en varios idiomas: lang/es.lua, claves
--- WW_<TRIAL>_<BOSS>). Z.FindBossByName compara contra los dos nombres sin
--- necesidad de detectar el idioma: antes, con solo el nombre en ingles, la
--- asignacion por boss concreto (ej. LC/HRC) nunca coincidia con un cliente no
--- ingles y caia siempre a trash en silencio.
+-- COMO SE IDENTIFICA UN BOSS (y por que asi):
 --
--- Sin traduccion verificada todavia (ni siquiera WW la tiene en su es.lua):
--- "Arcane Knot" (LC) y las seis de Ossein Cage (OC). En esos, con cliente en
--- espanol, seguira sin detectar el boss concreto hasta que se verifique el
--- nombre real (mas facil: leerlo tal cual aparece en juego y pasarlo).
+-- El motor NO expone ningun ID persistente de NPC. No existe
+-- GetUnitId(unitTag) ni un monsterId; los unitId de EVENT_COMBAT_EVENT son de
+-- sesion (se reasignan en cada spawn), asi que no sirven para guardar nada.
+-- Lo unico estable que da el motor por unitTag es el nombre... ya localizado
+-- al idioma del cliente. Verificado contra ESOUIDocumentation.txt.
+--
+-- Wizard's Wardrobe resuelve esto comparando localizado contra localizado: el
+-- nombre que devuelve GetUnitName() contra el que el usuario eligio de un
+-- desplegable que tambien sale de su lang/<idioma>.lua. Nunca cruza idiomas.
+-- El precio que paga es que su identificador guardado ES el nombre
+-- localizado, asi que cambiar el idioma del cliente deja sus condiciones
+-- huerfanas.
+--
+-- Aqui se hace lo mismo pero conservando la key estable: el nombre real que
+-- devuelve ESTE cliente se APRENDE (boton "aprender" de la pestana Assign,
+-- Z.LearnBossName) y se guarda asociado a la key, no en su lugar. Cambiar el
+-- idioma del juego no invalida ninguna asignacion; como mucho hay que volver
+-- a aprender el nombre.
+--
+-- "name" (ingles) y "nameEs" (espanol, verificado contra el lang/es.lua de
+-- Wizard's Wardrobe en produccion) son solo el valor inicial, para que la
+-- deteccion funcione de entrada sin tener que aprender nada. Lo aprendido
+-- tiene prioridad sobre ambos.
+--
+-- Sin nameEs verificado (ni WW lo tiene): "Arcane Knot" (LC) y los seis de
+-- Ossein Cage. Esos hay que aprenderlos con el boton si el cliente no esta en
+-- ingles - que es justamente para lo que existe.
 
 EZOArmory = EZOArmory or {}
 EZOArmory.Zones = EZOArmory.Zones or {}
@@ -179,15 +197,67 @@ function Z.IsTrialZone(zoneId)
     return Z.GetTrialByZoneId(zoneId) ~= nil
 end
 
+-- ------------------------------------------- Nombres de boss aprendidos ----
+--
+-- Lo que devuelve GetUnitName() en ESTE cliente, guardado por key estable.
+-- Ver la explicacion completa en la cabecera del fichero.
+
+local function BossNameStore(create)
+    local sv = EZOArmory.sv
+    if not sv then return nil end
+    if not sv.bossNames then
+        if not create then return nil end
+        sv.bossNames = {}
+    end
+    return sv.bossNames
+end
+
+-- Guarda el nombre real de un boss tal cual lo ve este cliente. Un nombre
+-- vacio borra lo aprendido (vuelve a name/nameEs).
+function Z.LearnBossName(trialTag, bossKey, unitName)
+    if trialTag == nil or bossKey == nil then return false end
+    local store = BossNameStore(true)
+    if not store then return false end
+
+    if unitName == nil or unitName == "" then
+        if store[trialTag] then store[trialTag][bossKey] = nil end
+        return true
+    end
+
+    store[trialTag] = store[trialTag] or {}
+    store[trialTag][bossKey] = tostring(unitName)
+    return true
+end
+
+function Z.GetLearnedBossName(trialTag, bossKey)
+    if trialTag == nil or bossKey == nil then return nil end
+    local store = BossNameStore(false)
+    local perTrial = store and store[trialTag]
+    return perTrial and perTrial[bossKey] or nil
+end
+
+-- Nombre a mostrar en la interfaz: lo aprendido manda, porque es lo que el
+-- jugador lee de verdad en su pantalla.
+function Z.GetBossLabel(trial, boss)
+    if not boss then return "" end
+    local learned = trial and Z.GetLearnedBossName(trial.tag, boss.key)
+    return learned or boss.name or tostring(boss.key)
+end
+
 -- Devuelve el boss (tabla {key, name}) de una trial cuyo nombre coincide con
--- el texto dado. Compara contra el nombre en ingles y, si lo hay, el nombre
--- en espanol (nameEs) -- sin necesidad de detectar el idioma del cliente: da
--- igual cual de los dos devuelva GetUnitName(), uno de los dos coincidira.
--- Pensado para que context_tracker.lua resuelva un nombre de unidad a un
--- boss conocido.
+-- el texto dado. Orden de comprobacion: primero lo aprendido de este cliente
+-- (lo mas fiable, sale del propio GetUnitName), luego el nombre en ingles y
+-- el nombre en espanol como valor inicial. No hace falta detectar el idioma:
+-- se compara contra todos los nombres conocidos de cada boss.
+-- Lo usa context_tracker.lua para resolver un nombre de unidad a un boss.
 function Z.FindBossByName(trial, unitName)
     if not trial or not trial.bosses or unitName == nil or unitName == "" then
         return nil
+    end
+    for _, boss in ipairs(trial.bosses) do
+        if Z.GetLearnedBossName(trial.tag, boss.key) == unitName then
+            return boss
+        end
     end
     for _, boss in ipairs(trial.bosses) do
         if boss.name == unitName or boss.nameEs == unitName then

@@ -2,6 +2,38 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.19
+
+- Add: "Learn this boss" button in the Assign tab. Standing in front of a boss
+  with that boss selected as the target, it captures the name your client
+  actually returns (`GetUnitName`) and stores it against the stable boss key.
+  From then on that boss is detected regardless of client language, including
+  the ones with no verified translation shipped (Lucent Citadel's Arcane Knot
+  and all six Ossein Cage bosses).
+- Why a name and not an ID: the engine exposes no persistent NPC identifier.
+  There is no `GetUnitId(unitTag)` and no monster id; the `unitId` values from
+  `EVENT_COMBAT_EVENT` are per-session and get reassigned on every spawn, so
+  they cannot be stored. Verified against ESOUIDocumentation.txt. The only
+  stable thing the engine gives per unit tag is the name, already localised.
+- Wizard's Wardrobe solves the same problem by comparing localised against
+  localised - `GetUnitName()` against a dropdown that also comes from its own
+  `lang/<language>.lua`, so it never crosses languages. The cost it pays is
+  that its stored identifier *is* the localised name, so changing client
+  language orphans its saved conditions. Here the learned name is stored
+  against the stable key rather than replacing it, so changing game language
+  invalidates no assignment - at worst the name has to be learned again.
+- The shipped `name`/`nameEs` table stays as the starting value so detection
+  works out of the box without learning anything; learned names take priority.
+- Learned names live in `sv.bossNames[trialTag][bossKey]` and are deliberately
+  left untouched by "reset to defaults", same as kits and builds - they are
+  captured data, not settings.
+- Note: boss-area detection itself never depended on any of this.
+  `Context.state.bossActive` comes from `DoesUnitExist("bossN")` plus
+  `EVENT_BOSSES_CHANGED` - a plain engine boolean with no strings involved,
+  the same pattern the native boss health bar uses (`bossbar.lua`). Trash vs
+  boss switching, and therefore substitute builds, were always language-proof.
+  Names only ever mattered for assigning a build to one *specific* boss.
+
 ## 0.11.18
 
 - Fix: auto-equip did nothing at all in trials that still had old-style

@@ -205,6 +205,12 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_MSG_EQUIP_NO_TRIAL = "Ahora mismo no estas en una trial.",
     EZOARM_MSG_EQUIP_NO_ASSIGNMENT = "No hay kits asignados para aqui en <<1>> (ni default de la trial).",
 
+    EZOARM_OPTION_LEARN_BOSS = "Aprender este boss",
+    EZOARM_MSG_LEARN_BOSS_DONE = "Nombre del boss aprendido: <<1>>. A partir de ahora este objetivo se detectara, sea cual sea el idioma de tu cliente.",
+    EZOARM_MSG_LEARN_BOSS_NOT_A_BOSS = "Elige antes un boss como objetivo: \"default\" y \"trash\" no tienen ningun boss que aprender.",
+    EZOARM_MSG_LEARN_BOSS_WRONG_TRIAL = "Estas en <<1>>, pero la trial seleccionada es otra. Selecciona la trial en la que estas de verdad.",
+    EZOARM_MSG_LEARN_BOSS_NO_BOSS = "Ahora mismo no tienes ningun boss delante. Ponte en la sala del boss, con el boss vivo, y vuelve a intentarlo.",
+
     EZOARM_OPTION_ANALYZE_WORN = "Analizar el equipo actual",
     EZOARM_OPTION_ANALYZE_WORN_TOOLTIP = "Indica que bonus de set tienes realmente activos en cada barra de armas con el equipo que llevas. Solo cuentan 12 piezas a la vez, asi que un set repartido entre joyeria y armas frontales no estara completo en la barra trasera.",
 

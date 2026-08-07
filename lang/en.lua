@@ -205,6 +205,12 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_MSG_EQUIP_NO_TRIAL = "You are not in a trial right now.",
     EZOARM_MSG_EQUIP_NO_ASSIGNMENT = "No kits assigned for here in <<1>> (and no trial default).",
 
+    EZOARM_OPTION_LEARN_BOSS = "Learn this boss",
+    EZOARM_MSG_LEARN_BOSS_DONE = "Boss name learned: <<1>>. This target will be detected from now on, whatever language your client runs in.",
+    EZOARM_MSG_LEARN_BOSS_NOT_A_BOSS = "Pick an actual boss as the target first - \"default\" and \"trash\" have no boss to learn.",
+    EZOARM_MSG_LEARN_BOSS_WRONG_TRIAL = "You are in <<1>>, but the selected trial is a different one. Select the trial you are actually in.",
+    EZOARM_MSG_LEARN_BOSS_NO_BOSS = "No boss in front of you right now. Stand in the boss room, with the boss up, and try again.",
+
     EZOARM_OPTION_ANALYZE_WORN = "Analyse current gear",
     EZOARM_OPTION_ANALYZE_WORN_TOOLTIP = "Report which set bonuses are actually active on each weapon bar with the gear you are wearing. Only 12 pieces count at a time, so a set spread over jewelry and front weapons will not be complete on the back bar.",
 

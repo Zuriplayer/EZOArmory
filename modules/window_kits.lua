@@ -1055,13 +1055,15 @@ local function EnsureAssignState()
 end
 
 -- Objetivos de una trial: default (fallback), trash, y cada boss/miniboss.
+-- El nombre mostrado es el aprendido de este cliente si lo hay (Zones
+-- .GetBossLabel), para que la lista se lea igual que la pantalla del juego.
 local function GetAssignTargetChoices(trialTag)
     local labels = { GetString(EZOARM_TARGET_DEFAULT), GetString(EZOARM_TARGET_TRASH) }
     local values = { ASSIGN_TARGET_DEFAULT, EZOArmory.Kits.TARGET_TRASH }
     local trial = EZOArmory.Zones.GetTrialByTag(trialTag)
     if trial then
         for _, boss in ipairs(trial.bosses) do
-            labels[#labels + 1] = boss.name
+            labels[#labels + 1] = EZOArmory.Zones.GetBossLabel(trial, boss)
             values[#values + 1] = boss.key
         end
     end
@@ -1184,6 +1186,46 @@ end
 local function OnAssignClearClicked()
     EZOArmory.Builds.SetTrialAssignment(
         EZOArmory.GetActiveRole(), WK.state.assignTrialTag, WK.state.assignTargetKey, nil)
+    WK.RefreshAssignPanel()
+end
+
+-- Aprende el nombre real del boss que tienes delante y lo asocia al objetivo
+-- seleccionado. Es la unica forma fiable de identificar un boss concreto: el
+-- motor no da ningun ID persistente de NPC, solo el nombre ya localizado (ver
+-- cabecera de modules/zones_trials.lua). Se exige que estes EN la trial
+-- seleccionada y con el boss delante, para no asociar un nombre al objetivo
+-- equivocado sin enterarte.
+local function OnAssignLearnBossClicked()
+    if not EZOArmory.Print then return end
+
+    local targetKey = WK.state.assignTargetKey
+    if targetKey == ASSIGN_TARGET_DEFAULT or targetKey == EZOArmory.Kits.TARGET_TRASH then
+        EZOArmory.Print(GetString(EZOARM_MSG_LEARN_BOSS_NOT_A_BOSS))
+        return
+    end
+
+    local context = EZOArmory.Context and EZOArmory.Context.GetState and EZOArmory.Context.GetState()
+    local trial = context and context.trial
+    if not trial then
+        EZOArmory.Print(GetString(EZOARM_MSG_EQUIP_NO_TRIAL))
+        return
+    end
+    if trial.tag ~= WK.state.assignTrialTag then
+        EZOArmory.Print(zo_strformat(
+            GetString(EZOARM_MSG_LEARN_BOSS_WRONG_TRIAL), tostring(trial.name)))
+        return
+    end
+
+    local unitName = context.primaryBoss
+    if unitName == nil or unitName == "" then
+        EZOArmory.Print(GetString(EZOARM_MSG_LEARN_BOSS_NO_BOSS))
+        return
+    end
+
+    if not EZOArmory.Zones.LearnBossName(trial.tag, targetKey, unitName) then
+        return
+    end
+    EZOArmory.Print(zo_strformat(GetString(EZOARM_MSG_LEARN_BOSS_DONE), unitName))
     WK.RefreshAssignPanel()
 end
 
@@ -1520,6 +1562,18 @@ local function CreateAssignPanel(content)
     equipTargetButton:SetMouseOverFontColor(0.4, 1, 0.4, 1)
     equipTargetButton:SetText(GetString(EZOARM_OPTION_EQUIP_TARGET))
     equipTargetButton:SetHandler("OnClicked", OnAssignEquipTargetClicked)
+
+    -- A la IZQUIERDA, separado de los tres de equipado: no es una accion de
+    -- equipar, y ademas los otros tres ya ocupan el ancho disponible por la
+    -- derecha (160*3 + separaciones).
+    local learnBossButton = WM:CreateControl(nil, assignActionBar, CT_BUTTON)
+    learnBossButton:SetDimensions(150, 24)
+    learnBossButton:SetAnchor(BOTTOMLEFT, assignActionBar, BOTTOMLEFT, 0, 0)
+    learnBossButton:SetFont("ZoFontGameBold")
+    learnBossButton:SetNormalFontColor(0.65, 0.8, 1, 1)
+    learnBossButton:SetMouseOverFontColor(0.45, 0.7, 1, 1)
+    learnBossButton:SetText(GetString(EZOARM_OPTION_LEARN_BOSS))
+    learnBossButton:SetHandler("OnClicked", OnAssignLearnBossClicked)
 end
 
 -- --------------------------------------------------------------- Panel ----
