@@ -2,6 +2,17 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.25
+
+- Diagnostics: each CP slot being changed now logs the discipline of the
+  incoming star alongside the discipline of the star currently in that slot.
+  Slots are grouped by discipline and the server rejects the *entire* request
+  with `CHAMPION_PURCHASE_CHAMPION_BAR_WRONG_DISCIPLINE` if a single star
+  doesn't fit, which would look exactly like "one star won't load" - the other
+  eleven matching already, so they never enter the request. This narrows the
+  remaining CP hypotheses to two: wrong discipline, or the ~30s server
+  cooldown.
+
 ## 0.11.24
 
 - Fix: a piece already worn in a *different* equip slot was never moved. It was

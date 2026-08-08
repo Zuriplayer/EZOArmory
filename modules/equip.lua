@@ -588,6 +588,22 @@ function Equip.ApplyCpKit(kitId, onReport)
 
                     if slottable and spent then
                         diffs[#diffs + 1] = { slot = slot, starId = starId }
+                        -- Cada grupo de slots pertenece a una disciplina y el
+                        -- servidor rechaza la peticion ENTERA con
+                        -- CHAMPION_PURCHASE_CHAMPION_BAR_WRONG_DISCIPLINE si
+                        -- una sola estrella no encaja. Se registra la
+                        -- disciplina de la estrella que entra y la de la que
+                        -- ocupa ahora ese slot: si no coinciden, ese es el
+                        -- motivo de que no se aplique nada.
+                        if EZOArmory.DebugLog and EZOArmory.Champion.GetStarDisciplineType then
+                            EZOArmory.DebugLog(string.format(
+                                "CP diff: slot=%d star=%d disc=%s currentStar=%d currentDisc=%s",
+                                slot, starId,
+                                tostring(EZOArmory.Champion.GetStarDisciplineType(starId)),
+                                current,
+                                tostring(current ~= 0
+                                    and EZOArmory.Champion.GetStarDisciplineType(current) or nil)))
+                        end
                     else
                         state.skipped = state.skipped + 1
                         local okName, name = pcall(GetChampionSkillName, starId)
