@@ -144,6 +144,7 @@ EZOARMORY_STRINGS_EN = {
     -- comprada.
     EZOARM_MSG_CP_EQUIP_SKIPPED = "Skipped, not slotted: <<1>>.",
     EZOARM_MSG_CP_EQUIP_EMPTY = "The selected CP kit has nothing to slot.",
+    EZOARM_MSG_CP_EQUIP_UNAVAILABLE = "Could not send the Champion Point request: the game did not provide the functions needed. The kit itself is fine.",
 
     -- Builds
     EZOARM_WINDOW_TAB_BUILDS = "Builds",

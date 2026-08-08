@@ -388,9 +388,25 @@ end
 local cpCooldownRemaining = 0
 local cpCooldownTrackingRegistered = false
 
+-- EVENT_MANAGER es GetEventManager(), un objeto del motor: su type() es
+-- "userdata", NO "table" (esoui/app/globals/globals.lua:1). Comprobarlo con
+-- type(...) == "table" era siempre falso, y de ahi salieron dos fallos que
+-- estuvieron activos desde 0.11.14:
+--   - SendAndVerifyCp abortaba con error "empty" en cuanto habia UNA estrella
+--     que cambiar, asi que aplicar un kit de CP no funcionaba nunca. Solo
+--     "funcionaba" el caso sin diferencias, que sale antes por otro camino y
+--     por eso parecia correcto.
+--   - El seguimiento del cooldown no llegaba a registrarse, asi que el
+--     contador se quedaba en 0 y IsCpReady() era siempre verdadero.
+-- context_tracker.lua ya aceptaba userdata; era equip.lua el que discrepaba.
+local function HasEventManager()
+    local kind = type(EVENT_MANAGER)
+    return kind == "userdata" or kind == "table"
+end
+
 local function EnsureCpCooldownTracking()
     if cpCooldownTrackingRegistered then return end
-    if type(EVENT_MANAGER) ~= "table" or EVENT_CHAMPION_PURCHASE_RESULT == nil then return end
+    if not HasEventManager() or EVENT_CHAMPION_PURCHASE_RESULT == nil then return end
     cpCooldownTrackingRegistered = true
 
     EVENT_MANAGER:RegisterForEvent("EZOArmory_CPPurchaseResult", EVENT_CHAMPION_PURCHASE_RESULT,
@@ -437,11 +453,25 @@ local function SendAndVerifyCp(diffs, state, attempt, onReport)
         return
     end
 
+    -- Si de verdad faltara alguna de estas, el kit NO esta vacio: no se puede
+    -- enviar. Informar "empty" aqui daba el mensaje "el kit no tiene nada que
+    -- ranurar", que es falso y mando la investigacion al sitio equivocado
+    -- (a mirar el kit, que estaba perfecto). Ahora se distingue y se registra
+    -- cual falta, para no volver a quedarse a ciegas.
     if type(PrepareChampionPurchaseRequest) ~= "function"
         or type(AddHotbarSlotToChampionPurchaseRequest) ~= "function"
         or type(SendChampionPurchaseRequest) ~= "function"
-        or type(EVENT_MANAGER) ~= "table" or EVENT_CHAMPION_PURCHASE_RESULT == nil then
-        if onReport then onReport({ error = "empty" }) end
+        or not HasEventManager() or EVENT_CHAMPION_PURCHASE_RESULT == nil then
+        if EZOArmory.DebugLog then
+            EZOArmory.DebugLog(string.format(
+                "CP unavailable: prepare=%s add=%s send=%s eventManager=%s resultEvent=%s",
+                type(PrepareChampionPurchaseRequest),
+                type(AddHotbarSlotToChampionPurchaseRequest),
+                type(SendChampionPurchaseRequest),
+                type(EVENT_MANAGER),
+                tostring(EVENT_CHAMPION_PURCHASE_RESULT)))
+        end
+        if onReport then onReport({ error = "cpUnavailable" }) end
         return
     end
 

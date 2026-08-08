@@ -2,6 +2,31 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.26
+
+- Fix: applying a CP kit has been broken since 0.11.14 whenever it actually had
+  something to change. `EVENT_MANAGER` is `GetEventManager()`, an engine object
+  whose `type()` is `"userdata"`, not `"table"`
+  (`esoui/app/globals/globals.lua:1`). Two guards in `equip.lua` tested for
+  `"table"` only, so they were always false:
+  - `SendAndVerifyCp` bailed out with `error = "empty"` as soon as there was
+    one star to change, before sending anything. A kit with no differences
+    returns earlier through a different path, which is why it appeared to work
+    and why the bug hid for so long.
+  - `EnsureCpCooldownTracking` never registered, so `cpCooldownRemaining`
+    stayed at 0 and `Equip.IsCpReady()` was always true - the ~30s cooldown was
+    never actually tracked.
+  `context_tracker.lua` already accepted `userdata`; it was `equip.lua` that
+  disagreed with it.
+- Fix: that failure reported itself as "the selected CP kit has nothing to
+  slot", which was simply untrue and sent the investigation towards the kit
+  data - which was perfectly fine. It is now a distinct error with an honest
+  message, and the missing function is logged.
+- Checked the other engine objects guarded the same way:
+  `ACTION_BAR_ASSIGNMENT_MANAGER` and `SKILLS_DATA_MANAGER` are Lua objects
+  (`= self`, `= ZO_CallbackObject.New(self)`), genuinely tables, so those
+  checks were correct and are unchanged.
+
 ## 0.11.25
 
 - Diagnostics: each CP slot being changed now logs the discipline of the

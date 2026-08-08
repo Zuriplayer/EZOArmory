@@ -949,6 +949,10 @@ local function EquipCpKit(kitId)
             EZOArmory.Print(GetString(EZOARM_MSG_CP_EQUIP_EMPTY))
             return
         end
+        if state.error == "cpUnavailable" then
+            EZOArmory.Print(GetString(EZOARM_MSG_CP_EQUIP_UNAVAILABLE))
+            return
+        end
         EZOArmory.Print(zo_strformat(
             GetString(EZOARM_MSG_CP_EQUIP_DONE), state.slotted, state.already, state.skipped))
         if state.skipped > 0 and state.skippedNames and #state.skippedNames > 0 then

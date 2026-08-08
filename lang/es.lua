@@ -144,6 +144,7 @@ EZOARMORY_STRINGS_ES = {
     -- comprada.
     EZOARM_MSG_CP_EQUIP_SKIPPED = "Omitidas, no ranuradas: <<1>>.",
     EZOARM_MSG_CP_EQUIP_EMPTY = "El kit de CP seleccionado no tiene nada que ranurar.",
+    EZOARM_MSG_CP_EQUIP_UNAVAILABLE = "No se ha podido enviar la peticion de CP: el juego no ha facilitado las funciones necesarias. El kit en si esta bien.",
 
     -- Builds
     EZOARM_WINDOW_TAB_BUILDS = "Builds",
