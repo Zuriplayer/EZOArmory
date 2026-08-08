@@ -2,6 +2,23 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.21
+
+- Fix: four minibosses were missing from the trial tables, so they resolved to
+  "trash" and got the trash build instead of a boss build - Dreadsail Reef's
+  Sail Ripper and Bow Breaker, and Rockgrove's Basks-In-Snakes and Ash Titan.
+  The effect was inconsistent rather than merely absent: a recognised boss with
+  no assignment of its own falls through to the boss substitute, but an
+  unrecognised one resolves to the trash target, which then matches an explicit
+  trash assignment if you have one. So bosses got the boss build while
+  minibosses in the same trial got the trash build.
+- Names taken from Wizard's Wardrobe's own tables, which list all six DSR and
+  five RG encounters. Note that WW translates "Bow Breaker" as
+  "Rompecorazones", which does not match the English name and may be a mistake
+  on their side; it is included in case it is right (a string that never
+  matches does no harm) but it is the prime candidate for correcting with the
+  "Learn this boss" button.
+
 ## 0.11.20
 
 - Fix: auto-equip never told you when it was waiting. `Equip.onQueued` - the

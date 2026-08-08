@@ -129,6 +129,10 @@ Z.TRIALS = {
             { key = "oaxiltso", name = "Oaxiltso" },
             { key = "bahsei", name = "Flame-Herald Bahsei", nameEs = "Bahsei, heraldo de las llamas" },
             { key = "xalvakka", name = "Xalvakka" },
+            -- Minibosses. Sin ellos se resolvian como "trash" y recibian la
+            -- build de trash en vez de la de boss.
+            { key = "basks_in_snakes", name = "Basks-In-Snakes", nameEs = "Disfrutador de serpientes" },
+            { key = "ash_titan", name = "Ash Titan", nameEs = "Titán de cenizas" },
         },
     },
     {
@@ -137,6 +141,14 @@ Z.TRIALS = {
             { key = "lylanar_turlassil", name = "Lylanar and Turlassil", nameEs = "Lylanar y Turlassil" },
             { key = "reef_guardian", name = "Reef Guardian", nameEs = "Guardián del arrecife" },
             { key = "taleria", name = "Tideborn Taleria", nameEs = "Taleria Nacida de las mareas" },
+            -- Minibosses. Sin ellos se resolvian como "trash" y recibian la
+            -- build de trash en vez de la de boss.
+            { key = "sail_ripper", name = "Sail Ripper", nameEs = "Desgarrador de velas" },
+            -- OJO: WW traduce Bow Breaker como "Rompecorazones", que no cuadra
+            -- con el nombre en ingles y podria ser un error suyo. Se deja por
+            -- si acierta (una cadena que no case no hace dano), pero es el
+            -- candidato numero uno a corregir con el boton "aprender este boss".
+            { key = "bow_breaker", name = "Bow Breaker", nameEs = "Rompecorazones" },
         },
     },
     {
