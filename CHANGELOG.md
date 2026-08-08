@@ -2,6 +2,41 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.20
+
+- Fix: auto-equip never told you when it was waiting. `Equip.onQueued` - the
+  hook that prints "in combat, will equip once you are out" - was assigned
+  only by the manual equip paths in `window_kits.lua`; the auto-equip route
+  (`AutoEquip` -> `Builds.Equip`) assigned none, so a build queued behind
+  combat produced complete silence and there was no way to tell "it didn't
+  work" from "it's waiting". Worse, being a single module variable, whether
+  any message appeared at all depended on which manual equip you happened to
+  do last in that session. The default message now lives in `equip.lua` and
+  is shared by both routes; `Equip.onQueued` is still honoured if assigned.
+- Fix: gear verification was checking too early. 0.11.17 re-read the worn slot
+  in the same frame as the `EquipItem` call, but equipping is a request to the
+  server and the bag updates afterwards - that's why
+  `EVENT_INVENTORY_SINGLE_SLOT_UPDATE` exists, and why Wizard's Wardrobe never
+  verifies after `EquipItem` and instead inserts explicit 500 ms waits ("Be
+  sure to give enough time so backbar can find new location"). A piece that
+  was equipping fine could therefore be reported as failed, which also cleared
+  auto-equip's "already applied" guard and could re-trigger the whole equip.
+  Verification now happens in a single pass at the end of the batch, after a
+  600 ms margin. The check itself is still worth doing: if combat starts
+  mid-batch the remaining requests genuinely don't take effect.
+- Context for the Spindleclutch II report: none of the above is why a boss
+  build may fail to land. Equipping waits for `Equip.IsReady()`, which is
+  false in combat, so a boss that engages as it spawns pushes the whole swap
+  to after the fight - documented behaviour, see the header of
+  `modules/auto_equip.lua`. Trash pulls work because there's an out-of-combat
+  window between them. The queue message above is what makes this visible
+  rather than silent.
+- Note on 0.11.17's sequencing: chaining gear -> skills -> CP means the three
+  parts now need successive out-of-combat windows instead of sharing one, so
+  short windows are slightly less forgiving than when they ran in parallel.
+  That's the price of never slotting skills for a weapon that isn't equipped
+  yet; recorded here because it is a real trade-off, not a free win.
+
 ## 0.11.19
 
 - Add: "Learn this boss" button in the Assign tab. Standing in front of a boss

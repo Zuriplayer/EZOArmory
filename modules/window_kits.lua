@@ -880,9 +880,10 @@ end
 local function EquipKitIds(kitIds)
     if not (EZOArmory.Equip and EZOArmory.Equip.ApplyKits) then return end
 
-    EZOArmory.Equip.onQueued = function()
-        if EZOArmory.Print then EZOArmory.Print(GetString(EZOARM_MSG_EQUIP_QUEUED)) end
-    end
+    -- El aviso de "en cola" lo da ya modules/equip.lua, igual para el equipado
+    -- manual y el automatico. Antes se asignaba aqui un Equip.onQueued propio,
+    -- y como es una sola variable de modulo, el auto-equipado se quedaba sin
+    -- aviso ninguno.
     EZOArmory.Equip.ApplyKits(kitIds, function(state)
         if not EZOArmory.Print then return end
         if state.error == "noLibAsync" then
@@ -914,9 +915,6 @@ end
 local function EquipSkillKit(kitId)
     if not (EZOArmory.Equip and EZOArmory.Equip.ApplySkillKit) then return end
 
-    EZOArmory.Equip.onQueued = function()
-        if EZOArmory.Print then EZOArmory.Print(GetString(EZOARM_MSG_EQUIP_QUEUED)) end
-    end
     EZOArmory.Equip.ApplySkillKit(kitId, function(state)
         if not EZOArmory.Print then return end
         if state.error == "noLibAsync" then
@@ -937,18 +935,10 @@ local function EquipSkillKit(kitId)
 end
 
 -- Ranura un kit de CP (las 12 estrellas) via Equip.ApplyCpKit. El aviso de
--- cola distingue combate de cooldown de CP (Equip.onQueued recibe el motivo).
+-- cola (que distingue combate de cooldown de CP) lo da ya modules/equip.lua.
 local function EquipCpKit(kitId)
     if not (EZOArmory.Equip and EZOArmory.Equip.ApplyCpKit) then return end
 
-    EZOArmory.Equip.onQueued = function(reason)
-        if not EZOArmory.Print then return end
-        if reason == "cpCooldown" then
-            EZOArmory.Print(GetString(EZOARM_MSG_EQUIP_QUEUED_CP_COOLDOWN))
-        else
-            EZOArmory.Print(GetString(EZOARM_MSG_EQUIP_QUEUED))
-        end
-    end
     EZOArmory.Equip.ApplyCpKit(kitId, function(state)
         if not EZOArmory.Print then return end
         if state.error == "noLibAsync" then

@@ -37,6 +37,28 @@ function Equip.IsAvailable()
     return LibAsync ~= nil
 end
 
+-- Aviso de "esto no se aplica todavia, esta esperando". Vive aqui, y no en la
+-- ventana, porque hasta 0.11.19 cada punto de equipado manual asignaba su
+-- propio Equip.onQueued y el equipado AUTOMATICO no asignaba ninguno: cuando
+-- el auto-equipado se quedaba en cola por combate no avisaba de nada, y no
+-- habia forma de distinguir "no ha funcionado" de "esta esperando". Ademas,
+-- al ser una sola variable de modulo, el aviso que salia dependia del ultimo
+-- equipado manual hecho en esa sesion. Ahora el mensaje por defecto es comun
+-- a las dos rutas; Equip.onQueued se respeta si alguien lo asigna, para no
+-- romper a quien lo use.
+local function NotifyQueued(reason)
+    if type(Equip.onQueued) == "function" then
+        Equip.onQueued(reason)
+        return
+    end
+    if not EZOArmory.Print then return end
+    if reason == "cpCooldown" then
+        EZOArmory.Print(GetString(EZOARM_MSG_EQUIP_QUEUED_CP_COOLDOWN))
+    else
+        EZOArmory.Print(GetString(EZOARM_MSG_EQUIP_QUEUED))
+    end
+end
+
 -- Construye la lista de objetivos a partir del analisis de coherencia de unos
 -- kits: para cada slot asignado, el item concreto y su constante de equip slot.
 local function BuildTargets(analysis)
@@ -74,8 +96,19 @@ local function IsInBank(itemLink)
     return ok and (tonumber(bankCount) or 0) > 0
 end
 
--- Equipa un objetivo. Muta el contador de estado.
-local function EquipOne(target, state)
+-- Margen antes de comprobar si las piezas se han puesto de verdad. EquipItem
+-- NO surte efecto en el mismo frame: es una peticion al servidor y la bolsa
+-- se actualiza despues (por eso existe EVENT_INVENTORY_SINGLE_SLOT_UPDATE).
+-- Wizard's Wardrobe no verifica nada tras EquipItem y mete esperas explicitas
+-- de 500 ms por este mismo motivo ("Be sure to give enough time so backbar can
+-- find new location", WizardsWardrobe.lua). 0.11.17 comprobaba el slot en el
+-- mismo frame de la llamada, lo que podia contar como fallida una pieza que
+-- si se estaba equipando.
+local EQUIP_VERIFY_DELAY_MS = 600
+
+-- Equipa un objetivo. Muta el contador de estado. Las piezas que se llegan a
+-- pedir se apuntan en "attempted" para comprobarlas al final, no aqui.
+local function EquipOne(target, state, attempted)
     -- Ya puesto en el slot correcto: nada que hacer.
     local wornId = EZOArmory.Gear.ReadItemId(BAG_WORN, target.equipSlot)
     if wornId ~= nil and wornId == target.itemId then
@@ -108,21 +141,27 @@ local function EquipOne(target, state)
     if type(EquipItem) ~= "function" then return end
 
     EquipItem(location.bag, location.slot, target.equipSlot)
+    attempted[#attempted + 1] = target
+end
 
-    -- Verificacion real releyendo el slot, en vez de contar EquipItem como
-    -- exito solo por haberla llamado: si el combate empieza justo entre el
-    -- chequeo de listo y esta pieza concreta (dentro de un lote largo), la
-    -- llamada no hace nada y sin esta comprobacion se habria informado como
-    -- equipada sin estarlo. Mismo motivo que llevo a verificar el CP contra
-    -- EVENT_CHAMPION_PURCHASE_RESULT en 0.11.14 en vez de darlo por hecho al
-    -- enviar la peticion.
-    local nowWornId = EZOArmory.Gear.ReadItemId(BAG_WORN, target.equipSlot)
-    if nowWornId == target.itemId then
-        state.equipped = state.equipped + 1
-    else
-        local label = target.itemName ~= "" and target.itemName or (target.setName ~= "" and target.setName or target.slotKey)
-        state.failed = state.failed + 1
-        state.failedNames[#state.failedNames + 1] = label
+-- Comprueba, ya con margen, cuales de las piezas pedidas estan realmente
+-- puestas. Se hace en una pasada al final y no justo tras cada EquipItem
+-- porque el cambio no es inmediato (ver EQUIP_VERIFY_DELAY_MS). Sigue
+-- mereciendo la pena verificar: si el combate empieza a mitad del lote, las
+-- peticiones restantes no surten efecto, y sin esto se informaria de piezas
+-- equipadas que no lo estan. Mismo principio que verificar el CP contra
+-- EVENT_CHAMPION_PURCHASE_RESULT (0.11.14) en vez de fiarse del envio.
+local function VerifyEquipped(attempted, state)
+    for _, target in ipairs(attempted) do
+        local wornId = EZOArmory.Gear.ReadItemId(BAG_WORN, target.equipSlot)
+        if wornId ~= nil and wornId == target.itemId then
+            state.equipped = state.equipped + 1
+        else
+            local label = target.itemName ~= "" and target.itemName
+                or (target.setName ~= "" and target.setName or target.slotKey)
+            state.failed = state.failed + 1
+            state.failedNames[#state.failedNames + 1] = label
+        end
     end
 end
 
@@ -164,9 +203,11 @@ function Equip.ApplyKits(kitIds, onReport)
         queued = not Equip.IsReady(),
     }
 
-    if state.queued and type(Equip.onQueued) == "function" then
-        Equip.onQueued()
+    if state.queued then
+        NotifyQueued("combat")
     end
+
+    local attempted = {}
 
     local task = LibAsync:Create("EZOArmory_Equip")
     task:WaitUntil(function()
@@ -183,10 +224,15 @@ function Equip.ApplyKits(kitIds, onReport)
             innerTask:WaitUntil(function()
                 return Equip.IsReady()
             end):Then(function()
-                EquipOne(targets[index], state)
+                EquipOne(targets[index], state, attempted)
             end)
-        end):Then(function()
-            if onReport then onReport(state) end
+        end):Then(function(verifyTask)
+            -- Margen antes de comprobar: las peticiones de equipado que
+            -- acabamos de enviar todavia pueden estar en vuelo.
+            verifyTask:Delay(EQUIP_VERIFY_DELAY_MS, function()
+                VerifyEquipped(attempted, state)
+                if onReport then onReport(state) end
+            end)
         end)
     end)
 
@@ -230,8 +276,8 @@ function Equip.ApplySkillKit(kitId, onReport)
         queued = not Equip.IsReady(),
     }
 
-    if state.queued and type(Equip.onQueued) == "function" then
-        Equip.onQueued()
+    if state.queued then
+        NotifyQueued("combat")
     end
 
     local task = LibAsync:Create("EZOArmory_EquipSkills")
@@ -463,8 +509,8 @@ function Equip.ApplyCpKit(kitId, onReport)
         queued = queuedReason ~= nil,
     }
 
-    if state.queued and type(Equip.onQueued) == "function" then
-        Equip.onQueued(queuedReason)
+    if state.queued then
+        NotifyQueued(queuedReason)
     end
 
     local task = LibAsync:Create("EZOArmory_EquipCp")
