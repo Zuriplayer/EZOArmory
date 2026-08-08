@@ -2,6 +2,32 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.23
+
+- Diagnostics only, no behaviour change: `EVENT_ZONE_CHANGED` is now logged
+  with all five of its values, and the boss trace additionally records the
+  current subzone and the player's world position. Nothing writes to the log
+  unless `debugMode` is on.
+- The question being measured: `EVENT_ZONE_CHANGED` carries a `subZoneId`
+  integer. If a boss room turns out to be its own subzone, that would give
+  both a stable language-independent identifier and - far more valuable - a
+  signal on walking through the door, before combat starts. Today everything
+  waits on `Equip.IsReady()`, so a boss that engages as it spawns defers the
+  whole swap until the fight is over. This is a hypothesis, hence measuring
+  before building anything on it.
+- The same traces record world coordinates whenever a boss appears, so if
+  position-based detection is ever worth doing, the room boxes can be built
+  from our own measurements rather than lifted from another add-on.
+- For reference, how the game itself does it (`esoui/ingame/unitframes/
+  bossbar.lua`): it iterates `boss1..bossN` over
+  `BOSS_RANK_ITERATION_BEGIN..END` with `DoesUnitExist`, listens to
+  `EVENT_BOSSES_CHANGED` and `EVENT_PLAYER_ACTIVATED`, sums health via
+  `GetUnitPower`, and tells the compass with
+  `COMPASS_FRAME:SetBossBarActive`. That is identical to what
+  `Context.state.bossActive` already does - the game has no separate notion of
+  "boss area", and the bar appears when the server assigns the boss unit tags,
+  not when you enter the room. So there is no privileged signal being missed.
+
 ## 0.11.22
 
 - Fix: Dreadsail Reef's first boss was never detected, in any language. The

@@ -53,6 +53,22 @@ local function GetCurrentZoneId()
     return tonumber(zoneId) or 0
 end
 
+-- Posicion completa, solo para las trazas de diagnostico de mas abajo.
+local function DescribePosition()
+    if type(GetUnitWorldPosition) ~= "function" then
+        return "pos=?"
+    end
+    local zoneId, x, y, z = GetUnitWorldPosition("player")
+    return string.format("zone=%s x=%s y=%s z=%s",
+        tostring(zoneId), tostring(x), tostring(y), tostring(z))
+end
+
+-- Ultima subzona vista (EVENT_ZONE_CHANGED). No se persiste: solo sirve para
+-- correlacionar en el log si el cambio de subzona ocurre ANTES de que aparezca
+-- la unidad de boss. Ver el bloque de instrumentacion al final del fichero.
+local lastSubZoneId = nil
+local lastSubZoneName = nil
+
 local function CollectBossNames()
     local names = {}
     if type(GetUnitName) ~= "function" then
@@ -133,14 +149,54 @@ end
 local function OnBossesChanged()
     if RefreshBoss() then
         if EZOArmory.DebugLog then
+            -- Se registran tambien subzona y posicion para poder decidir con
+            -- datos, y no por suposicion, dos cosas: (1) si la sala de un boss
+            -- es una subzona propia -- lo que daria un identificador numerico
+            -- estable Y un aviso ANTES de entrar en combate, que es lo que hoy
+            -- impide equipar a tiempo en un boss que engancha al aparecer; y
+            -- (2) las coordenadas reales de cada sala, por si acaba
+            -- interesando detectar por posicion (medidas por nosotros, no
+            -- copiadas de otro addon).
             EZOArmory.DebugLog(string.format(
-                "Bosses changed: active=%s primary=%s",
+                "Bosses changed: active=%s primary=%s matched=%s subzone=%s(%s) %s",
                 tostring(Context.state.bossActive),
-                tostring(Context.state.primaryBoss)
+                tostring(Context.state.primaryBoss),
+                tostring(Context.state.matchedBoss and Context.state.matchedBoss.key or nil),
+                tostring(lastSubZoneName),
+                tostring(lastSubZoneId),
+                DescribePosition()
             ))
         end
         FireChanged()
     end
+end
+
+-- Instrumentacion de diagnostico: EVENT_ZONE_CHANGED lleva subZoneId, un
+-- entero. Si al cruzar la puerta de la sala de un boss llega un subZoneId
+-- nuevo, tendriamos identificador estable e independiente del idioma y, sobre
+-- todo, aviso anticipado (antes del combate). No cambia ningun comportamiento:
+-- solo anota, y DebugLog ya no escribe nada si debugMode esta apagado.
+local function OnZoneChangedDetail(_, zoneName, subZoneName, newSubzone, zoneId, subZoneId)
+    lastSubZoneId = subZoneId
+    lastSubZoneName = subZoneName
+    if not EZOArmory.DebugLog then return end
+
+    -- Sin "and/or" aqui a proposito: con IsUnitInCombat devolviendo false, el
+    -- atajo caeria en la rama del "?" y el log diria "desconocido" justo en el
+    -- caso que interesa medir (llegar a la sala FUERA de combate).
+    local inCombat = "?"
+    if type(IsUnitInCombat) == "function" then
+        inCombat = tostring(IsUnitInCombat("player"))
+    end
+
+    EZOArmory.DebugLog(string.format(
+        "Zone detail: zone=%s(%s) subzone=%s(%s) new=%s inCombat=%s %s",
+        tostring(zoneName), tostring(zoneId),
+        tostring(subZoneName), tostring(subZoneId),
+        tostring(newSubzone),
+        inCombat,
+        DescribePosition()
+    ))
 end
 
 -- API publica de consulta.
@@ -190,6 +246,11 @@ function Context.Init()
     end
     if type(EVENT_BOSSES_CHANGED) ~= "nil" then
         EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_ContextBoss", EVENT_BOSSES_CHANGED, OnBossesChanged)
+    end
+    -- Solo diagnostico (ver OnZoneChangedDetail): no altera el estado publico
+    -- ni dispara callbacks, unicamente anota subzona y posicion en el log.
+    if type(EVENT_ZONE_CHANGED) ~= "nil" then
+        EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_ContextZoneDetail", EVENT_ZONE_CHANGED, OnZoneChangedDetail)
     end
 
     eventsRegistered = true
