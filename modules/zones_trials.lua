@@ -138,7 +138,14 @@ Z.TRIALS = {
     {
         tag = "DSR", zoneId = 1344, order = 11, name = "Dreadsail Reef",
         bosses = {
-            { key = "lylanar_turlassil", name = "Lylanar and Turlassil", nameEs = "Lylanar y Turlassil" },
+            -- La unidad boss1 se llama solo "Lylanar" (igual en ingles y en
+            -- espanol); "Lylanar and Turlassil" es el nombre del encuentro,
+            -- no el de la unidad. Por eso van separados: "name" es contra lo
+            -- que se compara GetUnitName y "label" es lo que se muestra. WW
+            -- hace la misma distincion (name vs displayName). Antes se
+            -- comparaba contra el nombre del encuentro y este boss no se
+            -- detectaba nunca, en ningun idioma.
+            { key = "lylanar_turlassil", name = "Lylanar", label = "Lylanar and Turlassil" },
             { key = "reef_guardian", name = "Reef Guardian", nameEs = "Guardián del arrecife" },
             { key = "taleria", name = "Tideborn Taleria", nameEs = "Taleria Nacida de las mareas" },
             -- Minibosses. Sin ellos se resolvian como "trash" y recibian la
@@ -248,10 +255,14 @@ function Z.GetLearnedBossName(trialTag, bossKey)
     return perTrial and perTrial[bossKey] or nil
 end
 
--- Nombre a mostrar en la interfaz: lo aprendido manda, porque es lo que el
--- jugador lee de verdad en su pantalla.
+-- Nombre a mostrar en la interfaz. "label" manda cuando existe: solo se pone
+-- donde el nombre de la unidad no describe bien el encuentro (Lylanar, que es
+-- realmente "Lylanar and Turlassil"), y ahi la etiqueta identifica mejor el
+-- objetivo en una lista de asignaciones. Si no hay label, lo aprendido, que
+-- es lo que el jugador lee de verdad en su pantalla.
 function Z.GetBossLabel(trial, boss)
     if not boss then return "" end
+    if boss.label then return boss.label end
     local learned = trial and Z.GetLearnedBossName(trial.tag, boss.key)
     return learned or boss.name or tostring(boss.key)
 end

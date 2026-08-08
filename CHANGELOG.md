@@ -2,6 +2,22 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.22
+
+- Fix: Dreadsail Reef's first boss was never detected, in any language. The
+  boss1 unit is called just "Lylanar" (same in English and Spanish);
+  "Lylanar and Turlassil" is the name of the *encounter*, not of the unit, and
+  that is what the table was matching `GetUnitName()` against. Boss entries now
+  separate the two: `name` is what gets compared, `label` is what gets shown.
+  Wizard's Wardrobe draws the same distinction (`name` vs `displayName`), which
+  is how the mismatch turned up.
+- Checked every trial boss against Wizard's Wardrobe's tables, entry by entry:
+  with 0.11.21's four minibosses added, all 14 trials now match exactly, so no
+  trial boss is missing. Halls of Fabrication was worth confirming for the same
+  reason as Lylanar - it also has display names that differ from unit names
+  ("Hunter-Killer" for Hunter-Killer Negatrix, "Commitee" for Reactor) - and
+  our entries already used the unit names, so they were correct.
+
 ## 0.11.21
 
 - Fix: four minibosses were missing from the trial tables, so they resolved to
