@@ -61,10 +61,22 @@ end
 
 -- Construye la lista de objetivos a partir del analisis de coherencia de unos
 -- kits: para cada slot asignado, el item concreto y su constante de equip slot.
+--
+-- El resultado se ORDENA por el orden canonico de Gear.SLOT_DEFS (armadura,
+-- joyeria, armas). Antes se recorria assignment con pairs(), que en Lua no
+-- garantiza ningun orden y puede variar entre ejecuciones: con piezas que se
+-- intercambian de slot (los dos anillos, un arma que pasa de barra frontal a
+-- trasera) el resultado dependia del orden y por eso a veces hacia falta
+-- repetir el equipado. WW usa igualmente una lista fija (WW.GEARSLOTS).
 local function BuildTargets(analysis)
     local targets = {}
     if not analysis or not analysis.assignment then
         return targets
+    end
+
+    local rank = {}
+    for index, def in ipairs(EZOArmory.Gear.SLOT_DEFS) do
+        rank[def.key] = index
     end
 
     for slotKey, piece in pairs(analysis.assignment) do
@@ -80,6 +92,10 @@ local function BuildTargets(analysis)
             }
         end
     end
+
+    table.sort(targets, function(a, b)
+        return (rank[a.slotKey] or 99) < (rank[b.slotKey] or 99)
+    end)
     return targets
 end
 
@@ -106,6 +122,12 @@ end
 -- si se estaba equipando.
 local EQUIP_VERIFY_DELAY_MS = 600
 
+-- Margen tras mover una pieza que ya estaba puesta en otro slot de equipo.
+-- Ese caso reubica dos slots a la vez (lo que estaba en el destino sale), y sin
+-- margen la pieza siguiente puede localizarse en una posicion que el juego
+-- todavia no ha actualizado. Mismo valor que usa WW para el equivalente.
+local WORN_SWAP_SETTLE_MS = 500
+
 -- Equipa un objetivo. Muta el contador de estado. Las piezas que se llegan a
 -- pedir se apuntan en "attempted" para comprobarlas al final, no aqui.
 local function EquipOne(target, state, attempted)
@@ -130,18 +152,30 @@ local function EquipOne(target, state, attempted)
         return
     end
 
-    if location.bag == BAG_WORN then
-        -- La pieza exacta esta puesta en otro slot (tipico con los dos anillos).
-        -- Reubicarla entre slots de equipo es un caso aparte; se deja para la
-        -- fase de la ventana. Por ahora se cuenta y no se toca.
-        state.wornElsewhere = state.wornElsewhere + 1
-        return
-    end
-
     if type(EquipItem) ~= "function" then return end
+
+    -- location.bag puede ser BAG_WORN: la pieza esta puesta, pero en OTRO slot
+    -- de equipo (los dos anillos intercambiados, un arma que pasa de la barra
+    -- frontal a la trasera). Hasta 0.11.23 ese caso solo se contaba como
+    -- "wornElsewhere" y no se tocaba, asi que la pieza de la build anterior se
+    -- quedaba puesta en el slot de destino: es la causa principal de tener que
+    -- repetir el equipado varias veces. EquipItem acepta BAG_WORN como origen
+    -- y hace el intercambio; verificado contra Wizard's Wardrobe en
+    -- produccion, cuyo GetItemLocation recorre { BAG_WORN, BAG_BACKPACK } y
+    -- pasa lo que encuentre directamente a EquipItem.
+    local fromWorn = location.bag == BAG_WORN
+    if fromWorn then
+        state.wornElsewhere = state.wornElsewhere + 1
+    end
 
     EquipItem(location.bag, location.slot, target.equipSlot)
     attempted[#attempted + 1] = target
+    -- Devuelve si el origen era equipo puesto: en ese caso el intercambio
+    -- reubica DOS slots y conviene dejar un margen antes de seguir, o la
+    -- siguiente pieza puede localizarse en un sitio que ya no es el suyo. WW
+    -- hace lo mismo para el caso mano principal -> respaldo ("Be sure to give
+    -- enough time so backbar can find new location").
+    return fromWorn
 end
 
 -- Comprueba, ya con margen, cuales de las piezas pedidas estan realmente
@@ -223,8 +257,14 @@ function Equip.ApplyKits(kitIds, onReport)
         innerTask:For(1, #targets):Do(function(index)
             innerTask:WaitUntil(function()
                 return Equip.IsReady()
-            end):Then(function()
-                EquipOne(targets[index], state, attempted)
+            end):Then(function(pieceTask)
+                if EquipOne(targets[index], state, attempted) then
+                    -- Solo cuando la pieza venia de otro slot de equipo: ese
+                    -- intercambio mueve dos slots a la vez y la siguiente
+                    -- pieza necesita que el juego haya asentado las
+                    -- posiciones antes de localizarla.
+                    pieceTask:Delay(WORN_SWAP_SETTLE_MS, function() end)
+                end
             end)
         end):Then(function(verifyTask)
             -- Margen antes de comprobar: las peticiones de equipado que
@@ -419,6 +459,19 @@ local function SendAndVerifyCp(diffs, state, attempt, onReport)
         settled = true
         EVENT_MANAGER:UnregisterForEvent(eventNamespace, EVENT_CHAMPION_PURCHASE_RESULT)
 
+        -- El resultado numerico del servidor es la unica pista fiable de por
+        -- que una peticion no ha surtido efecto, y hasta ahora no quedaba
+        -- registrado en ningun sitio: si no era exito, se contaba como omitida
+        -- y se perdia el motivo.
+        if EZOArmory.DebugLog then
+            EZOArmory.DebugLog(string.format(
+                "CP result: attempt=%d diffs=%d result=%s (success=%s cooldown=%s inCombat=%s)",
+                attempt, #diffs, tostring(result),
+                tostring(CHAMPION_PURCHASE_SUCCESS),
+                tostring(CHAMPION_PURCHASE_CHAMPION_BAR_ON_COOLDOWN),
+                tostring(CHAMPION_PURCHASE_IN_COMBAT)))
+        end
+
         if result == CHAMPION_PURCHASE_SUCCESS then
             state.slotted = state.slotted + #diffs
             if onReport then onReport(state) end
@@ -541,9 +594,20 @@ function Equip.ApplyCpKit(kitId, onReport)
                         state.skippedNames[#state.skippedNames + 1] =
                             (okName and name and name ~= "") and zo_strformat("<<C:1>>", name)
                             or tostring(starId)
+                        if EZOArmory.DebugLog then
+                            EZOArmory.DebugLog(string.format(
+                                "CP skip: slot=%d star=%d slottable=%s spent=%s",
+                                slot, starId, tostring(slottable), tostring(spent)))
+                        end
                     end
                 end
             end
+        end
+
+        if EZOArmory.DebugLog then
+            EZOArmory.DebugLog(string.format(
+                "CP apply: kit=%s diffs=%d already=%d skipped=%d cooldown=%d",
+                tostring(kitId), #diffs, state.already, state.skipped, cpCooldownRemaining))
         end
 
         SendAndVerifyCp(diffs, state, 1, onReport)

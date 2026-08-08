@@ -75,14 +75,15 @@ local function ApplyResolved(resolved)
             EZOArmory.WindowBuilds.ReportEquipPart(part, state)
         end
         -- Un fallo real de equipado (EquipItem no surtio efecto pese a
-        -- localizar la pieza, tipico si el combate empezo a mitad del lote;
-        -- o una pieza puesta en el slot equivocado, sin resolver todavia)
+        -- localizar la pieza, tipico si el combate empezo a mitad del lote)
         -- invalida el seguro de "no repetir": el siguiente cambio de
         -- contexto debe poder reintentarlo. Sin esto, un fallo transitorio
         -- se quedaria a medias para siempre hasta el proximo cambio de zona.
         -- "Falta en la mochila" NO cuenta aqui: reintentar no arregla eso,
-        -- hace falta que el jugador consiga la pieza.
-        if part == "gear" and ((state.failed or 0) > 0 or (state.wornElsewhere or 0) > 0) then
+        -- hace falta que el jugador consiga la pieza. wornElsewhere tampoco:
+        -- desde 0.11.24 esas piezas SI se mueven, asi que es un dato
+        -- informativo del intercambio, no un fallo.
+        if part == "gear" and (state.failed or 0) > 0 then
             if resolved.buildId == lastAppliedBuildId then
                 lastAppliedBuildId = nil
             end

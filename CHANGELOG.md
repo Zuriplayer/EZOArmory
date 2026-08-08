@@ -2,6 +2,39 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.24
+
+- Fix: a piece already worn in a *different* equip slot was never moved. It was
+  counted as `wornElsewhere` and skipped, with a comment deferring the case -
+  so the previous build's piece stayed in the destination slot. This is the
+  main reason a build could need several attempts to apply: it hits the two
+  rings swapping places, and a weapon moving between the front and back bar.
+  `EquipItem` accepts `BAG_WORN` as the source and performs the swap, verified
+  against Wizard's Wardrobe in production (its `GetItemLocation` walks
+  `{ BAG_WORN, BAG_BACKPACK }` and feeds whatever it finds straight to
+  `EquipItem`).
+- Fix: gear was equipped in non-deterministic order. `BuildTargets` iterated the
+  assignment with `pairs()`, which guarantees no ordering in Lua and can differ
+  between runs - so with pieces swapping slots the outcome depended on the
+  order, which is why it sometimes worked and sometimes didn't. Targets are now
+  sorted by the canonical `Gear.SLOT_DEFS` order (armour, jewellery, weapons),
+  the same approach as WW's fixed `WW.GEARSLOTS` list.
+- A 500 ms settle margin is left after moving a piece that came from another
+  equip slot, since that swap relocates two slots at once and the next piece
+  would otherwise be looked up against positions the game hasn't updated yet.
+  Same value WW uses for the equivalent case.
+- `wornElsewhere` now means "moved from another equip slot", not "skipped", so
+  auto-equip no longer treats it as a failure worth clearing its guard for.
+- Champion points: added diagnostics rather than a speculative fix. The number
+  of diffs, the current cooldown, each skipped star with the reason
+  (`slottable`/`spent`), and the raw server result code are now logged, since
+  the result code was the one reliable clue and it was being discarded.
+- Ruled out while investigating: sending only the changed CP slots is correct
+  and matches the game itself - `ZO_ChampionAssignableActionBarSlot`
+  `:CollectUnsavedChanges` only calls
+  `AddHotbarSlotToChampionPurchaseRequest` when a slot has unsaved changes. WW
+  sends all twelve, which is the outlier, not us.
+
 ## 0.11.23
 
 - Diagnostics only, no behaviour change: `EVENT_ZONE_CHANGED` is now logged
