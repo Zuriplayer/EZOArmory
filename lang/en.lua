@@ -194,7 +194,8 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_ISSUE_UNKNOWN_SLOT = "Unknown slot in the kit <<1>>: <<2>>.",
     EZOARM_AUTONAME_CP = "CP",
 
-    EZOARM_OPTION_ASSIGN_TRIAL = "Trial",
+    EZOARM_OPTION_ASSIGN_TRIAL = "Trial / Arena",
+    EZOARM_ASSIGN_ARENAS_SEPARATOR = "──────  Arenas  ──────",
     EZOARM_OPTION_ASSIGN_TARGET = "Target",
     EZOARM_TARGET_DEFAULT = "Trial default (fallback)",
     EZOARM_TARGET_TRASH = "Trash",
@@ -203,7 +204,7 @@ EZOARMORY_STRINGS_EN = {
 
     EZOARM_OPTION_EQUIP_TARGET = "Equip this target's kits",
     EZOARM_OPTION_EQUIP_HERE = "Equip for my current location",
-    EZOARM_MSG_EQUIP_NO_TRIAL = "You are not in a trial right now.",
+    EZOARM_MSG_EQUIP_NO_TRIAL = "You are not in a trial or arena right now.",
     EZOARM_MSG_EQUIP_NO_ASSIGNMENT = "No kits assigned for here in <<1>> (and no trial default).",
 
     EZOARM_OPTION_LEARN_BOSS = "Learn this boss",

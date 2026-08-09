@@ -2,6 +2,34 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.27
+
+- Add: arenas can now have builds assigned per target, exactly like trials -
+  Dragonstar Arena, Maelstrom Arena, Blackrose Prison and Vateshran Hollows.
+  They appear in the Assign tab's zone dropdown below the trials, separated by
+  a divider line.
+- They share the trials' dropdown rather than getting a block of their own
+  because the panel already uses roughly 350 of its ~470 usable pixels;
+  duplicating the three controls (zone, target, build) would not fit without
+  cramping everything. Sharing also means the rest of the panel - target,
+  build, summary - serves both without duplication.
+- `Zones.ARENAS` uses the same shape as `Zones.TRIALS`, and both feed the same
+  tag/zoneId indexes, so assignments, inheritance from the trial default,
+  `ResolveForTarget` and live context detection all work unchanged.
+- Zone ids verified from two independent sources: BanditsUserInterface's zone
+  table (in production) and, for Blackrose, Wizard's Wardrobe's `zones/BRP.lua`
+  (`id = 1082`). The twelve trials both lists share also match ours exactly,
+  which is what gives confidence in the rest.
+- **Only Blackrose ships boss names**, because they are the only ones
+  verifiable (WW defines and translates them). Dragonstar, Maelstrom and
+  Vateshran deliberately ship with no boss list rather than invented data: in
+  those three you can assign `default` and `trash`, which covers most of the
+  use, and per-boss entries can be added once real names are confirmed.
+- For substitute builds an arena deliberately does *not* count as a trial, so
+  the "Trials" switch doesn't silently govern arenas; they resolve by actual
+  zone type instead. Explicit arena assignments are unaffected - those resolve
+  earlier.
+
 ## 0.11.26
 
 - Fix: applying a CP kit has been broken since 0.11.14 whenever it actually had

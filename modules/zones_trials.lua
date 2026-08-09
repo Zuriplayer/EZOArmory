@@ -194,12 +194,67 @@ Z.TRIALS = {
     },
 }
 
--- Indices de busqueda construidos una sola vez.
+-- ------------------------------------------------------------- Arenas ----
+--
+-- Misma estructura que TRIALS a proposito: asi toda la maquinaria existente
+-- (buildAssignments por tag, herencia desde el default, ResolveForTarget,
+-- deteccion de contexto) vale igual sin tocar nada. Lo unico que las
+-- distingue es "category", que usa la interfaz para listarlas aparte.
+--
+-- zoneId verificados por doble fuente: la tabla de zonas de
+-- BanditsUserInterface (BUI_Events.lua, en produccion) y, para Blackrose,
+-- tambien Wizard's Wardrobe (zones/BRP.lua, id = 1082). Las 12 trials que
+-- ambas listas comparten coinciden ademas con las de arriba, lo que da
+-- confianza en el resto de la lista.
+--
+-- SOLO Blackrose trae bosses: son los unicos verificables (WW los define y
+-- traduce). Maelstrom, Vateshran y Dragonstar se quedan sin lista de bosses
+-- porque NO tengo sus nombres verificados y no se inventan: en esas tres se
+-- puede asignar "default" y "trash", que es lo que cubre la mayor parte del
+-- uso, y los bosses concretos se pueden ir aprendiendo (boton "aprender este
+-- boss") cuando se anadan a la tabla.
+Z.ARENAS = {
+    {
+        tag = "DSA", zoneId = 635, order = 1, name = "Dragonstar Arena",
+        category = "arena", bosses = {},
+    },
+    {
+        tag = "MSA", zoneId = 677, order = 2, name = "Maelstrom Arena",
+        category = "arena", bosses = {},
+    },
+    {
+        tag = "BRP", zoneId = 1082, order = 3, name = "Blackrose Prison",
+        category = "arena",
+        bosses = {
+            { key = "ennodius", name = "Battlemage Ennodius", nameEs = "Hechicero de Batalla Ennodius" },
+            { key = "tames_the_beast", name = "Tames-The-Beast", nameEs = "Domador de Bestias" },
+            { key = "minara", name = "Lady Minara" },
+            { key = "all_of_them", name = "All of them", nameEs = "Todos ellos" },
+            { key = "drakeeh", name = "Drakeeh the Unchained", nameEs = "Drakeeh el Desencadenado" },
+        },
+    },
+    {
+        tag = "VH", zoneId = 1227, order = 4, name = "Vateshran Hollows",
+        category = "arena", bosses = {},
+    },
+}
+
+-- Marca de categoria en las trials, para que la interfaz pueda separarlas de
+-- las arenas sin depender de en que tabla estan.
+for _, trial in ipairs(Z.TRIALS) do
+    trial.category = trial.category or "trial"
+end
+
+-- Indices de busqueda construidos una sola vez. Incluyen trials Y arenas: los
+-- tags son unicos entre las dos listas, asi que un solo indice basta y todo lo
+-- que resuelve por tag o por zoneId funciona igual para ambas.
 Z._byZoneId = {}
 Z._byTag = {}
-for _, trial in ipairs(Z.TRIALS) do
-    Z._byZoneId[trial.zoneId] = trial
-    Z._byTag[trial.tag] = trial
+for _, list in ipairs({ Z.TRIALS, Z.ARENAS }) do
+    for _, zone in ipairs(list) do
+        Z._byZoneId[zone.zoneId] = zone
+        Z._byTag[zone.tag] = zone
+    end
 end
 
 function Z.GetTrialByZoneId(zoneId)
@@ -214,6 +269,10 @@ end
 
 function Z.IsTrialZone(zoneId)
     return Z.GetTrialByZoneId(zoneId) ~= nil
+end
+
+function Z.IsArena(zone)
+    return zone ~= nil and zone.category == "arena"
 end
 
 -- ------------------------------------------- Nombres de boss aprendidos ----

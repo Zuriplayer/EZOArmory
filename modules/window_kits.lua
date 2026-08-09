@@ -1088,13 +1088,40 @@ local function PopulateCombo(comboControl, labels, values, currentValue, onSelec
     combo:SetSelectedItemText(selectedLabel or "")
 end
 
+-- Valor de la entrada separadora entre trials y arenas. No es una zona: al
+-- elegirla no pasa nada, solo esta ahi para partir visualmente la lista.
+local ASSIGN_ZONE_SEPARATOR = "__separator__"
+
+-- Trials primero y arenas despues, con una linea de separacion entre medias.
+-- Van en el MISMO desplegable en vez de en un bloque aparte porque el panel ya
+-- ocupa unos 350 de los ~470 px utiles, y duplicar los tres controles (zona,
+-- objetivo y build) no cabria sin apretarlo todo. Al compartir desplegable,
+-- ademas, el resto del panel (objetivo, build, resumen) sirve igual para las
+-- dos cosas sin duplicar nada.
 local function PopulateTrialCombo()
     local labels, values = {}, {}
     for _, trial in ipairs(EZOArmory.Zones.TRIALS) do
         labels[#labels + 1] = trial.name
         values[#values + 1] = trial.tag
     end
+
+    local arenas = EZOArmory.Zones.ARENAS or {}
+    if #arenas > 0 then
+        labels[#labels + 1] = GetString(EZOARM_ASSIGN_ARENAS_SEPARATOR)
+        values[#values + 1] = ASSIGN_ZONE_SEPARATOR
+        for _, arena in ipairs(arenas) do
+            labels[#labels + 1] = arena.name
+            values[#values + 1] = arena.tag
+        end
+    end
+
     PopulateCombo(WK.assignTrialCombo, labels, values, WK.state.assignTrialTag, function(value)
+        -- La linea separadora no selecciona nada: se ignora y se deja la zona
+        -- que ya estuviera elegida.
+        if value == ASSIGN_ZONE_SEPARATOR then
+            WK.RefreshAssignPanel()
+            return
+        end
         WK.state.assignTrialTag = value
         WK.state.assignTargetKey = ASSIGN_TARGET_DEFAULT
         WK.RefreshAssignPanel()

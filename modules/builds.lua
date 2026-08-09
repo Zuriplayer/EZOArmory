@@ -738,7 +738,16 @@ function Builds.ResolveForCurrentContext(role)
         end
     end
 
-    local buildId, kind = Builds.ResolveSubstitute(role, context.trial ~= nil, context.bossActive == true)
+    -- Para la sustituta, una ARENA no cuenta como trial: si contase, el
+    -- interruptor "Trials" gobernaria tambien las arenas, que es
+    -- contraintuitivo. Al no contar, se resuelven por el tipo de zona real
+    -- (GetCurrentZoneDungeonDifficulty), que es lo natural para contenido
+    -- instanciado. Las asignaciones explicitas de arena no se ven afectadas:
+    -- esas ya se han resuelto arriba, antes de llegar aqui.
+    local isTrial = context.trial ~= nil
+        and not (EZOArmory.Zones and EZOArmory.Zones.IsArena and EZOArmory.Zones.IsArena(context.trial))
+
+    local buildId, kind = Builds.ResolveSubstitute(role, isTrial, context.bossActive == true)
     if buildId then
         return { kind = "substitute", buildId = buildId, substituteKind = kind }
     end
