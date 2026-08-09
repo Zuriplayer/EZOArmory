@@ -2,6 +2,23 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.30
+
+- Vateshran Hollows now ships its four bosses - The Pyrelord, Maebroogha the
+  Void Lich, Shade of the Grove and Rahdgarak - confirmed from a real run:
+  0.11.29's discovery found and recorded them with the exact names
+  `GetUnitName` returns. Fixing them in the table means they don't have to be
+  rediscovered on every character.
+- Recorded while confirming it: Vateshran's round enemies are **not** declared
+  as `bossN` units, so they never arrive through `EVENT_BOSSES_CHANGED` and
+  cannot be classified as minibosses - only those four bosses come through that
+  way. The miniboss tier still applies where the game does mark them, which
+  includes the trial minibosses added in 0.11.21 (Dreadsail Reef's Sail Ripper
+  and Bow Breaker, Rockgrove's Basks-In-Snakes and Ash Titan). This is the same
+  limitation Wizard's Wardrobe warns about for its substitute setups: outside
+  trials, boss detection depends on the zone declaring its bosses, and not
+  every zone does.
+
 ## 0.11.29
 
 - Add: minibosses are now a distinct target level. Every zone offers three

@@ -235,7 +235,21 @@ Z.ARENAS = {
     },
     {
         tag = "VH", zoneId = 1227, order = 4, name = "Vateshran Hollows",
-        category = "arena", bosses = {},
+        category = "arena",
+        -- Confirmados en juego (0.11.29 los descubrio solo y quedaron
+        -- registrados con el nombre exacto que devuelve GetUnitName): los tres
+        -- bosses de camino mas el final. Se fijan aqui para que no haya que
+        -- volver a descubrirlos en cada personaje.
+        --
+        -- Los enemigos de ronda de esta arena NO se declaran como unidades
+        -- bossN, asi que no aparecen por EVENT_BOSSES_CHANGED y no se pueden
+        -- distinguir como minibosses; solo estos cuatro llegan por esa via.
+        bosses = {
+            { key = "pyrelord", name = "The Pyrelord" },
+            { key = "maebroogha", name = "Maebroogha the Void Lich" },
+            { key = "shade_of_the_grove", name = "Shade of the Grove" },
+            { key = "rahdgarak", name = "Rahdgarak" },
+        },
     },
 }
 
