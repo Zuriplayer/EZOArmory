@@ -20,6 +20,11 @@ local Kits = EZOArmory.Kits
 
 Kits.ROLES = { "dd", "tank", "healer" }
 Kits.TARGET_TRASH = "trash"
+-- Objetivo generico para minibosses: lo que el juego marca como
+-- MONSTER_DIFFICULTY_HARD (las flechas del marco) en vez de DEADLY (la
+-- calavera). Ver Zones.GetBossTierForUnit. Se resuelve cuando hay un miniboss
+-- delante y ese miniboss concreto no tiene build propia asignada.
+Kits.TARGET_MINI = "mini"
 
 local function Store()
     local sv = EZOArmory.sv

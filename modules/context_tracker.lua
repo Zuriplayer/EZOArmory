@@ -27,6 +27,7 @@ Context.state = Context.state or {
     bossNames = {},     -- lista de nombres de boss presentes (idioma del cliente)
     primaryBoss = nil,  -- primer nombre de boss no vacio
     matchedBoss = nil,  -- {key, name} de la trial si el nombre coincide, o nil
+    bossTier = nil,     -- "mini" | "boss" segun GetUnitDifficulty, o nil
 }
 
 local callbacks = {}
@@ -120,11 +121,49 @@ local function RefreshBoss()
     local matched = nil
     if Context.state.trial and primary and Zones then
         matched = Zones.FindBossByName(Context.state.trial, primary)
+
+        -- Descubrimiento: un boss que aparece en una zona conocida y no se
+        -- reconoce se apunta con el nombre EXACTO de este cliente y con su
+        -- nivel (mini o boss) leido del motor. Asi la lista de objetivos se
+        -- puebla jugando, sin depender de tablas de nombres traducidos -- que
+        -- para las arenas no existen completas en ninguna fuente fiable.
+        if not matched and Zones.DiscoverBoss then
+            -- Se busca el tag concreto cuyo nombre coincide, porque el nivel
+            -- hay que leerlo de ESA unidad y no siempre es boss1.
+            local unitTag = "boss1"
+            local maxBosses = (type(BOSS_RANK_ITERATION_END) == "number" and BOSS_RANK_ITERATION_END) or 6
+            for index = 1, maxBosses do
+                local candidate = "boss" .. tostring(index)
+                if GetUnitName(candidate) == primary then
+                    unitTag = candidate
+                    break
+                end
+            end
+
+            local tier = Zones.GetBossTierForUnit(unitTag)
+            if Zones.DiscoverBoss(Context.state.trial.tag, primary, tier) then
+                if EZOArmory.DebugLog then
+                    EZOArmory.DebugLog(string.format(
+                        "Boss discovered: zone=%s name=%s tier=%s",
+                        tostring(Context.state.trial.tag), tostring(primary), tostring(tier)))
+                end
+            end
+            matched = Zones.FindBossByName(Context.state.trial, primary)
+        end
     end
     if matched ~= Context.state.matchedBoss then
         changed = true
     end
     Context.state.matchedBoss = matched
+
+    -- Nivel del boss presente, para poder resolver los objetivos genericos
+    -- "mini" y "boss" aunque no haya asignacion para ese boss concreto.
+    if Context.state.bossActive and Zones and Zones.GetBossTierForUnit then
+        Context.state.bossTier = (matched and matched.tier)
+            or Zones.GetBossTierForUnit("boss1")
+    else
+        Context.state.bossTier = nil
+    end
 
     return changed
 end

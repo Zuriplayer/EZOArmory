@@ -37,6 +37,12 @@ function EZOArmory.savedVars.Init()
         -- invalida las asignaciones: como mucho hay que volver a aprender el
         -- nombre. Ver modules/zones_trials.lua.
         bossNames = {},
+        -- Bosses vistos jugando en zonas conocidas:
+        -- discoveredBosses[zoneTag][key] = { name, tier }. "tier" es "mini" o
+        -- "boss" segun MONSTER_DIFFICULTY, que es como los distingue el propio
+        -- juego en el marco del objetivo. Se rellena solo; ver
+        -- modules/zones_trials.lua.
+        discoveredBosses = {},
         -- Ventana emergente (HUD). Posicion y aspecto. x/y NO llevan valor por
         -- defecto a proposito: window.lua los usa como senal de "nunca se ha
         -- movido" (SetAnchor CENTER en vez de TOPLEFT+x,y). Si aqui llevaran 0,

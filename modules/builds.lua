@@ -614,6 +614,10 @@ end
 
 Builds.SUBSTITUTE_TRASH = "trash"
 Builds.SUBSTITUTE_BOSS = "boss"
+-- Tercer nivel: miniboss. El juego los distingue de los bosses principales por
+-- MONSTER_DIFFICULTY (ver Zones.GetBossTierForUnit), asi que la sustituta
+-- puede seguir esa misma division en vez de meterlos todos en "boss".
+Builds.SUBSTITUTE_MINI = "mini"
 
 local SUBSTITUTE_DEFAULTS = {
     enabled = false,
@@ -649,7 +653,8 @@ end
 function Builds.SetSubstitute(role, kind, buildId)
     local sv = Store()
     if not sv or not IsValidRole(role) then return false end
-    if kind ~= Builds.SUBSTITUTE_TRASH and kind ~= Builds.SUBSTITUTE_BOSS then
+    if kind ~= Builds.SUBSTITUTE_TRASH and kind ~= Builds.SUBSTITUTE_BOSS
+        and kind ~= Builds.SUBSTITUTE_MINI then
         return false
     end
     local profile = EnsureProfile(sv, role)
@@ -704,12 +709,27 @@ local function SubstituteAllowedHere(inTrial)
     return settings.overland == true
 end
 
--- Build sustituta aplicable ahora mismo, o nil. bossActive decide cual de las
--- dos; el tipo de zona decide si se usa alguna.
-function Builds.ResolveSubstitute(role, inTrial, bossActive)
+-- Build sustituta aplicable ahora mismo, o nil. El nivel del boss presente
+-- decide cual de las tres; el tipo de zona decide si se usa alguna.
+--
+-- Con un miniboss delante se prueba primero la sustituta de miniboss y, si no
+-- hay ninguna configurada, se cae a la de boss: quien no quiera distinguir
+-- niveles no tiene que configurar nada nuevo y sigue funcionando como antes.
+function Builds.ResolveSubstitute(role, inTrial, bossActive, bossTier)
     if not SubstituteAllowedHere(inTrial) then return nil end
-    local kind = bossActive and Builds.SUBSTITUTE_BOSS or Builds.SUBSTITUTE_TRASH
-    return Builds.GetSubstitute(role, kind), kind
+
+    if not bossActive then
+        return Builds.GetSubstitute(role, Builds.SUBSTITUTE_TRASH), Builds.SUBSTITUTE_TRASH
+    end
+
+    if bossTier == Builds.SUBSTITUTE_MINI then
+        local miniId = Builds.GetSubstitute(role, Builds.SUBSTITUTE_MINI)
+        if miniId then
+            return miniId, Builds.SUBSTITUTE_MINI
+        end
+    end
+
+    return Builds.GetSubstitute(role, Builds.SUBSTITUTE_BOSS), Builds.SUBSTITUTE_BOSS
 end
 
 -- Que corresponde equipar en el sitio exacto donde estas ahora mismo, incluida
@@ -730,11 +750,34 @@ function Builds.ResolveForCurrentContext(role)
     -- sustituta bloqueaba el auto-equipado entero en cualquier trial con
     -- asignaciones viejas sin migrar, aunque hubiera una sustituta valida
     -- configurada.
+    -- Orden de preferencia: el boss concreto, luego el objetivo generico que
+    -- corresponda a su nivel (mini o boss), y por ultimo trash. Asi un
+    -- miniboss sin build propia usa la de "mini" en vez de caer directamente
+    -- en la de trash, que es lo que pasaba antes de distinguir niveles.
     if context.trial then
-        local targetKey = context.matchedBoss and context.matchedBoss.key or EZOArmory.Kits.TARGET_TRASH
-        local resolved = Builds.ResolveForTarget(role, context.trial.tag, targetKey)
-        if resolved and resolved.kind == "build" then
-            return resolved
+        local candidates = {}
+        if context.matchedBoss then
+            candidates[#candidates + 1] = context.matchedBoss.key
+        end
+        if context.bossActive then
+            if context.bossTier == EZOArmory.Zones.BOSS_TIER_MINI then
+                candidates[#candidates + 1] = EZOArmory.Kits.TARGET_MINI
+            end
+        else
+            candidates[#candidates + 1] = EZOArmory.Kits.TARGET_TRASH
+        end
+        -- Sin boss delante ya se ha anadido trash; con boss delante, si no hay
+        -- nada mas especifico, tambien vale como ultimo recurso el default de
+        -- la zona, que ResolveForTarget ya aplica por herencia.
+        if #candidates == 0 then
+            candidates[#candidates + 1] = EZOArmory.Kits.TARGET_TRASH
+        end
+
+        for _, targetKey in ipairs(candidates) do
+            local resolved = Builds.ResolveForTarget(role, context.trial.tag, targetKey)
+            if resolved and resolved.kind == "build" then
+                return resolved
+            end
         end
     end
 
@@ -747,7 +790,8 @@ function Builds.ResolveForCurrentContext(role)
     local isTrial = context.trial ~= nil
         and not (EZOArmory.Zones and EZOArmory.Zones.IsArena and EZOArmory.Zones.IsArena(context.trial))
 
-    local buildId, kind = Builds.ResolveSubstitute(role, isTrial, context.bossActive == true)
+    local buildId, kind = Builds.ResolveSubstitute(
+        role, isTrial, context.bossActive == true, context.bossTier)
     if buildId then
         return { kind = "substitute", buildId = buildId, substituteKind = kind }
     end

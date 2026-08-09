@@ -275,6 +275,105 @@ function Z.IsArena(zone)
     return zone ~= nil and zone.category == "arena"
 end
 
+-- --------------------------------------- Boss principal vs miniboss ----
+--
+-- COMO LO DISTINGUE EL JUEGO (verificado, no es una convencion nuestra):
+-- GetUnitDifficulty(unitTag) devuelve UIMonsterDifficulty, y el marco del
+-- objetivo se pinta segun ese valor en
+-- esoui/ingame/unitframes/unitframes.lua:1683-1705:
+--   MONSTER_DIFFICULTY_HARD   -> targetUnitFrame_bracket_level3 (las flechas)
+--   MONSTER_DIFFICULTY_DEADLY -> targetUnitFrame_bracket_level4 (la calavera)
+-- Es decir, la diferencia que se ve en pantalla entre un miniboss y un boss
+-- principal sale de ese dato del motor. Por eso se clasifica con el, en vez de
+-- mantener a mano una lista de "cual es mini", que envejeceria con cada parche
+-- y ademas no existe publicada en ningun sitio fiable para las arenas.
+Z.BOSS_TIER_MINI = "mini"
+Z.BOSS_TIER_BOSS = "boss"
+
+function Z.GetBossTierForUnit(unitTag)
+    if type(GetUnitDifficulty) ~= "function" then
+        return Z.BOSS_TIER_BOSS
+    end
+    local ok, difficulty = pcall(GetUnitDifficulty, unitTag)
+    if not ok then return Z.BOSS_TIER_BOSS end
+
+    -- Solo DEADLY cuenta como boss principal. Cualquier otra cosa que llegue
+    -- marcada como bossN (HARD y por debajo) es un miniboss.
+    if MONSTER_DIFFICULTY_DEADLY ~= nil and difficulty == MONSTER_DIFFICULTY_DEADLY then
+        return Z.BOSS_TIER_BOSS
+    end
+    return Z.BOSS_TIER_MINI
+end
+
+-- ------------------------------------------------ Bosses descubiertos ----
+--
+-- Las arenas no tienen publicada en ningun sitio fiable una lista completa de
+-- bosses, y los nombres traducidos que si se encuentran (Wizard's Wardrobe,
+-- CrutchAlerts) traen los sufijos de genero de ESO ("^M", "^f") que
+-- GetUnitName NO devuelve, ademas de usar formas distintas. Perseguir esas
+-- tablas seria fragil y quedaria incompleto.
+--
+-- Asi que el addon los descubre jugando: cuando aparece un boss en una zona
+-- conocida y su nombre no se reconoce, se guarda con el nombre EXACTO que da
+-- este cliente y con su nivel (mini o boss) leido del motor. La lista se
+-- puebla sola, en cualquier idioma, y vale igual para contenido futuro.
+
+local function DiscoveredStore(create)
+    local sv = EZOArmory.sv
+    if not sv then return nil end
+    if not sv.discoveredBosses then
+        if not create then return nil end
+        sv.discoveredBosses = {}
+    end
+    return sv.discoveredBosses
+end
+
+-- Clave estable para un boss descubierto. Se deriva del nombre porque es lo
+-- unico que hay, pero se guarda aparte del nombre para que renombrar o
+-- recapturar no rompa las asignaciones ya hechas.
+local function DiscoveredKey(unitName)
+    return "found_" .. tostring(unitName)
+end
+
+function Z.GetDiscoveredBosses(zoneTag)
+    local store = DiscoveredStore(false)
+    local perZone = store and store[zoneTag]
+    if not perZone then return {} end
+
+    local list = {}
+    for key, entry in pairs(perZone) do
+        list[#list + 1] = {
+            key = key,
+            name = entry.name,
+            tier = entry.tier,
+            discovered = true,
+        }
+    end
+    table.sort(list, function(a, b) return tostring(a.name) < tostring(b.name) end)
+    return list
+end
+
+-- Registra un boss visto en vivo. Devuelve true si era nuevo.
+function Z.DiscoverBoss(zoneTag, unitName, tier)
+    if zoneTag == nil or unitName == nil or unitName == "" then return false end
+
+    local store = DiscoveredStore(true)
+    if not store then return false end
+    store[zoneTag] = store[zoneTag] or {}
+
+    local key = DiscoveredKey(unitName)
+    local existing = store[zoneTag][key]
+    if existing then
+        -- Ya conocido: solo se refresca el nivel, por si la primera vez se
+        -- leyo antes de que el motor tuviera el dato definitivo.
+        existing.tier = tier or existing.tier
+        return false
+    end
+
+    store[zoneTag][key] = { name = tostring(unitName), tier = tier or Z.BOSS_TIER_BOSS }
+    return true
+end
+
 -- ------------------------------------------- Nombres de boss aprendidos ----
 --
 -- Lo que devuelve GetUnitName() en ESTE cliente, guardado por key estable.
@@ -346,5 +445,40 @@ function Z.FindBossByName(trial, unitName)
             return boss
         end
     end
+    -- Descubiertos jugando: guardan el nombre exacto de este cliente, asi que
+    -- la comparacion es fiable sin depender de idioma.
+    for _, boss in ipairs(Z.GetDiscoveredBosses(trial.tag)) do
+        if boss.name == unitName then
+            return boss
+        end
+    end
     return nil
+end
+
+-- Todos los objetivos-boss de una zona: los de la tabla mas los descubiertos
+-- jugando. Es lo que alimenta el desplegable de objetivos.
+function Z.GetZoneBosses(zone)
+    if not zone then return {} end
+
+    local list = {}
+    for _, boss in ipairs(zone.bosses or {}) do
+        list[#list + 1] = boss
+    end
+
+    -- Los descubiertos que ya esten en la tabla (mismo nombre) no se repiten.
+    for _, found in ipairs(Z.GetDiscoveredBosses(zone.tag)) do
+        local duplicate = false
+        for _, boss in ipairs(zone.bosses or {}) do
+            if boss.name == found.name or boss.nameEs == found.name
+                or Z.GetLearnedBossName(zone.tag, boss.key) == found.name then
+                duplicate = true
+                break
+            end
+        end
+        if not duplicate then
+            list[#list + 1] = found
+        end
+    end
+
+    return list
 end

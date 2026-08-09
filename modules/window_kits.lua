@@ -1088,16 +1088,32 @@ local function EnsureAssignState()
     end
 end
 
--- Objetivos de una trial: default (fallback), trash, y cada boss/miniboss.
--- El nombre mostrado es el aprendido de este cliente si lo hay (Zones
--- .GetBossLabel), para que la lista se lea igual que la pantalla del juego.
+-- Objetivos de una zona: los tres genericos (default, trash, mini) y cada boss
+-- conocido, ya sea de la tabla o descubierto jugando.
+--
+-- Los minibosses se marcan con un prefijo para que se distingan de un vistazo,
+-- igual que el juego los distingue en el marco del objetivo (flechas para
+-- MONSTER_DIFFICULTY_HARD, calavera para DEADLY).
 local function GetAssignTargetChoices(trialTag)
-    local labels = { GetString(EZOARM_TARGET_DEFAULT), GetString(EZOARM_TARGET_TRASH) }
-    local values = { ASSIGN_TARGET_DEFAULT, EZOArmory.Kits.TARGET_TRASH }
-    local trial = EZOArmory.Zones.GetTrialByTag(trialTag)
-    if trial then
-        for _, boss in ipairs(trial.bosses) do
-            labels[#labels + 1] = EZOArmory.Zones.GetBossLabel(trial, boss)
+    local labels = {
+        GetString(EZOARM_TARGET_DEFAULT),
+        GetString(EZOARM_TARGET_TRASH),
+        GetString(EZOARM_TARGET_MINI),
+    }
+    local values = {
+        ASSIGN_TARGET_DEFAULT,
+        EZOArmory.Kits.TARGET_TRASH,
+        EZOArmory.Kits.TARGET_MINI,
+    }
+
+    local zone = EZOArmory.Zones.GetTrialByTag(trialTag)
+    if zone then
+        for _, boss in ipairs(EZOArmory.Zones.GetZoneBosses(zone)) do
+            local label = EZOArmory.Zones.GetBossLabel(zone, boss)
+            if boss.tier == EZOArmory.Zones.BOSS_TIER_MINI or boss.mini then
+                label = GetString(EZOARM_TARGET_MINI_PREFIX) .. " " .. label
+            end
+            labels[#labels + 1] = label
             values[#values + 1] = boss.key
         end
     end
@@ -1423,6 +1439,7 @@ function WK.RefreshAssignPanel()
 
     RefreshSubstituteChecks()
     PopulateSubstituteCombo(WK.substituteTrashCombo, EZOArmory.Builds.SUBSTITUTE_TRASH)
+    PopulateSubstituteCombo(WK.substituteMiniCombo, EZOArmory.Builds.SUBSTITUTE_MINI)
     PopulateSubstituteCombo(WK.substituteBossCombo, EZOArmory.Builds.SUBSTITUTE_BOSS)
     if WK.assignRoleLabel then
         WK.assignRoleLabel:SetText(zo_strformat(
@@ -1686,13 +1703,24 @@ local function CreateAssignPanel(content)
     end
 
     local subTrashY = checkY + 26
-    local subBossY = subTrashY + ASSIGN_ROW_HEIGHT + ASSIGN_ROW_GAP
+    local subBossY
     WK.substituteTrashCombo = CreateAssignComboRow(
         page, "EZOArmorySubstituteTrashCombo", EZOARM_SUBSTITUTE_TRASH, subTrashY,
         function()
             EquipBuildById(EZOArmory.Builds.GetSubstitute(
                 EZOArmory.GetActiveRole(), EZOArmory.Builds.SUBSTITUTE_TRASH))
         end)
+    -- Orden trash -> mini -> boss, de menos a mas peligroso, que es tambien el
+    -- orden en que se prueban al resolver.
+    local subMiniY = subTrashY + ASSIGN_ROW_HEIGHT + ASSIGN_ROW_GAP
+    WK.substituteMiniCombo = CreateAssignComboRow(
+        page, "EZOArmorySubstituteMiniCombo", EZOARM_SUBSTITUTE_MINI, subMiniY,
+        function()
+            EquipBuildById(EZOArmory.Builds.GetSubstitute(
+                EZOArmory.GetActiveRole(), EZOArmory.Builds.SUBSTITUTE_MINI))
+        end)
+
+    subBossY = subMiniY + ASSIGN_ROW_HEIGHT + ASSIGN_ROW_GAP
     WK.substituteBossCombo = CreateAssignComboRow(
         page, "EZOArmorySubstituteBossCombo", EZOARM_SUBSTITUTE_BOSS, subBossY,
         function()

@@ -199,6 +199,9 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_OPTION_ASSIGN_TARGET = "Target",
     EZOARM_TARGET_DEFAULT = "Trial default (fallback)",
     EZOARM_TARGET_TRASH = "Trash",
+    EZOARM_TARGET_MINI = "Miniboss (any)",
+    EZOARM_TARGET_MINI_PREFIX = "[mini]",
+    EZOARM_SUBSTITUTE_MINI = "Miniboss build",
     EZOARM_OPTION_ASSIGN_PICK = "Kit",
     EZOARM_OPTION_ASSIGN_CLEAR = "Clear this target",
 

@@ -2,6 +2,37 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.29
+
+- Add: minibosses are now a distinct target level. Every zone offers three
+  generic targets - trash, **miniboss** and the specific bosses - plus a third
+  substitute build for minibosses. A miniboss with no build of its own falls
+  back to the miniboss target, then to boss, then to trash, so nothing needs
+  reconfiguring to keep working as before.
+- How the split is decided, and why it isn't a hand-kept list: the game itself
+  classifies units through `GetUnitDifficulty`, and paints the target frame
+  from it in `esoui/ingame/unitframes/unitframes.lua:1683-1705` -
+  `MONSTER_DIFFICULTY_HARD` draws `bracket_level3` (the arrows) and
+  `MONSTER_DIFFICULTY_DEADLY` draws `bracket_level4` (the skull). That is
+  exactly the on-screen distinction between a miniboss and a main boss, so the
+  addon reads the same value instead of maintaining a list that would age with
+  every patch.
+- Add: bosses are now **discovered while playing**. A boss appearing in a known
+  zone whose name isn't recognised is recorded with the exact name this client
+  returns and with its tier, and immediately becomes assignable. Arena boss
+  lists fill themselves in.
+- That replaces chasing name tables for the arenas, which turned out to be a
+  dead end: no reliable source publishes complete arena boss lists, and the
+  translated names that do exist (Wizard's Wardrobe, CrutchAlerts) carry ESO's
+  grammatical-gender suffixes (`^M`, `^f`) that `GetUnitName` does not return,
+  plus different casing - so they would not have matched anyway.
+- Minibosses are prefixed with `[mini]` in the target dropdown.
+- Note on the Vateshran bosses reported as learned: nothing had been saved. All
+  `bossNames` entries were empty, and only `default` and `trash` were assigned
+  for VH. The cause was that Vateshran shipped with an empty boss list, so the
+  dropdown offered no boss to select and "Learn this boss" correctly refused.
+  Discovery removes that dependency entirely.
+
 ## 0.11.28
 
 - Change: the Assign tab now shows **two separate groups**, Trials and Arenas,
