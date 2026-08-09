@@ -2,6 +2,37 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.28
+
+- Change: the Assign tab now shows **two separate groups**, Trials and Arenas,
+  both visible and configurable at once, each with its own zone, target, build,
+  summary line and its own "equip target" / "clear" buttons. 0.11.27's shared
+  dropdown is gone.
+- The tab scrolls, with the mouse wheel or the scrollbar, since the two groups
+  plus the substitute block no longer fit on one screen.
+- **The mouse wheel works again everywhere**, including the kit and build
+  lists. `DisableScrollWheelArea` (the 0.11.10 fix for hover tooltips breaking
+  in scrolled lists) turns off the engine's "Scroll" child, which is also what
+  captures the wheel - that loss was recorded as an accepted cost. It didn't
+  have to be: `ZO_Scroll_OnMouseWheel` is a global the engine's own XML calls
+  as `ZO_Scroll_OnMouseWheel(self:GetParent(), delta)`, so re-binding it on the
+  container itself gives identical scrolling without the overlay that stole the
+  cursor. Worth doing here specifically because the Assign tab is full of
+  dropdowns and checkboxes, where an overlay stealing input would be far worse
+  than a missing tooltip.
+- Both groups are built from one `ASSIGN_GROUPS` table and share every function
+  (populate, summary, equip, clear) parameterised by group, rather than being
+  duplicated - duplicating is how `window_kits` and `window_builds` drifted
+  apart in the first place.
+- "Equip target" and "Clear" moved from the shared bottom bar into each group,
+  so there is no invisible "which group does this act on" state. The bottom bar
+  keeps only what doesn't depend on the group: equip for where you are, and
+  learn the boss in front of you - and "Learn this boss" now works in arenas
+  too, deducing the group from where you actually are.
+- Content sits on a fixed-size page control inside the ScrollChild rather than
+  anchoring to both its sides, which would recreate the circular dependency
+  that collapsed rows back in 0.7.2 and 0.10.1.
+
 ## 0.11.27
 
 - Add: arenas can now have builds assigned per target, exactly like trials -

@@ -1036,16 +1036,56 @@ end
 -- invalidar lo que ya estuviera configurado; se muestran marcadas como
 -- heredadas del modelo antiguo.
 
+-- Los dos grupos del panel (trials y arenas) son identicos salvo por la lista
+-- de zonas y por donde guardan su seleccion, asi que se describen en una tabla
+-- y todo lo demas (rellenar desplegables, resumen, equipar, vaciar) es codigo
+-- comun parametrizado. Duplicar la logica seria pedir que las dos mitades se
+-- separen con el tiempo, que es justo lo que paso con window_kits y
+-- window_builds.
+local ASSIGN_GROUPS = {
+    {
+        id = "trials",
+        zones = function() return EZOArmory.Zones.TRIALS end,
+        tagField = "assignTrialTag",
+        targetField = "assignTargetKey",
+        headerString = "EZOARM_ASSIGN_GROUP_TRIALS",
+        controlPrefix = "EZOArmoryAssignTrial",
+    },
+    {
+        id = "arenas",
+        zones = function() return EZOArmory.Zones.ARENAS end,
+        tagField = "assignArenaTag",
+        targetField = "assignArenaTargetKey",
+        headerString = "EZOARM_ASSIGN_GROUP_ARENAS",
+        controlPrefix = "EZOArmoryAssignArena",
+    },
+}
+
+-- Controles de cada grupo, rellenados al construir el panel.
+WK.assignGroupControls = WK.assignGroupControls or {}
+
 local function EnsureAssignState()
-    if WK.state.assignTrialTag == nil then
-        local contextTrial = EZOArmory.Context and EZOArmory.Context.GetTrial and EZOArmory.Context.GetTrial()
-        if contextTrial then
-            WK.state.assignTrialTag = contextTrial.tag
-        elseif EZOArmory.Zones and EZOArmory.Zones.TRIALS[1] then
-            WK.state.assignTrialTag = EZOArmory.Zones.TRIALS[1].tag
+    local contextZone = EZOArmory.Context and EZOArmory.Context.GetTrial and EZOArmory.Context.GetTrial()
+
+    for _, group in ipairs(ASSIGN_GROUPS) do
+        local zones = group.zones() or {}
+        if WK.state[group.tagField] == nil then
+            -- Si estas dentro de una zona de este grupo, esa es la que
+            -- interesa; si no, la primera de la lista.
+            if contextZone and EZOArmory.Zones.GetTrialByTag(contextZone.tag) then
+                for _, zone in ipairs(zones) do
+                    if zone.tag == contextZone.tag then
+                        WK.state[group.tagField] = zone.tag
+                        break
+                    end
+                end
+            end
+            if WK.state[group.tagField] == nil and zones[1] then
+                WK.state[group.tagField] = zones[1].tag
+            end
         end
+        WK.state[group.targetField] = WK.state[group.targetField] or ASSIGN_TARGET_DEFAULT
     end
-    WK.state.assignTargetKey = WK.state.assignTargetKey or ASSIGN_TARGET_DEFAULT
 end
 
 -- Objetivos de una trial: default (fallback), trash, y cada boss/miniboss.
@@ -1088,50 +1128,31 @@ local function PopulateCombo(comboControl, labels, values, currentValue, onSelec
     combo:SetSelectedItemText(selectedLabel or "")
 end
 
--- Valor de la entrada separadora entre trials y arenas. No es una zona: al
--- elegirla no pasa nada, solo esta ahi para partir visualmente la lista.
-local ASSIGN_ZONE_SEPARATOR = "__separator__"
+-- Desplegable de zona de un grupo: solo las zonas de ESE grupo.
+local function PopulateZoneCombo(group)
+    local controls = WK.assignGroupControls[group.id]
+    if not controls or not controls.zoneCombo then return end
 
--- Trials primero y arenas despues, con una linea de separacion entre medias.
--- Van en el MISMO desplegable en vez de en un bloque aparte porque el panel ya
--- ocupa unos 350 de los ~470 px utiles, y duplicar los tres controles (zona,
--- objetivo y build) no cabria sin apretarlo todo. Al compartir desplegable,
--- ademas, el resto del panel (objetivo, build, resumen) sirve igual para las
--- dos cosas sin duplicar nada.
-local function PopulateTrialCombo()
     local labels, values = {}, {}
-    for _, trial in ipairs(EZOArmory.Zones.TRIALS) do
-        labels[#labels + 1] = trial.name
-        values[#values + 1] = trial.tag
+    for _, zone in ipairs(group.zones() or {}) do
+        labels[#labels + 1] = zone.name
+        values[#values + 1] = zone.tag
     end
 
-    local arenas = EZOArmory.Zones.ARENAS or {}
-    if #arenas > 0 then
-        labels[#labels + 1] = GetString(EZOARM_ASSIGN_ARENAS_SEPARATOR)
-        values[#values + 1] = ASSIGN_ZONE_SEPARATOR
-        for _, arena in ipairs(arenas) do
-            labels[#labels + 1] = arena.name
-            values[#values + 1] = arena.tag
-        end
-    end
-
-    PopulateCombo(WK.assignTrialCombo, labels, values, WK.state.assignTrialTag, function(value)
-        -- La linea separadora no selecciona nada: se ignora y se deja la zona
-        -- que ya estuviera elegida.
-        if value == ASSIGN_ZONE_SEPARATOR then
-            WK.RefreshAssignPanel()
-            return
-        end
-        WK.state.assignTrialTag = value
-        WK.state.assignTargetKey = ASSIGN_TARGET_DEFAULT
+    PopulateCombo(controls.zoneCombo, labels, values, WK.state[group.tagField], function(value)
+        WK.state[group.tagField] = value
+        WK.state[group.targetField] = ASSIGN_TARGET_DEFAULT
         WK.RefreshAssignPanel()
     end)
 end
 
-local function PopulateTargetCombo()
-    local labels, values = GetAssignTargetChoices(WK.state.assignTrialTag)
-    PopulateCombo(WK.assignTargetCombo, labels, values, WK.state.assignTargetKey, function(value)
-        WK.state.assignTargetKey = value
+local function PopulateTargetCombo(group)
+    local controls = WK.assignGroupControls[group.id]
+    if not controls or not controls.targetCombo then return end
+
+    local labels, values = GetAssignTargetChoices(WK.state[group.tagField])
+    PopulateCombo(controls.targetCombo, labels, values, WK.state[group.targetField], function(value)
+        WK.state[group.targetField] = value
         WK.RefreshAssignPanel()
     end)
 end
@@ -1140,7 +1161,10 @@ end
 -- directamente (una build por objetivo, no hay lista que componer); la primera
 -- entrada desasigna. Las incompletas se pueden asignar pero se marcan: no se
 -- equiparan hasta arreglarlas.
-local function PopulateBuildCombo()
+local function PopulateBuildCombo(group)
+    local controls = WK.assignGroupControls[group.id]
+    if not controls or not controls.buildCombo then return end
+
     local labels = { GetString(EZOARM_BUILD_NONE_SELECTED) }
     local values = { "" }
     for _, build in ipairs(EZOArmory.Builds.ListBuilds()) do
@@ -1154,24 +1178,25 @@ local function PopulateBuildCombo()
 
     local role = EZOArmory.GetActiveRole()
     local stored = EZOArmory.Builds.GetStoredTrialAssignment(
-        role, WK.state.assignTrialTag, WK.state.assignTargetKey) or ""
+        role, WK.state[group.tagField], WK.state[group.targetField]) or ""
 
-    PopulateCombo(WK.assignBuildCombo, labels, values, stored, function(value)
+    PopulateCombo(controls.buildCombo, labels, values, stored, function(value)
         EZOArmory.Builds.SetTrialAssignment(
-            EZOArmory.GetActiveRole(), WK.state.assignTrialTag, WK.state.assignTargetKey,
+            EZOArmory.GetActiveRole(), WK.state[group.tagField], WK.state[group.targetField],
             value ~= "" and value or nil)
         WK.RefreshAssignPanel()
     end)
 end
 
 -- Que se aplicaria realmente en este objetivo: build propia, heredada del
--- default de la trial, o los kits del modelo anterior si aun no tiene build.
-local function RefreshAssignSummary()
-    local label = WK.assignSummaryLabel
+-- default de la zona, o los kits del modelo anterior si aun no tiene build.
+local function RefreshAssignSummary(group)
+    local controls = WK.assignGroupControls[group.id]
+    local label = controls and controls.summaryLabel
     if not label then return end
 
     local resolved = EZOArmory.Builds.ResolveForTarget(
-        EZOArmory.GetActiveRole(), WK.state.assignTrialTag, WK.state.assignTargetKey)
+        EZOArmory.GetActiveRole(), WK.state[group.tagField], WK.state[group.targetField])
 
     if not resolved then
         label:SetText(GetString(EZOARM_ASSIGN_NOTHING))
@@ -1204,36 +1229,64 @@ local function RefreshAssignSummary()
     end
 end
 
-local function OnAssignClearClicked()
+-- A que grupo del panel pertenece una zona concreta.
+local function FindGroupForZone(zone)
+    if not zone then return nil end
+    for _, group in ipairs(ASSIGN_GROUPS) do
+        for _, candidate in ipairs(group.zones() or {}) do
+            if candidate.tag == zone.tag then
+                return group
+            end
+        end
+    end
+    return nil
+end
+
+-- Vacia la asignacion del objetivo seleccionado de ESE grupo.
+local function ClearGroupTarget(group)
     EZOArmory.Builds.SetTrialAssignment(
-        EZOArmory.GetActiveRole(), WK.state.assignTrialTag, WK.state.assignTargetKey, nil)
+        EZOArmory.GetActiveRole(), WK.state[group.tagField], WK.state[group.targetField], nil)
     WK.RefreshAssignPanel()
 end
+
+-- Declarada aqui y definida mas abajo: necesita ReportEquipPart y
+-- PrintNotEquipped, que son locales posteriores en el fichero. Un "local
+-- function" aqui no las veria (aun no existen como upvalue en este punto).
+local EquipGroupTarget
 
 -- Aprende el nombre real del boss que tienes delante y lo asocia al objetivo
 -- seleccionado. Es la unica forma fiable de identificar un boss concreto: el
 -- motor no da ningun ID persistente de NPC, solo el nombre ya localizado (ver
--- cabecera de modules/zones_trials.lua). Se exige que estes EN la trial
--- seleccionada y con el boss delante, para no asociar un nombre al objetivo
--- equivocado sin enterarte.
+-- cabecera de modules/zones_trials.lua).
+--
+-- El grupo (trials o arenas) se deduce de DONDE ESTAS, no de cual tocaste por
+-- ultima vez: asi el boton de la barra sirve para los dos sin estado oculto ni
+-- ambiguedad. Se exige ademas que la zona seleccionada en ese grupo sea la
+-- misma en la que estas, para no asociar un nombre al objetivo equivocado.
 local function OnAssignLearnBossClicked()
     if not EZOArmory.Print then return end
 
-    local targetKey = WK.state.assignTargetKey
+    local context = EZOArmory.Context and EZOArmory.Context.GetState and EZOArmory.Context.GetState()
+    local zone = context and context.trial
+    if not zone then
+        EZOArmory.Print(GetString(EZOARM_MSG_EQUIP_NO_TRIAL))
+        return
+    end
+
+    local group = FindGroupForZone(zone)
+    if not group then
+        EZOArmory.Print(GetString(EZOARM_MSG_EQUIP_NO_TRIAL))
+        return
+    end
+
+    local targetKey = WK.state[group.targetField]
     if targetKey == ASSIGN_TARGET_DEFAULT or targetKey == EZOArmory.Kits.TARGET_TRASH then
         EZOArmory.Print(GetString(EZOARM_MSG_LEARN_BOSS_NOT_A_BOSS))
         return
     end
-
-    local context = EZOArmory.Context and EZOArmory.Context.GetState and EZOArmory.Context.GetState()
-    local trial = context and context.trial
-    if not trial then
-        EZOArmory.Print(GetString(EZOARM_MSG_EQUIP_NO_TRIAL))
-        return
-    end
-    if trial.tag ~= WK.state.assignTrialTag then
+    if zone.tag ~= WK.state[group.tagField] then
         EZOArmory.Print(zo_strformat(
-            GetString(EZOARM_MSG_LEARN_BOSS_WRONG_TRIAL), tostring(trial.name)))
+            GetString(EZOARM_MSG_LEARN_BOSS_WRONG_TRIAL), tostring(zone.name)))
         return
     end
 
@@ -1243,7 +1296,7 @@ local function OnAssignLearnBossClicked()
         return
     end
 
-    if not EZOArmory.Zones.LearnBossName(trial.tag, targetKey, unitName) then
+    if not EZOArmory.Zones.LearnBossName(zone.tag, targetKey, unitName) then
         return
     end
     EZOArmory.Print(zo_strformat(GetString(EZOARM_MSG_LEARN_BOSS_DONE), unitName))
@@ -1284,14 +1337,16 @@ local function PrintNotEquipped(reason, trialTag)
         trial and trial.name or tostring(trialTag)))
 end
 
--- Equipa lo asignado al objetivo seleccionado en el panel (con herencia). No
+-- Equipa lo asignado al objetivo seleccionado de un grupo (con herencia). No
 -- depende de donde estes: sirve para probar y para prepararte antes de entrar.
-local function OnAssignEquipTargetClicked()
+-- Se declaro arriba como local suelta; aqui se le da cuerpo, ya con
+-- ReportEquipPart y PrintNotEquipped disponibles.
+function EquipGroupTarget(group)
     local mode, reason = EZOArmory.Builds.EquipForTarget(
-        EZOArmory.GetActiveRole(), WK.state.assignTrialTag, WK.state.assignTargetKey,
+        EZOArmory.GetActiveRole(), WK.state[group.tagField], WK.state[group.targetField],
         ReportEquipPart)
     if not mode then
-        PrintNotEquipped(reason, WK.state.assignTrialTag)
+        PrintNotEquipped(reason, WK.state[group.tagField])
     end
 end
 
@@ -1353,6 +1408,19 @@ end
 function WK.RefreshAssignPanel()
     if not WK.assignRoot then return end
     EnsureAssignState()
+
+    -- Ancho de la pagina medido del contenedor exterior (menos el hueco de la
+    -- barra de desplazamiento). No se puede anclar a los dos lados del
+    -- ScrollChild: se autoajusta a sus hijos y saldria una dependencia
+    -- circular, el mismo fallo que colapso las filas en 0.7.2 y 0.10.1.
+    if WK.assignPage and WK.assignScroll then
+        local scrollbarWidth = (type(ZO_SCROLL_BAR_WIDTH) == "number" and ZO_SCROLL_BAR_WIDTH or 16) + 8
+        local width = (WK.assignScroll:GetWidth() or 0) - scrollbarWidth
+        if width > 0 then
+            WK.assignPage:SetWidth(width)
+        end
+    end
+
     RefreshSubstituteChecks()
     PopulateSubstituteCombo(WK.substituteTrashCombo, EZOArmory.Builds.SUBSTITUTE_TRASH)
     PopulateSubstituteCombo(WK.substituteBossCombo, EZOArmory.Builds.SUBSTITUTE_BOSS)
@@ -1360,10 +1428,13 @@ function WK.RefreshAssignPanel()
         WK.assignRoleLabel:SetText(zo_strformat(
             GetString(EZOARM_WINDOW_ASSIGN_ROLE), EZOArmory.RoleLabel(EZOArmory.GetActiveRole())))
     end
-    PopulateTrialCombo()
-    PopulateTargetCombo()
-    PopulateBuildCombo()
-    RefreshAssignSummary()
+
+    for _, group in ipairs(ASSIGN_GROUPS) do
+        PopulateZoneCombo(group)
+        PopulateTargetCombo(group)
+        PopulateBuildCombo(group)
+        RefreshAssignSummary(group)
+    end
 end
 
 -- Fila etiqueta + combo nativo, ancho de ambos lados (mismo truco de anclas
@@ -1403,18 +1474,114 @@ local function CreateAssignComboRow(parent, name, labelStringId, y, onEquip)
     return combo
 end
 
--- Construye la pestana Assign completa (bloque fijo + barra de accion fija
--- abajo) dentro de "content", oculta hasta que se seleccione esa pestana.
+-- Bloque de zona de un grupo (cabecera + zona + objetivo + build + resumen +
+-- botones). Devuelve la Y siguiente libre. Todo lo especifico del grupo sale
+-- de la tabla ASSIGN_GROUPS, asi que trials y arenas comparten construccion.
+local function CreateAssignGroupBlock(parent, group, y)
+    local header = WM:CreateControl(nil, parent, CT_LABEL)
+    header:SetFont("ZoFontGameLargeBold")
+    header:SetColor(0.9, 0.85, 1, 1)
+    header:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, y)
+    header:SetText(GetString(_G[group.headerString]))
+
+    local zoneY = y + 30
+    local targetY = zoneY + ASSIGN_ROW_HEIGHT + ASSIGN_ROW_GAP
+    local buildY = targetY + ASSIGN_ROW_HEIGHT + ASSIGN_ROW_GAP
+
+    local zoneCombo = CreateAssignComboRow(
+        parent, group.controlPrefix .. "ZoneCombo", EZOARM_OPTION_ASSIGN_TRIAL, zoneY)
+    local targetCombo = CreateAssignComboRow(
+        parent, group.controlPrefix .. "TargetCombo", EZOARM_OPTION_ASSIGN_TARGET, targetY)
+    local buildCombo = CreateAssignComboRow(
+        parent, group.controlPrefix .. "BuildCombo", EZOARM_WINDOW_TAB_BUILDS, buildY,
+        function()
+            EquipBuildById(EZOArmory.Builds.GetStoredTrialAssignment(
+                EZOArmory.GetActiveRole(), WK.state[group.tagField], WK.state[group.targetField]))
+        end)
+
+    -- Que se aplicaria de verdad aqui, resolviendo herencia y respaldo por
+    -- kits: sin esto no se distingue "sin asignar" de "hereda del default".
+    local summaryY = buildY + ASSIGN_ROW_HEIGHT + 8
+    local summaryLabel = WM:CreateControl(nil, parent, CT_LABEL)
+    summaryLabel:SetFont("ZoFontGame")
+    summaryLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+    summaryLabel:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, summaryY)
+    summaryLabel:SetAnchor(TOPRIGHT, parent, TOPRIGHT, 0, summaryY)
+
+    -- Cada grupo lleva sus propias acciones en vez de compartir una barra:
+    -- asi no hace falta recordar "sobre cual de los dos actua el boton", que
+    -- seria estado invisible y una fuente segura de equivocaciones.
+    local actionsY = summaryY + 24
+    local equipTargetButton = WM:CreateControl(nil, parent, CT_BUTTON)
+    equipTargetButton:SetDimensions(170, 24)
+    equipTargetButton:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, actionsY)
+    equipTargetButton:SetFont("ZoFontGameBold")
+    equipTargetButton:SetNormalFontColor(0.6, 1, 0.6, 1)
+    equipTargetButton:SetMouseOverFontColor(0.4, 1, 0.4, 1)
+    equipTargetButton:SetText(GetString(EZOARM_OPTION_EQUIP_TARGET))
+    equipTargetButton:SetHandler("OnClicked", function() EquipGroupTarget(group) end)
+
+    local clearButton = WM:CreateControl(nil, parent, CT_BUTTON)
+    clearButton:SetDimensions(150, 24)
+    clearButton:SetAnchor(LEFT, equipTargetButton, RIGHT, 12, 0)
+    clearButton:SetFont("ZoFontGameBold")
+    clearButton:SetNormalFontColor(1, 0.55, 0.55, 1)
+    clearButton:SetMouseOverFontColor(1, 0.3, 0.3, 1)
+    clearButton:SetText(GetString(EZOARM_OPTION_ASSIGN_CLEAR))
+    clearButton:SetHandler("OnClicked", function() ClearGroupTarget(group) end)
+
+    WK.assignGroupControls[group.id] = {
+        zoneCombo = zoneCombo,
+        targetCombo = targetCombo,
+        buildCombo = buildCombo,
+        summaryLabel = summaryLabel,
+    }
+
+    return actionsY + 24
+end
+
+-- Construye la pestana Assign completa dentro de "content", oculta hasta que
+-- se seleccione esa pestana.
+--
+-- El contenido va dentro de un ZO_ScrollContainer porque ya no cabe de una
+-- vez: los dos grupos (trials y arenas) mas el bloque de sustitutas pasan de
+-- largo del alto util. Se desplaza con la rueda o con la barra lateral.
 local function CreateAssignPanel(content)
     local assignRoot = WM:CreateControl(nil, content, CT_CONTROL)
     assignRoot:SetAnchorFill(content)
     assignRoot:SetHidden(true)
     WK.assignRoot = assignRoot
 
-    local roleLabel = WM:CreateControl(nil, assignRoot, CT_LABEL)
+    -- Barra de accion fija abajo, FUERA del scroll: lo que hace no depende de
+    -- que grupo estes mirando (equipar segun donde estas, aprender el boss que
+    -- tienes delante), asi que conviene tenerla siempre a la vista.
+    local assignActionBar = WM:CreateControl(nil, assignRoot, CT_CONTROL)
+    assignActionBar:SetDimensions(1, 26)
+    assignActionBar:SetAnchor(BOTTOMLEFT, assignRoot, BOTTOMLEFT, 0, 0)
+    assignActionBar:SetAnchor(BOTTOMRIGHT, assignRoot, BOTTOMRIGHT, 0, 0)
+    WK.assignActionBar = assignActionBar
+
+    local scroll = WM:CreateControlFromVirtual(
+        "EZOArmoryAssignScroll", assignRoot, "ZO_ScrollContainer")
+    scroll:SetAnchor(TOPLEFT, assignRoot, TOPLEFT, 0, 0)
+    scroll:SetAnchor(BOTTOMRIGHT, assignActionBar, TOPRIGHT, 0, -8)
+    WK.assignScroll = scroll
+    EZOArmory.DisableScrollWheelArea(scroll)
+
+    -- Pagina intermedia con ancho y alto explicitos dentro del ScrollChild. El
+    -- ScrollChild se autoajusta a sus hijos, asi que anclar contenido a sus dos
+    -- lados crearia el ciclo que ya colapso las filas en 0.7.2 / 0.10.1. Con
+    -- una pagina de tamano fijo, todo lo de dentro puede anclarse a los dos
+    -- lados como siempre y el ancho se controla en un unico sitio.
+    local scrollChild = scroll:GetNamedChild("ScrollChild")
+    local page = WM:CreateControl(nil, scrollChild, CT_CONTROL)
+    page:SetAnchor(TOPLEFT, scrollChild, TOPLEFT, 0, 0)
+    WK.assignPage = page
+
+    local roleLabel = WM:CreateControl(nil, page, CT_LABEL)
     roleLabel:SetFont("ZoFontGameBold")
     roleLabel:SetColor(0.85, 0.85, 0.9, 1)
-    roleLabel:SetAnchor(TOPLEFT, assignRoot, TOPLEFT, 0, 0)
+    roleLabel:SetAnchor(TOPLEFT, page, TOPLEFT, 0, 0)
     WK.assignRoleLabel = roleLabel
 
     -- Interruptor maestro, arriba del todo y a proposito llamativo: gobierna
@@ -1424,11 +1591,11 @@ local function CreateAssignPanel(content)
     -- quedaba claro que controlaba el modo automatico en general.
     local autoEquipY = 26
     local autoEquipCheck = WM:CreateControlFromVirtual(
-        "EZOArmoryAutoEquipCheck", assignRoot, "ZO_CheckButton")
+        "EZOArmoryAutoEquipCheck", page, "ZO_CheckButton")
     autoEquipCheck:SetDimensions(22, 22)
-    autoEquipCheck:SetAnchor(TOPLEFT, assignRoot, TOPLEFT, 2, autoEquipY)
+    autoEquipCheck:SetAnchor(TOPLEFT, page, TOPLEFT, 2, autoEquipY)
 
-    local autoEquipLabel = WM:CreateControl(nil, assignRoot, CT_LABEL)
+    local autoEquipLabel = WM:CreateControl(nil, page, CT_LABEL)
     autoEquipLabel:SetFont("ZoFontGameLargeBold")
     autoEquipLabel:SetColor(0.9, 0.85, 1, 1)
     autoEquipLabel:SetAnchor(LEFT, autoEquipCheck, RIGHT, 8, 0)
@@ -1441,60 +1608,43 @@ local function CreateAssignPanel(content)
     end)
     WK.autoEquipCheck = autoEquipCheck
 
-    local autoEquipHint = WM:CreateControl(nil, assignRoot, CT_LABEL)
+    local autoEquipHint = WM:CreateControl(nil, page, CT_LABEL)
     autoEquipHint:SetFont("ZoFontGameSmall")
     autoEquipHint:SetColor(0.65, 0.65, 0.72, 1)
     autoEquipHint:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
-    autoEquipHint:SetAnchor(TOPLEFT, assignRoot, TOPLEFT, 0, autoEquipY + 26)
-    autoEquipHint:SetAnchor(TOPRIGHT, assignRoot, TOPRIGHT, 0, autoEquipY + 26)
+    autoEquipHint:SetAnchor(TOPLEFT, page, TOPLEFT, 0, autoEquipY + 26)
+    autoEquipHint:SetAnchor(TOPRIGHT, page, TOPRIGHT, 0, autoEquipY + 26)
     autoEquipHint:SetText(GetString(EZOARM_AUTOEQUIP_HINT))
 
-    local trialY = autoEquipY + 26 + 32
-    local targetY = trialY + ASSIGN_ROW_HEIGHT + ASSIGN_ROW_GAP
-    WK.assignTrialCombo = CreateAssignComboRow(
-        assignRoot, "EZOArmoryAssignTrialCombo", EZOARM_OPTION_ASSIGN_TRIAL, trialY)
-    WK.assignTargetCombo = CreateAssignComboRow(
-        assignRoot, "EZOArmoryAssignTargetCombo", EZOARM_OPTION_ASSIGN_TARGET, targetY)
-
-    -- Una build por objetivo: basta un desplegable, sin lista que componer.
-    local buildY = targetY + ASSIGN_ROW_HEIGHT + ASSIGN_ROW_GAP
-    WK.assignBuildCombo = CreateAssignComboRow(
-        assignRoot, "EZOArmoryAssignBuildCombo", EZOARM_WINDOW_TAB_BUILDS, buildY,
-        function()
-            EquipBuildById(EZOArmory.Builds.GetStoredTrialAssignment(
-                EZOArmory.GetActiveRole(), WK.state.assignTrialTag, WK.state.assignTargetKey))
-        end)
-
-    local summaryHeaderY = buildY + ASSIGN_ROW_HEIGHT + 14
-    local summaryHeader = WM:CreateControl(nil, assignRoot, CT_LABEL)
-    summaryHeader:SetFont("ZoFontGameBold")
-    summaryHeader:SetColor(0.85, 0.85, 0.9, 1)
-    summaryHeader:SetAnchor(TOPLEFT, assignRoot, TOPLEFT, 0, summaryHeaderY)
-    summaryHeader:SetText(GetString(EZOARM_ASSIGN_APPLIES_HERE))
-
-    -- Que se aplicaria de verdad aqui, resolviendo herencia y respaldo por
-    -- kits: sin esto no se distingue "sin asignar" de "hereda del default".
-    local summaryLabel = WM:CreateControl(nil, assignRoot, CT_LABEL)
-    summaryLabel:SetFont("ZoFontGame")
-    summaryLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
-    summaryLabel:SetAnchor(TOPLEFT, assignRoot, TOPLEFT, 0, summaryHeaderY + 22)
-    summaryLabel:SetAnchor(TOPRIGHT, assignRoot, TOPRIGHT, 0, summaryHeaderY + 22)
-    WK.assignSummaryLabel = summaryLabel
+    -- Un bloque por grupo, uno debajo del otro y los dos visibles y
+    -- configurables a la vez.
+    local nextY = autoEquipY + 26 + 32
+    for index, group in ipairs(ASSIGN_GROUPS) do
+        if index > 1 then
+            local divider = WM:CreateControl(nil, page, CT_TEXTURE)
+            divider:SetHeight(1)
+            divider:SetColor(0.35, 0.35, 0.42, 1)
+            divider:SetAnchor(TOPLEFT, page, TOPLEFT, 0, nextY + 8)
+            divider:SetAnchor(TOPRIGHT, page, TOPRIGHT, 0, nextY + 8)
+            nextY = nextY + 20
+        end
+        nextY = CreateAssignGroupBlock(page, group, nextY) + 12
+    end
 
     -- Bloque de builds sustitutas: el respaldo para cuando aqui no hay nada
-    -- asignado (trial sin asignar, mazmorra o mundo).
-    local subHeaderY = summaryHeaderY + 48
-    local subHeader = WM:CreateControl(nil, assignRoot, CT_LABEL)
+    -- asignado (zona sin asignar, mazmorra o mundo).
+    local subHeaderY = nextY + 8
+    local subHeader = WM:CreateControl(nil, page, CT_LABEL)
     subHeader:SetFont("ZoFontGameBold")
     subHeader:SetColor(0.85, 0.85, 0.9, 1)
-    subHeader:SetAnchor(TOPLEFT, assignRoot, TOPLEFT, 0, subHeaderY)
+    subHeader:SetAnchor(TOPLEFT, page, TOPLEFT, 0, subHeaderY)
     subHeader:SetText(GetString(EZOARM_SUBSTITUTE_HEADER))
 
-    local subHintLabel = WM:CreateControl(nil, assignRoot, CT_LABEL)
+    local subHintLabel = WM:CreateControl(nil, page, CT_LABEL)
     subHintLabel:SetFont("ZoFontGameSmall")
     subHintLabel:SetColor(0.65, 0.65, 0.72, 1)
-    subHintLabel:SetAnchor(TOPLEFT, assignRoot, TOPLEFT, 0, subHeaderY + 20)
-    subHintLabel:SetAnchor(TOPRIGHT, assignRoot, TOPRIGHT, 0, subHeaderY + 20)
+    subHintLabel:SetAnchor(TOPLEFT, page, TOPLEFT, 0, subHeaderY + 20)
+    subHintLabel:SetAnchor(TOPRIGHT, page, TOPRIGHT, 0, subHeaderY + 20)
     subHintLabel:SetText(GetString(EZOARM_SUBSTITUTE_HINT))
 
     -- Casillas nativas (ZO_CheckButton + ZO_CheckButton_SetToggleFunction,
@@ -1511,14 +1661,14 @@ local function CreateAssignPanel(content)
     local previousCheckLabel
     for _, entry in ipairs(CHECKS) do
         local check = WM:CreateControlFromVirtual(
-            "EZOArmorySubstitute" .. entry.key, assignRoot, "ZO_CheckButton")
+            "EZOArmorySubstitute" .. entry.key, page, "ZO_CheckButton")
         if previousCheckLabel then
             check:SetAnchor(LEFT, previousCheckLabel, RIGHT, 18, 0)
         else
-            check:SetAnchor(TOPLEFT, assignRoot, TOPLEFT, 2, checkY)
+            check:SetAnchor(TOPLEFT, page, TOPLEFT, 2, checkY)
         end
 
-        local checkLabel = WM:CreateControl(nil, assignRoot, CT_LABEL)
+        local checkLabel = WM:CreateControl(nil, page, CT_LABEL)
         checkLabel:SetFont("ZoFontGame")
         checkLabel:SetColor(0.85, 0.85, 0.9, 1)
         checkLabel:SetAnchor(LEFT, check, RIGHT, 6, 0)
@@ -1538,55 +1688,38 @@ local function CreateAssignPanel(content)
     local subTrashY = checkY + 26
     local subBossY = subTrashY + ASSIGN_ROW_HEIGHT + ASSIGN_ROW_GAP
     WK.substituteTrashCombo = CreateAssignComboRow(
-        assignRoot, "EZOArmorySubstituteTrashCombo", EZOARM_SUBSTITUTE_TRASH, subTrashY,
+        page, "EZOArmorySubstituteTrashCombo", EZOARM_SUBSTITUTE_TRASH, subTrashY,
         function()
             EquipBuildById(EZOArmory.Builds.GetSubstitute(
                 EZOArmory.GetActiveRole(), EZOArmory.Builds.SUBSTITUTE_TRASH))
         end)
     WK.substituteBossCombo = CreateAssignComboRow(
-        assignRoot, "EZOArmorySubstituteBossCombo", EZOARM_SUBSTITUTE_BOSS, subBossY,
+        page, "EZOArmorySubstituteBossCombo", EZOARM_SUBSTITUTE_BOSS, subBossY,
         function()
             EquipBuildById(EZOArmory.Builds.GetSubstitute(
                 EZOArmory.GetActiveRole(), EZOArmory.Builds.SUBSTITUTE_BOSS))
         end)
 
-    -- Barra de accion fija abajo (Equip Target / Equip Here / Clear), mismo
-    -- estilo y orden (dangerous a la derecha) que la barra de Gear/Skills/CP.
-    local assignActionBar = WM:CreateControl(nil, assignRoot, CT_CONTROL)
-    assignActionBar:SetDimensions(1, 26)
-    assignActionBar:SetAnchor(BOTTOMLEFT, assignRoot, BOTTOMLEFT, 0, 0)
-    assignActionBar:SetAnchor(BOTTOMRIGHT, assignRoot, BOTTOMRIGHT, 0, 0)
+    -- Alto total de la pagina: lo que ocupa el contenido. Se fija a mano
+    -- porque el ScrollChild solo se autoajusta a hijos con tamano propio, y la
+    -- pagina es justamente el hijo que se lo da. De este valor depende que el
+    -- scroll sepa cuanto hay que desplazar.
+    WK.assignPageHeight = subBossY + ASSIGN_ROW_HEIGHT + 8
+    page:SetHeight(WK.assignPageHeight)
 
-    local clearButton = WM:CreateControl(nil, assignActionBar, CT_BUTTON)
-    clearButton:SetDimensions(160, 24)
-    clearButton:SetAnchor(BOTTOMRIGHT, assignActionBar, BOTTOMRIGHT, 0, 0)
-    clearButton:SetFont("ZoFontGameBold")
-    clearButton:SetNormalFontColor(1, 0.55, 0.55, 1)
-    clearButton:SetMouseOverFontColor(1, 0.3, 0.3, 1)
-    clearButton:SetText(GetString(EZOARM_OPTION_ASSIGN_CLEAR))
-    clearButton:SetHandler("OnClicked", OnAssignClearClicked)
-
+    -- En la barra fija de abajo solo quedan las dos acciones que NO dependen
+    -- de que grupo estes mirando: equipar segun donde estas, y aprender el
+    -- boss que tienes delante. Equipar objetivo y vaciar viven ahora dentro de
+    -- cada grupo, junto a los desplegables a los que se refieren.
     local equipHereButton = WM:CreateControl(nil, assignActionBar, CT_BUTTON)
-    equipHereButton:SetDimensions(160, 24)
-    equipHereButton:SetAnchor(RIGHT, clearButton, LEFT, -12, 0)
+    equipHereButton:SetDimensions(200, 24)
+    equipHereButton:SetAnchor(BOTTOMRIGHT, assignActionBar, BOTTOMRIGHT, 0, 0)
     equipHereButton:SetFont("ZoFontGameBold")
     equipHereButton:SetNormalFontColor(0.6, 1, 0.6, 1)
     equipHereButton:SetMouseOverFontColor(0.4, 1, 0.4, 1)
     equipHereButton:SetText(GetString(EZOARM_OPTION_EQUIP_HERE))
     equipHereButton:SetHandler("OnClicked", OnAssignEquipHereClicked)
 
-    local equipTargetButton = WM:CreateControl(nil, assignActionBar, CT_BUTTON)
-    equipTargetButton:SetDimensions(160, 24)
-    equipTargetButton:SetAnchor(RIGHT, equipHereButton, LEFT, -12, 0)
-    equipTargetButton:SetFont("ZoFontGameBold")
-    equipTargetButton:SetNormalFontColor(0.6, 1, 0.6, 1)
-    equipTargetButton:SetMouseOverFontColor(0.4, 1, 0.4, 1)
-    equipTargetButton:SetText(GetString(EZOARM_OPTION_EQUIP_TARGET))
-    equipTargetButton:SetHandler("OnClicked", OnAssignEquipTargetClicked)
-
-    -- A la IZQUIERDA, separado de los tres de equipado: no es una accion de
-    -- equipar, y ademas los otros tres ya ocupan el ancho disponible por la
-    -- derecha (160*3 + separaciones).
     local learnBossButton = WM:CreateControl(nil, assignActionBar, CT_BUTTON)
     learnBossButton:SetDimensions(150, 24)
     learnBossButton:SetAnchor(BOTTOMLEFT, assignActionBar, BOTTOMLEFT, 0, 0)

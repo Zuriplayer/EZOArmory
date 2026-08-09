@@ -36,9 +36,16 @@ EZOA.Print = Print
 --
 -- Se sobreescribe el metodo por instancia (no una funcion global) para que
 -- cualquier futura llamada del propio motor tambien quede anulada, sin tener
--- que perseguir cuando se dispara. Coste: se pierde poder girar la rueda del
--- raton estando encima de la lista; la barra de desplazamiento de al lado
--- sigue funcionando igual (arrastrar, clic).
+-- que perseguir cuando se dispara.
+--
+-- La rueda del raton NO se pierde por ello: se vuelve a enganchar a mano en el
+-- propio contenedor, que no tapa a nadie. ZO_Scroll_OnMouseWheel es una
+-- funcion global del motor (esoui/libraries/zo_templates/scrolltemplates.lua)
+-- y es exactamente la que el area "Scroll" invocaba desde su XML
+-- (ZO_Scroll_OnMouseWheel(self:GetParent(), delta)), asi que llamarla
+-- directamente da el mismo desplazamiento sin necesidad de ese area. Hasta
+-- 0.11.27 se daba por perdida la rueda como coste asumido del arreglo; no
+-- hacia falta.
 function EZOA.DisableScrollWheelArea(scrollContainer)
     if not scrollContainer or type(scrollContainer.GetNamedChild) ~= "function" then
         return
@@ -49,6 +56,16 @@ function EZOA.DisableScrollWheelArea(scrollContainer)
     end
     scrollArea:SetMouseEnabled(false)
     scrollArea.SetMouseEnabled = function() end
+
+    -- Rueda sobre el contenedor: mismo efecto que tenia el area desactivada.
+    if type(scrollContainer.SetHandler) == "function"
+        and type(ZO_Scroll_OnMouseWheel) == "function" then
+        scrollContainer:SetMouseEnabled(true)
+        scrollContainer:SetHandler("OnMouseWheel", function(control, delta)
+            ZO_Scroll_OnMouseWheel(control, delta)
+        end)
+    end
+
     if EZOA.DebugLog then
         EZOA.DebugLog("DisableScrollWheelArea: applied to " .. tostring(scrollContainer:GetName()))
     end
