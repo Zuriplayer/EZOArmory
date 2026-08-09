@@ -629,6 +629,9 @@ function WB.RefreshActionBar()
     WB.editButton:SetHidden(not hasSelection)
     WB.deleteButton:SetHidden(not hasSelection)
     WB.equipButton:SetHidden(not hasSelection)
+    if WB.updateWornButton then
+        WB.updateWornButton:SetHidden(not hasSelection)
+    end
 end
 
 -- Dialogo de nombre, mismo patron verificado que el renombrado de kits
@@ -719,6 +722,33 @@ local function OnCopyWornClicked()
         WB.state.selectedId = id
         WB.SetView("list")
     end)
+end
+
+-- Actualiza la build seleccionada con lo que llevas puesto ahora. Pensado para
+-- el retoque pequeno: mover una habilidad de sitio, cambiar una pieza. Los
+-- kits que solo usa esta build se actualizan en su sitio; los compartidos no
+-- se tocan y la build pasa a apuntar a otro (ver Builds.UpdateFromCurrent).
+local function OnUpdateFromWornClicked()
+    local build = EZOArmory.Builds.GetBuild(WB.state.selectedId)
+    if not build then return end
+
+    local summary = EZOArmory.Builds.UpdateFromCurrent(build.id)
+    if not summary or not EZOArmory.Print then return end
+
+    local changed = {}
+    if summary.gear ~= "unchanged" then changed[#changed + 1] = GetString(EZOARM_MSG_BUILD_PART_GEAR) end
+    if summary.skills ~= "unchanged" then changed[#changed + 1] = GetString(EZOARM_MSG_BUILD_PART_SKILLS) end
+    if summary.cp ~= "unchanged" then changed[#changed + 1] = GetString(EZOARM_MSG_BUILD_PART_CP) end
+
+    if #changed == 0 then
+        EZOArmory.Print(zo_strformat(
+            GetString(EZOARM_MSG_BUILD_UPDATED_NOTHING), tostring(build.name)))
+    else
+        EZOArmory.Print(zo_strformat(GetString(EZOARM_MSG_BUILD_UPDATED),
+            tostring(build.name), table.concat(changed, ", ")))
+    end
+
+    WB.RefreshList()
 end
 
 local function OnRenameClicked()
@@ -888,6 +918,14 @@ local function CreateListPanel(content)
     local copyWornButton = CreateActionButton(actionBar, 170, GetString(EZOARM_BUILD_FROM_WORN),
         { 0.6, 1, 0.6 }, { 0.4, 1, 0.4 }, OnCopyWornClicked)
     copyWornButton:SetAnchor(LEFT, newButton, RIGHT, 12, 0)
+
+    -- Solo tiene sentido con una build elegida, asi que se oculta igual que
+    -- Equip/Edit hasta que haya seleccion.
+    local updateWornButton = CreateActionButton(actionBar, 180, GetString(EZOARM_BUILD_UPDATE_FROM_WORN),
+        { 1, 0.85, 0.45 }, { 1, 0.7, 0.2 }, OnUpdateFromWornClicked)
+    updateWornButton:SetAnchor(LEFT, copyWornButton, RIGHT, 12, 0)
+    updateWornButton:SetHidden(true)
+    WB.updateWornButton = updateWornButton
 
     -- Cartel de ayuda entre el contador y la lista. Su alto cambia con el
     -- texto y la lista se ancla debajo, asi que la cadena de anclas absorbe

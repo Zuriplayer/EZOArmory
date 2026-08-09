@@ -2,6 +2,28 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.31
+
+- Add: "Update with worn" button in the Builds tab. Takes the build you have
+  selected and brings it in line with what you are wearing right now - meant
+  for the small tweak, like moving an ability to a different slot, without
+  rebuilding anything.
+- The part that needed care: kits are **shared** between builds. Overwriting a
+  build's skill kit would silently change every other build using that same
+  kit. But always creating a new one is no good either - it would orphan the
+  old kit and fill the list with near-identical entries, exactly the clutter
+  that had to be cleaned up by hand before. So the decision is made per kit:
+  - kit used **only** by this build → overwritten in place, keeping its id and
+    name, leaving no orphan and affecting nobody;
+  - kit **shared** with other builds → left untouched; a kit with the new
+    content is found or created and this build points at that instead.
+- Champion kits compare **slot by slot** here, unlike `StarsEqual`, which sorts
+  and ignores slots because for deduplication two identical sets are the same
+  kit. For updating it matters: moving a star to another slot is a real change
+  the equip has to reproduce.
+- The chat report says which parts actually changed, and says so plainly when
+  the build already matched what you were wearing.
+
 ## 0.11.30
 
 - Vateshran Hollows now ships its four bosses - The Pyrelord, Maebroogha the

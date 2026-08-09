@@ -181,6 +181,32 @@ function Champion.RenameKit(id, name)
     return true
 end
 
+-- Sobrescribe un kit ya existente con las estrellas actuales, conservando id y
+-- nombre. Lo usa "actualizar build con lo puesto" cuando el kit solo lo usa esa
+-- build. Devuelve true si algo ha cambiado de verdad.
+--
+-- Aqui la comparacion es SLOT A SLOT, no como StarsEqual (que ordena e ignora
+-- el slot, porque para deduplicar kits dos conjuntos iguales son el mismo kit).
+-- Para actualizar si importa: mover una estrella de slot es un cambio real que
+-- el equipado tiene que reproducir.
+function Champion.UpdateKitFromCurrent(id)
+    local kit = Champion.GetKit(id)
+    if not kit then return false end
+
+    local stars = Champion.CaptureSlotted()
+    local changed = false
+    for slot = Champion.SLOT_FIRST, Champion.SLOT_LAST do
+        if (tonumber(kit.stars and kit.stars[slot]) or 0) ~= (tonumber(stars[slot]) or 0) then
+            changed = true
+            break
+        end
+    end
+    if not changed then return false end
+
+    kit.stars = stars
+    return true
+end
+
 function Champion.ListKits()
     local sv = Store()
     local list = {}

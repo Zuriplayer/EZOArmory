@@ -122,6 +122,115 @@ function Builds.CreateFromCurrent(name)
     }
 end
 
+-- Cuantas builds usan un kit concreto. Sirve para saber si se puede
+-- sobrescribir sin afectar a nadie mas.
+local function CountBuildsUsingKit(sv, field, kitId)
+    if kitId == nil then return 0 end
+    local count = 0
+    for _, build in pairs(sv.builds or {}) do
+        if field == "gearKitIds" then
+            for _, id in ipairs(build.gearKitIds or {}) do
+                if id == kitId then
+                    count = count + 1
+                    break
+                end
+            end
+        elseif build[field] == kitId then
+            count = count + 1
+        end
+    end
+    return count
+end
+
+-- Actualiza una build con lo que llevas puesto ahora mismo.
+--
+-- El detalle que importa: los kits son COMPARTIDOS entre builds. Sobrescribir
+-- el kit de habilidades de una build cambiaria tambien cualquier otra que use
+-- ese mismo kit, sin avisar. Pero crear siempre un kit nuevo tampoco vale:
+-- dejaria el anterior huerfano y acabaria llenando la lista de kits
+-- casi-identicos, que es justo lo que ya molesto antes.
+--
+-- Asi que se decide por kit:
+--   - Si el kit SOLO lo usa esta build, se sobrescribe en su sitio. Conserva
+--     nombre e id, no deja basura y no afecta a nadie.
+--   - Si lo comparten varias, se busca (o se crea) otro con el contenido nuevo
+--     y esta build pasa a apuntar a el. Las demas se quedan como estaban.
+--
+-- Devuelve un resumen: { skills = "unchanged"|"updated"|"switched",
+--                        cp = ..., gear = ..., gearCreated, gearReused }
+function Builds.UpdateFromCurrent(buildId)
+    local sv = Store()
+    local build = sv and sv.builds[buildId]
+    if not build then return nil end
+
+    local summary = { skills = "unchanged", cp = "unchanged", gear = "unchanged" }
+
+    -- Habilidades
+    if build.skillKitId and EZOArmory.Skills then
+        local exclusive = CountBuildsUsingKit(sv, "skillKitId", build.skillKitId) <= 1
+        if exclusive then
+            if EZOArmory.Skills.UpdateKitFromCurrent(build.skillKitId) then
+                summary.skills = "updated"
+            end
+        else
+            local newId, existing = EZOArmory.Skills.CreateKitFromCurrent(
+                EZOArmory.AutoKitName(EZOARM_AUTONAME_SKILLS, EZOArmory.Skills.ListKits))
+            local resolved = newId or (existing and existing.id) or nil
+            if resolved and resolved ~= build.skillKitId then
+                build.skillKitId = resolved
+                summary.skills = "switched"
+            end
+        end
+    end
+
+    -- CP: mismo criterio.
+    if build.cpKitId and EZOArmory.Champion then
+        local exclusive = CountBuildsUsingKit(sv, "cpKitId", build.cpKitId) <= 1
+        if exclusive then
+            if EZOArmory.Champion.UpdateKitFromCurrent(build.cpKitId) then
+                summary.cp = "updated"
+            end
+        else
+            local newId, existing = EZOArmory.Champion.CreateKitFromCurrent(
+                EZOArmory.AutoKitName(EZOARM_AUTONAME_CP, EZOArmory.Champion.ListKits))
+            local resolved = newId or (existing and existing.id) or nil
+            if resolved and resolved ~= build.cpKitId then
+                build.cpKitId = resolved
+                summary.cp = "switched"
+            end
+        end
+    end
+
+    -- Equipo: son varios kits por set, asi que no se sobrescribe ninguno. Se
+    -- recapturan (CaptureWornAsKits ya reutiliza los que coincidan en
+    -- contenido) y la build pasa a apuntar a la lista nueva.
+    if EZOArmory.Kits and EZOArmory.Kits.CaptureWornAsKits then
+        local gearKitIds, created, reused =
+            EZOArmory.Kits.CaptureWornAsKits(nil, EZOArmory.BuildKitName)
+        if gearKitIds then
+            local changed = #gearKitIds ~= #(build.gearKitIds or {})
+            if not changed then
+                local before = {}
+                for _, id in ipairs(build.gearKitIds or {}) do before[id] = true end
+                for _, id in ipairs(gearKitIds) do
+                    if not before[id] then
+                        changed = true
+                        break
+                    end
+                end
+            end
+            if changed then
+                build.gearKitIds = gearKitIds
+                summary.gear = "switched"
+            end
+            summary.gearCreated = created
+            summary.gearReused = reused
+        end
+    end
+
+    return summary
+end
+
 function Builds.GetBuild(id)
     local sv = Store()
     if not sv or id == nil then return nil end

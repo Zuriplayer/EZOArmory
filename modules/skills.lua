@@ -190,6 +190,25 @@ function Skills.RenameKit(id, name)
     return true
 end
 
+-- Sobrescribe un kit ya existente con las barras actuales, conservando su id y
+-- su nombre. Lo usa "actualizar build con lo puesto" cuando el kit solo lo usa
+-- esa build: asi un retoque pequeno (mover una habilidad de sitio) no deja
+-- atras un kit huerfano ni obliga a renombrar nada.
+-- Devuelve true si algo ha cambiado de verdad.
+function Skills.UpdateKitFromCurrent(id)
+    local kit = Skills.GetKit(id)
+    if not kit then return false end
+
+    local bars = Skills.CaptureBars()
+    if Skills.BarsEqual(kit.bars, bars) then
+        return false
+    end
+
+    kit.bars = bars
+    kit.weapons = CaptureWeaponsRef()
+    return true
+end
+
 function Skills.ListKits()
     local sv = Store()
     local list = {}
