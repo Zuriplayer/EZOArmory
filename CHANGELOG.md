@@ -2,6 +2,21 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.32
+
+- Change: "Update with worn" compares Champion kits **per discipline**, not slot
+  by slot. All four slots of a discipline are active at once, so moving a star
+  from the first to the third changes nothing about what the character does -
+  treating that as a change was a false positive. What counts is a discipline
+  carrying different stars.
+- Which slot belongs to which discipline is asked to the engine via
+  `GetRequiredChampionDisciplineIdForSlot(slotIndex, hotbarCategory)`, the same
+  call the game uses in `championassignableactionbar.lua` and in the Armory,
+  rather than assuming the twelve slots run in blocks of four. There is a
+  fallback to blocks of four if the call is ever unavailable.
+- When there *is* a real change, the current layout is still stored as-is, so
+  equipping reproduces exactly what you have now.
+
 ## 0.11.31
 
 - Add: "Update with worn" button in the Builds tab. Takes the build you have

@@ -181,27 +181,79 @@ function Champion.RenameKit(id, name)
     return true
 end
 
+-- Disciplina que exige cada slot de la barra de campeon, preguntada al motor:
+-- GetRequiredChampionDisciplineIdForSlot(slotIndex, hotbarCategory), la misma
+-- que usa el juego en championassignableactionbar.lua y en la armeria. Se
+-- prefiere a dar por hecho que los slots van en bloques de cuatro seguidos.
+-- Si la API no estuviera, se cae a bloques de 4, que es como se ven hoy.
+local slotDisciplineCache = nil
+
+local function GetSlotDisciplineId(slot)
+    if slotDisciplineCache == nil then
+        slotDisciplineCache = {}
+        if type(GetRequiredChampionDisciplineIdForSlot) == "function"
+            and HOTBAR_CATEGORY_CHAMPION ~= nil then
+            for index = Champion.SLOT_FIRST, Champion.SLOT_LAST do
+                local ok, disciplineId = pcall(
+                    GetRequiredChampionDisciplineIdForSlot, index, HOTBAR_CATEGORY_CHAMPION)
+                slotDisciplineCache[index] = (ok and disciplineId) or nil
+            end
+        end
+    end
+    -- Respaldo: cuatro slots por disciplina, en orden.
+    return slotDisciplineCache[slot] or math.floor((slot - 1) / 4)
+end
+
+-- Compara dos conjuntos de estrellas POR DISCIPLINA, sin mirar el orden dentro
+-- de cada una. Los cuatro slots de una misma disciplina estan todos activos a
+-- la vez, asi que mover una estrella del primero al tercero no cambia nada de
+-- lo que hace el personaje: seria un falso positivo tratarlo como un cambio.
+-- Lo que si cuenta es que una disciplina lleve estrellas distintas.
+function Champion.StarsEqualByDiscipline(a, b)
+    local byDiscipline = {}
+
+    for slot = Champion.SLOT_FIRST, Champion.SLOT_LAST do
+        local disciplineId = tostring(GetSlotDisciplineId(slot))
+        byDiscipline[disciplineId] = byDiscipline[disciplineId] or { left = {}, right = {} }
+
+        local starA = tonumber(a and a[slot]) or 0
+        local starB = tonumber(b and b[slot]) or 0
+        if starA ~= 0 then
+            byDiscipline[disciplineId].left[starA] = (byDiscipline[disciplineId].left[starA] or 0) + 1
+        end
+        if starB ~= 0 then
+            byDiscipline[disciplineId].right[starB] = (byDiscipline[disciplineId].right[starB] or 0) + 1
+        end
+    end
+
+    for _, group in pairs(byDiscipline) do
+        for starId, count in pairs(group.left) do
+            if group.right[starId] ~= count then return false end
+        end
+        for starId, count in pairs(group.right) do
+            if group.left[starId] ~= count then return false end
+        end
+    end
+
+    return true
+end
+
 -- Sobrescribe un kit ya existente con las estrellas actuales, conservando id y
 -- nombre. Lo usa "actualizar build con lo puesto" cuando el kit solo lo usa esa
 -- build. Devuelve true si algo ha cambiado de verdad.
 --
--- Aqui la comparacion es SLOT A SLOT, no como StarsEqual (que ordena e ignora
--- el slot, porque para deduplicar kits dos conjuntos iguales son el mismo kit).
--- Para actualizar si importa: mover una estrella de slot es un cambio real que
--- el equipado tiene que reproducir.
+-- "De verdad" se decide por disciplina (ver StarsEqualByDiscipline): reordenar
+-- las cuatro estrellas de un mismo color no es un cambio, cambiar cual llevas
+-- si lo es. Aun asi, cuando hay cambio real se guarda la distribucion actual
+-- tal cual, para que al equipar quede como la tienes ahora.
 function Champion.UpdateKitFromCurrent(id)
     local kit = Champion.GetKit(id)
     if not kit then return false end
 
     local stars = Champion.CaptureSlotted()
-    local changed = false
-    for slot = Champion.SLOT_FIRST, Champion.SLOT_LAST do
-        if (tonumber(kit.stars and kit.stars[slot]) or 0) ~= (tonumber(stars[slot]) or 0) then
-            changed = true
-            break
-        end
+    if Champion.StarsEqualByDiscipline(kit.stars, stars) then
+        return false
     end
-    if not changed then return false end
 
     kit.stars = stars
     return true
