@@ -890,40 +890,49 @@ local function CreateListPanel(content)
     actionBar:SetAnchor(BOTTOMRIGHT, panel, BOTTOMRIGHT, 0, 0)
     WB.listActionBar = actionBar
 
-    -- Grupo izquierdo (crear) y derecho (acciones sobre la build seleccionada)
-    -- dimensionados para caber a la vez: con los anchos anteriores se solapaban
-    -- en cuanto habia una build seleccionada.
-    local deleteButton = CreateActionButton(actionBar, 120, GetString(EZOARM_BUILD_DELETE),
+    -- Seis botones en una sola fila: hay que contar el ancho, no ponerlo a ojo.
+    -- El area util es el ancho de la ventana menos la columna de pestanas (150)
+    -- y los margenes del cuerpo (~24): unos 726 px con la ventana por defecto
+    -- (900). Con los anchos anteriores los seis sumaban 810 mas 60 de
+    -- separaciones = 870, y por eso "Update worn" y "Equip" se montaban uno
+    -- encima del otro. Ahora suman 610 + 60 = 670, con margen de sobra.
+    --
+    -- Los textos van cortos a proposito por lo mismo (misma leccion que en
+    -- 0.9.3): estamos en la pestana Builds, repetir "build" en cada boton solo
+    -- gasta ancho.
+    local BTN_GAP = 12
+
+    local deleteButton = CreateActionButton(actionBar, 95, GetString(EZOARM_BUILD_DELETE),
         { 1, 0.55, 0.55 }, { 1, 0.3, 0.3 }, OnDeleteClicked)
     deleteButton:SetAnchor(BOTTOMRIGHT, actionBar, BOTTOMRIGHT, 0, 0)
     deleteButton:SetHidden(true)
     WB.deleteButton = deleteButton
 
-    local editButton = CreateActionButton(actionBar, 110, GetString(EZOARM_BUILD_EDIT),
+    local editButton = CreateActionButton(actionBar, 90, GetString(EZOARM_BUILD_EDIT),
         { 0.8, 0.85, 1 }, { 0.6, 0.75, 1 }, OnEditClicked)
-    editButton:SetAnchor(RIGHT, deleteButton, LEFT, -12, 0)
+    editButton:SetAnchor(RIGHT, deleteButton, LEFT, -BTN_GAP, 0)
     editButton:SetHidden(true)
     WB.editButton = editButton
 
-    local equipButton = CreateActionButton(actionBar, 120, GetString(EZOARM_BUILD_EQUIP),
+    local equipButton = CreateActionButton(actionBar, 95, GetString(EZOARM_BUILD_EQUIP),
         { 0.6, 1, 0.6 }, { 0.4, 1, 0.4 }, OnEquipClicked)
-    equipButton:SetAnchor(RIGHT, editButton, LEFT, -12, 0)
+    equipButton:SetAnchor(RIGHT, editButton, LEFT, -BTN_GAP, 0)
     equipButton:SetHidden(true)
     WB.equipButton = equipButton
 
-    local newButton = CreateActionButton(actionBar, 110, GetString(EZOARM_BUILD_NEW),
+    local newButton = CreateActionButton(actionBar, 90, GetString(EZOARM_BUILD_NEW),
         { 0.85, 0.85, 0.9 }, { 1, 1, 1 }, OnNewClicked)
     newButton:SetAnchor(BOTTOMLEFT, actionBar, BOTTOMLEFT, 0, 0)
 
-    local copyWornButton = CreateActionButton(actionBar, 170, GetString(EZOARM_BUILD_FROM_WORN),
+    local copyWornButton = CreateActionButton(actionBar, 120, GetString(EZOARM_BUILD_FROM_WORN),
         { 0.6, 1, 0.6 }, { 0.4, 1, 0.4 }, OnCopyWornClicked)
-    copyWornButton:SetAnchor(LEFT, newButton, RIGHT, 12, 0)
+    copyWornButton:SetAnchor(LEFT, newButton, RIGHT, BTN_GAP, 0)
 
     -- Solo tiene sentido con una build elegida, asi que se oculta igual que
     -- Equip/Edit hasta que haya seleccion.
-    local updateWornButton = CreateActionButton(actionBar, 180, GetString(EZOARM_BUILD_UPDATE_FROM_WORN),
+    local updateWornButton = CreateActionButton(actionBar, 120, GetString(EZOARM_BUILD_UPDATE_FROM_WORN),
         { 1, 0.85, 0.45 }, { 1, 0.7, 0.2 }, OnUpdateFromWornClicked)
-    updateWornButton:SetAnchor(LEFT, copyWornButton, RIGHT, 12, 0)
+    updateWornButton:SetAnchor(LEFT, copyWornButton, RIGHT, BTN_GAP, 0)
     updateWornButton:SetHidden(true)
     WB.updateWornButton = updateWornButton
 

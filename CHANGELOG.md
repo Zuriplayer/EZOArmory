@@ -2,6 +2,19 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.33
+
+- Fix: "Update worn" and "Equip" overlapped in the Builds action bar. Adding a
+  sixth button in 0.11.31 pushed the row past the available width: the six came
+  to 810 px of buttons plus 60 of gaps = 870, against roughly 726 px of usable
+  space at the default window size (900 minus the 150 px tab column and the
+  body margins). With five buttons it fitted, barely.
+- Widths are now counted rather than eyeballed, and the arithmetic is written
+  down next to them: 610 + 60 = 670, leaving real margin. Button labels dropped
+  the redundant "build" - the tab is already called Builds - which is the same
+  lesson as 0.9.3: the window has a fixed width and the long option-panel
+  wording does not fit in it.
+
 ## 0.11.32
 
 - Change: "Update with worn" compares Champion kits **per discipline**, not slot
