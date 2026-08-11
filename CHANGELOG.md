@@ -2,6 +2,23 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.34
+
+- Fix: the Assign tab had two adjacent buttons that looked identical and were
+  not, and one of them could silently do nothing. The small "Equip" on the
+  Builds row used `GetStoredTrialAssignment` - the build stored on that exact
+  target, **without inheritance** - so on a target that inherits from the
+  zone's default it found nothing and returned without a word. The one below
+  it, now just "Equip this target", goes through `ResolveForTarget`, which does
+  resolve inheritance and old kit assignments, and reports why when it equips
+  nothing.
+- The redundant button is gone. One button that always does the right thing
+  beats two that differ only in a case you cannot see from the interface.
+- The same helper still backs the substitute rows, where equipping exactly what
+  the dropdown shows is the point - but it now says so when there is no build
+  selected in that row, instead of returning silently. A button that does
+  nothing and says nothing reads as broken.
+
 ## 0.11.33
 
 - Fix: "Update worn" and "Equip" overlapped in the Builds action bar. Adding a

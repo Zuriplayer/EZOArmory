@@ -179,6 +179,7 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_MSG_BUILD_CREATED = "Build created: <<1>>.",
     EZOARM_MSG_BUILD_DELETED = "Build deleted: <<1>>.",
     EZOARM_MSG_BUILD_INCOMPLETE = "That build is incomplete: fix the errors before equipping it.",
+    EZOARM_MSG_BUILD_NONE_HERE = "Nothing to equip here: no build is selected in that row.",
     EZOARM_MSG_BUILD_PART_GEAR = "Gear:",
     EZOARM_MSG_BUILD_PART_SKILLS = "Skills:",
     EZOARM_MSG_BUILD_PART_CP = "CP:",
@@ -208,7 +209,7 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_OPTION_ASSIGN_PICK = "Kit",
     EZOARM_OPTION_ASSIGN_CLEAR = "Clear this target",
 
-    EZOARM_OPTION_EQUIP_TARGET = "Equip this target's kits",
+    EZOARM_OPTION_EQUIP_TARGET = "Equip this target",
     EZOARM_OPTION_EQUIP_HERE = "Equip for my current location",
     EZOARM_MSG_EQUIP_NO_TRIAL = "You are not in a trial or arena right now.",
     EZOARM_MSG_EQUIP_NO_ASSIGNMENT = "No kits assigned for here in <<1>> (and no trial default).",

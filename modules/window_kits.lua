@@ -1328,12 +1328,19 @@ local function ReportEquipPart(part, state)
 end
 
 -- Equipa una build concreta, la que muestre el desplegable de esa fila. A
--- diferencia de "Equip target", no aplica herencia: equipa exactamente lo que
--- se ve. Sirve para probar una build sustituta sin ir a la zona.
+-- diferencia de "equipar objetivo", no aplica herencia: equipa exactamente lo
+-- que se ve. Lo usan las filas de builds sustitutas, para poder probarlas sin
+-- ir a la zona.
+--
+-- Si no hay build que equipar lo DICE. Antes salia en silencio, y desde un
+-- boton eso se lee como "esta roto": no hay forma de distinguir "no habia nada
+-- asignado" de "he pulsado y no ha pasado nada".
 local function EquipBuildById(buildId)
-    if not buildId then return end
+    if not buildId or not EZOArmory.Builds.GetBuild(buildId) then
+        if EZOArmory.Print then EZOArmory.Print(GetString(EZOARM_MSG_BUILD_NONE_HERE)) end
+        return
+    end
     local build = EZOArmory.Builds.GetBuild(buildId)
-    if not build then return end
     if not EZOArmory.Builds.Analyze(build).complete then
         if EZOArmory.Print then EZOArmory.Print(GetString(EZOARM_MSG_BUILD_INCOMPLETE)) end
         return
@@ -1509,12 +1516,15 @@ local function CreateAssignGroupBlock(parent, group, y)
         parent, group.controlPrefix .. "ZoneCombo", EZOARM_OPTION_ASSIGN_TRIAL, zoneY)
     local targetCombo = CreateAssignComboRow(
         parent, group.controlPrefix .. "TargetCombo", EZOARM_OPTION_ASSIGN_TARGET, targetY)
+    -- SIN boton de equipar propio, a proposito. Lo tuvo hasta 0.11.33 y era un
+    -- duplicado enganoso del "equipar objetivo" de abajo: aquel equipaba la
+    -- build guardada EN el objetivo exacto (GetStoredTrialAssignment, sin
+    -- herencia), asi que en un objetivo que hereda del default de la zona no
+    -- encontraba nada y no hacia absolutamente nada, en silencio. Dos botones
+    -- contiguos que parecen lo mismo y uno falla calladamente es peor que
+    -- tener uno solo que siempre hace lo correcto.
     local buildCombo = CreateAssignComboRow(
-        parent, group.controlPrefix .. "BuildCombo", EZOARM_WINDOW_TAB_BUILDS, buildY,
-        function()
-            EquipBuildById(EZOArmory.Builds.GetStoredTrialAssignment(
-                EZOArmory.GetActiveRole(), WK.state[group.tagField], WK.state[group.targetField]))
-        end)
+        parent, group.controlPrefix .. "BuildCombo", EZOARM_WINDOW_TAB_BUILDS, buildY)
 
     -- Que se aplicaria de verdad aqui, resolviendo herencia y respaldo por
     -- kits: sin esto no se distingue "sin asignar" de "hereda del default".
