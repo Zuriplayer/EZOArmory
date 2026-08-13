@@ -2,6 +2,27 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.35
+
+- Fix: equipping a build whose mythic differs from the one you are wearing left
+  the new one unequipped. ESO only allows **one** mythic at a time, so
+  `EquipItem` is rejected while the previous one is still on. The conflicting
+  mythic is now unequipped first, with a settle margin before the rest of the
+  batch goes through.
+- This is very likely part of what made a build need several attempts to apply,
+  alongside the slot-order and `wornElsewhere` causes fixed in 0.11.24.
+- Detection uses the assignment data already carried by the coherence analysis
+  (`maxEquipped == 1` identifies a mythic set, from `GetItemLinkSetInfo`) for
+  the incoming piece, and `GetItemDisplayQuality(...) ==
+  ITEM_DISPLAY_QUALITY_MYTHIC_OVERRIDE` for what is currently worn - a real
+  engine constant, the same approach Caro's Skill Point Saver uses, rather than
+  Wizard's Wardrobe's bare `itemType == 6`.
+- Nothing is unequipped when the build carries no mythic, or when the mythic
+  already worn is the one wanted: keeping the old one on only blocks equipping
+  when a *different* one has to go in.
+- `RequestUnequipItem` is not a protected function (unlike `RequestMoveItem`),
+  so it can be called directly.
+
 ## 0.11.34
 
 - Fix: the Assign tab had two adjacent buttons that looked identical and were

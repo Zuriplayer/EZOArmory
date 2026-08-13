@@ -89,6 +89,10 @@ local function BuildTargets(analysis)
                 itemLink = piece.itemLink,
                 itemName = piece.itemName,
                 setName = piece.setName,
+                -- Un set de "maximo 1 equipada" es un mitico. El analisis de
+                -- coherencia ya trae ese dato (viene de GetItemLinkSetInfo),
+                -- asi que no hace falta preguntarlo aparte.
+                mythic = tonumber(piece.maxEquipped) == 1,
             }
         end
     end
@@ -121,6 +125,60 @@ end
 -- mismo frame de la llamada, lo que podia contar como fallida una pieza que
 -- si se estaba equipando.
 local EQUIP_VERIFY_DELAY_MS = 600
+
+-- ESO solo deja llevar UN mitico puesto. Si la build nueva trae uno distinto
+-- del que ya llevas, EquipItem falla mientras el anterior siga puesto, asi que
+-- hay que quitarlo antes. Confirmado en juego por Ricardo y verificado contra
+-- Caro's Skill Point Saver, que hace lo mismo (unequipExistingMythic).
+--
+-- Se detecta por GetItemDisplayQuality == ITEM_DISPLAY_QUALITY_MYTHIC_OVERRIDE
+-- (constante real del motor). RequestUnequipItem NO es funcion protegida - la
+-- documentacion no la marca como tal, a diferencia de RequestMoveItem - asi
+-- que se puede llamar directamente.
+--
+-- Devuelve el equipSlot del que se ha quitado, o nil si no habia que quitar
+-- nada. El slot excluido es aquel donde el mitico puesto ya es el correcto.
+local function UnequipConflictingMythic(targets)
+    if type(GetItemDisplayQuality) ~= "function"
+        or type(RequestUnequipItem) ~= "function"
+        or ITEM_DISPLAY_QUALITY_MYTHIC_OVERRIDE == nil then
+        return nil
+    end
+
+    -- Si la build no trae mitico, no hay conflicto posible: llevar el de antes
+    -- puesto no impide equipar nada.
+    local wantedMythic = nil
+    for _, target in ipairs(targets) do
+        if target.mythic then
+            wantedMythic = target
+            break
+        end
+    end
+    if not wantedMythic then return nil end
+
+    for _, def in ipairs(EZOArmory.Gear.SLOT_DEFS) do
+        local equipSlot = EZOArmory.Gear.GetEquipSlotId(def.key)
+        if equipSlot then
+            local ok, quality = pcall(GetItemDisplayQuality, BAG_WORN, equipSlot)
+            if ok and quality == ITEM_DISPLAY_QUALITY_MYTHIC_OVERRIDE then
+                -- Ya puesto el que queremos y en su sitio: nada que hacer.
+                local wornId = EZOArmory.Gear.ReadItemId(BAG_WORN, equipSlot)
+                if wornId ~= nil and wornId == wantedMythic.itemId then
+                    return nil
+                end
+                RequestUnequipItem(BAG_WORN, equipSlot)
+                if EZOArmory.DebugLog then
+                    EZOArmory.DebugLog(string.format(
+                        "Unequipped conflicting mythic from slot %s to make room for %s",
+                        tostring(def.key), tostring(wantedMythic.itemName)))
+                end
+                return equipSlot
+            end
+        end
+    end
+
+    return nil
+end
 
 -- Margen tras mover una pieza que ya estaba puesta en otro slot de equipo.
 -- Ese caso reubica dos slots a la vez (lo que estaba en el destino sale), y sin
@@ -246,6 +304,14 @@ function Equip.ApplyKits(kitIds, onReport)
     local task = LibAsync:Create("EZOArmory_Equip")
     task:WaitUntil(function()
         return Equip.IsReady()
+    end):Then(function(mythicTask)
+        -- ANTES de equipar nada: si la build trae un mitico distinto del que
+        -- llevas, hay que quitarse el actual o el juego rechaza el nuevo (solo
+        -- se puede llevar uno). Se deja margen para que el desequipado se
+        -- asiente, igual que con el intercambio entre slots.
+        if UnequipConflictingMythic(targets) then
+            mythicTask:Delay(WORN_SWAP_SETTLE_MS, function() end)
+        end
     end):Then(function(innerTask)
         -- Se vuelve a comprobar "listo" ANTES DE CADA PIEZA, no solo una vez
         -- para todo el lote: un lote largo se reparte entre varios frames
