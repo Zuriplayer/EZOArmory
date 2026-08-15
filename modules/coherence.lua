@@ -31,7 +31,34 @@ Coherence.PIECES_PER_BAR = 12
 -- Un set con maximo de 1 pieza es un mitico; solo se puede llevar uno.
 local MYTHIC_MAX_EQUIPPED = 1
 
+-- Oakensoul Ring: mitico que quita la barra trasera (no puedes cambiar de
+-- barra). Con el puesto, exigir armas o 12 piezas en la barra trasera es un
+-- falso positivo: esa barra sencillamente no existe.
+--
+-- setId verificado leyendo los kits reales guardados en SavedVariables
+-- (setName "Oakensoul Ring", setId 658, maxEquipped 1), no inventado. Se
+-- comprueba por setId y no por nombre porque el nombre cambia con el idioma.
+--
+-- No hay una API que diga "el cambio de barra esta bloqueado": existe
+-- EVENT_WEAPON_SWAP_LOCKED pero ninguna funcion para consultarlo, y
+-- GetWeaponSwapUnlockedLevel se refiere al nivel de personaje (15), no a
+-- esto. Si algun dia aparece otro item con el mismo efecto, basta anadir su
+-- setId a esta lista.
+local SINGLE_BAR_SET_IDS = {
+    [658] = true, -- Oakensoul Ring
+}
+
 local FALLBACK_BARS = { "front", "back" }
+
+-- La build lleva algo que deja al personaje con una sola barra.
+local function IsSingleBarLoadout(assignment)
+    for _, entry in pairs(assignment or {}) do
+        if entry.setId and SINGLE_BAR_SET_IDS[entry.setId] then
+            return true
+        end
+    end
+    return false
+end
 
 local function GetBars()
     if EZOArmory.Gear and EZOArmory.Gear.BARS then
@@ -274,9 +301,16 @@ function Coherence.Analyze(loadout)
     local assignment = BuildAssignment(kits, issues)
     local mythics = CheckMythics(assignment, issues)
 
+    -- Con Oakensoul (o cualquier otro de SINGLE_BAR_SET_IDS) no hay barra
+    -- trasera, asi que analizarla solo produce avisos de algo que no existe:
+    -- armas traseras "sin asignar" y "solo 10 de 12 piezas". Se salta entera.
+    local singleBar = IsSingleBarLoadout(assignment)
+
     local bars = {}
     for _, bar in ipairs(GetBars()) do
-        bars[bar] = AnalyzeBar(bar, assignment, issues)
+        if not (singleBar and bar == "back") then
+            bars[bar] = AnalyzeBar(bar, assignment, issues)
+        end
     end
 
     local ok = true

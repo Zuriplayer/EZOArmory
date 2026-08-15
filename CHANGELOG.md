@@ -2,6 +2,24 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.36
+
+- Fix: a build wearing the Oakensoul Ring was flagged with three bogus issues -
+  no main hand on the back bar, no off hand on the back bar, and "only 10 of 12
+  pieces count" on the back bar. Oakensoul removes the back bar entirely, so
+  there is nothing there to fill: the analysis now skips that bar completely
+  when the loadout carries a single-bar mythic.
+- Detected by `setId`, not by name (names change with the client language). The
+  id was read from real saved kit data (`setName "Oakensoul Ring"`, `setId 658`,
+  `maxEquipped 1`) rather than guessed. There is no API to ask whether weapon
+  swapping is locked - `EVENT_WEAPON_SWAP_LOCKED` exists but has no matching
+  getter, and `GetWeaponSwapUnlockedLevel` refers to character level - so it is
+  a list of set ids, `SINGLE_BAR_SET_IDS`, easy to extend if another item ever
+  does the same.
+- Fix: issue messages read "Back bar bar" and "Front bar bar". `BarLabel`
+  already returns "Back bar", and four templates appended another " bar" (or
+  " barra") around it. The templates no longer add it.
+
 ## 0.11.35
 
 - Fix: equipping a build whose mythic differs from the one you are wearing left

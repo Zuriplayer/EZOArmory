@@ -1,6 +1,6 @@
 <Bindings>
-  <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
-    <Category name="E|cB040FFZ|rO AddOns">
+  <Layer name="E|cB040FFZ|rO AddOns">
+    <Category name="E|cB040FFZ|rOArmory">
       <Action name="EZOARMORY_TOGGLE_WINDOW"><Down>EZOArmory_ToggleWindow()</Down></Action>
     </Category>
   </Layer>
