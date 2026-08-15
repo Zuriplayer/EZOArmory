@@ -2,6 +2,23 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.37
+
+- Fix: "Copy worn setup" could produce a build with no skill kit and no CP kit
+  and say nothing about it. `Builds.CreateFromCurrent` collected only two of the
+  three return values from `CreateKitFromCurrent`, throwing away the third -
+  the reason (`"empty"` / `"duplicate"`). So when a part was not captured there
+  was no message, no log line, and no way to tell "nothing was slotted" from
+  "something went wrong". The reason is now kept, logged, and reported.
+- The chat message after copying now lists any part that could not be captured,
+  and points at assigning it by hand or using "Update worn". Previously it only
+  reported the gear count, so a build missing skills and CP looked fine until
+  the coherence check flagged it red much later - which is exactly how this was
+  found, from a screenshot, several versions after the fact.
+- This explains the two remaining issues on Ricardo's `AA Vat CON Fuego` build
+  from 0.11.36: it is the only build in the saved data with neither
+  `skillKitId` nor `cpKitId`, and it was created with "Copy worn setup".
+
 ## 0.11.36
 
 - Fix: a build wearing the Oakensoul Ring was flagged with three bogus issues -

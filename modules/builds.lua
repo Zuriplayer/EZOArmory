@@ -99,13 +99,26 @@ function Builds.CreateFromCurrent(name)
 
     -- Habilidades y CP: se reutiliza el kit existente si el contenido coincide
     -- (CreateKitFromCurrent devuelve el kit ya guardado como "duplicate").
-    local skillId, skillExisting = EZOArmory.Skills.CreateKitFromCurrent(
+    --
+    -- El TERCER valor de retorno ("empty" / "duplicate") se recoge y se
+    -- devuelve. Antes se descartaba, y una build que salia sin habilidades ni
+    -- CP no dejaba ni rastro de por que: ni mensaje, ni log, ni forma de
+    -- distinguir "no habia nada que capturar" de "ha fallado algo".
+    local skillId, skillExisting, skillReason = EZOArmory.Skills.CreateKitFromCurrent(
         EZOArmory.AutoKitName(EZOARM_AUTONAME_SKILLS, EZOArmory.Skills.ListKits))
     local skillKitId = skillId or (skillExisting and skillExisting.id) or nil
 
-    local cpId, cpExisting = EZOArmory.Champion.CreateKitFromCurrent(
+    local cpId, cpExisting, cpReason = EZOArmory.Champion.CreateKitFromCurrent(
         EZOArmory.AutoKitName(EZOARM_AUTONAME_CP, EZOArmory.Champion.ListKits))
     local cpKitId = cpId or (cpExisting and cpExisting.id) or nil
+
+    if EZOArmory.DebugLog then
+        EZOArmory.DebugLog(string.format(
+            "CreateFromCurrent: gear=%d skillKit=%s (%s) cpKit=%s (%s)",
+            #(gearKitIds or {}),
+            tostring(skillKitId), tostring(skillReason),
+            tostring(cpKitId), tostring(cpReason)))
+    end
 
     local buildId, build = Builds.CreateBuild(name)
     if not build then return nil end
@@ -119,6 +132,11 @@ function Builds.CreateFromCurrent(name)
         gearReused = gearReused,
         skillNew = skillId ~= nil,
         cpNew = cpId ~= nil,
+        -- Para que quien informe pueda decir QUE falto y por que.
+        skillKitId = skillKitId,
+        cpKitId = cpKitId,
+        skillReason = skillReason,
+        cpReason = cpReason,
     }
 end
 

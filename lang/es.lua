@@ -162,6 +162,7 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_BUILD_EQUIP = "Equipar",
     EZOARM_BUILD_DELETE = "Borrar",
     EZOARM_MSG_BUILD_FROM_WORN = "Build <<1>> creada desde lo que llevas puesto: <<2>> kit(s) nuevos, <<3>> reutilizados.",
+    EZOARM_MSG_BUILD_FROM_WORN_MISSING = "No se ha podido capturar: <<1>>. O no habia nada ranurado, o el juego no lo ha devuelto. Asignalo a mano, o ranuralo y usa \"Actualizar con lo puesto\".",
     EZOARM_BUILD_EDIT = "Editar",
     EZOARM_BUILD_BACK = "Volver a la lista",
     EZOARM_BUILD_AUTONAME = "Build",

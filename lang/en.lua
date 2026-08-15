@@ -162,6 +162,7 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_BUILD_EQUIP = "Equip",
     EZOARM_BUILD_DELETE = "Delete",
     EZOARM_MSG_BUILD_FROM_WORN = "Build <<1>> created from what you are wearing: <<2>> new kit(s), <<3>> reused.",
+    EZOARM_MSG_BUILD_FROM_WORN_MISSING = "Could not capture: <<1>>. Nothing was slotted, or the game did not report it. Assign it by hand, or slot it and use \"Update worn\".",
     EZOARM_BUILD_EDIT = "Edit",
     EZOARM_BUILD_BACK = "Back to list",
     EZOARM_BUILD_AUTONAME = "Build",

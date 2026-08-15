@@ -717,6 +717,22 @@ local function OnCopyWornClicked()
         if EZOArmory.Print then
             EZOArmory.Print(zo_strformat(GetString(EZOARM_MSG_BUILD_FROM_WORN),
                 name, summary.gearCreated, summary.gearReused))
+
+            -- Si alguna parte no se ha podido capturar hay que DECIRLO. Antes
+            -- solo se informaba del equipo, asi que una build que salia sin
+            -- habilidades ni CP parecia correcta hasta que el analisis de
+            -- coherencia la marcaba en rojo mucho despues.
+            local missing = {}
+            if not summary.skillKitId then
+                missing[#missing + 1] = GetString(EZOARM_MSG_BUILD_PART_SKILLS)
+            end
+            if not summary.cpKitId then
+                missing[#missing + 1] = GetString(EZOARM_MSG_BUILD_PART_CP)
+            end
+            if #missing > 0 then
+                EZOArmory.Print(zo_strformat(
+                    GetString(EZOARM_MSG_BUILD_FROM_WORN_MISSING), table.concat(missing, ", ")))
+            end
         end
         WB.state.editingId = id
         WB.state.selectedId = id
