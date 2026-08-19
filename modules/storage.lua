@@ -65,6 +65,14 @@ function Storage.GetBuildItemIds(buildId)
     local items = {}
     for _, kitId in ipairs(build.gearKitIds or {}) do
         local kit = EZOArmory.Kits.GetKit(kitId)
+        -- Un kit al que la build apunta pero que ya no existe se llevaria sus
+        -- piezas por delante sin decir nada. Se registra: es justo el tipo de
+        -- ausencia silenciosa que se lee como "no ha guardado tal pieza".
+        if not kit and EZOArmory.DebugLog then
+            EZOArmory.DebugLog(string.format(
+                "Storage: la build %s apunta al kit %s, que no existe",
+                tostring(buildId), tostring(kitId)))
+        end
         for _, piece in pairs((kit and kit.pieces) or {}) do
             if piece.itemId and not seen[piece.itemId] then
                 seen[piece.itemId] = true
@@ -102,9 +110,17 @@ local function MoveNext(queue, destBag, state, onDone)
 
     local entry = table.remove(queue, 1)
 
-    -- El banco puede haberse cerrado a mitad del proceso.
+    -- El banco puede haberse cerrado a mitad del proceso. Las piezas que
+    -- quedaban se cuentan como no movidas en vez de desaparecer del informe:
+    -- si no, el recuento final cuadra y aun asi faltan piezas por guardar.
     if type(IsBankOpen) == "function" and not IsBankOpen() then
         state.aborted = true
+        state.failed = state.failed + 1
+        state.failedNames[#state.failedNames + 1] = entry.label
+        for _, pending in ipairs(queue) do
+            state.failed = state.failed + 1
+            state.failedNames[#state.failedNames + 1] = pending.label
+        end
         if onDone then onDone(state) end
         return
     end
@@ -162,7 +178,14 @@ local function MoveNext(queue, destBag, state, onDone)
                 EZOArmory.DebugLog(string.format(
                     "Storage: movida %s (%d intentos)", tostring(entry.label), tries))
             end
-            MoveNext(queue, destBag, state, onDone)
+            -- Margen antes de la siguiente. Al comprobar la salida del ORIGEN
+            -- se sabe que la pieza se ha movido, pero no que ya ocupe su hueco
+            -- en el destino; sin esta pausa, el FindFirstEmptySlotInBag de la
+            -- pieza siguiente puede devolver ese mismo hueco todavia libre y
+            -- las dos se pisarian. WW espera igualmente entre movimientos.
+            zo_callLater(function()
+                MoveNext(queue, destBag, state, onDone)
+            end, ARRIVAL_POLL_MS)
             return
         end
 

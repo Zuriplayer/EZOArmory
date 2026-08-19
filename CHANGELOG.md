@@ -2,6 +2,22 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.40
+
+- Fix: consecutive pieces could be sent to the same destination slot and get in
+  each other's way. 0.11.39 started confirming a move by the piece leaving its
+  source, which is conclusive that it moved but says nothing about it having
+  landed yet - so `FindFirstEmptySlotInBag` for the next piece could hand back
+  that same still-empty slot. A short pause now follows each move, as Wizard's
+  Wardrobe does between items. This is a strong candidate for pieces going
+  missing in a batch.
+- Fix: a build pointing at a gear kit that no longer exists dropped that kit's
+  pieces silently, which reads exactly like "it didn't store that piece". It is
+  now logged.
+- Fix: if the bank closed partway through, the pieces still queued vanished
+  from the report - the totals added up while pieces were plainly still
+  unstored. They are now counted as not moved and listed.
+
 ## 0.11.39
 
 - Fix: moving a piece to or from the bank checked the wrong thing. It watched
