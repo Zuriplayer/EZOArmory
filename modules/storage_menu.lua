@@ -73,19 +73,47 @@ end
 
 function StorageMenu.Init()
     if registered then return end
-    if type(LibCustomMenu) ~= "table" or type(LibCustomMenu.RegisterContextMenu) ~= "function" then
+
+    -- Cada motivo de rendirse se registra: sin esto, "no aparece el menu" no
+    -- distingue entre libreria ausente, libreria vieja que el juego no carga,
+    -- o que el registro si ocurrio y el problema esta en otro sitio.
+    local libKind = type(LibCustomMenu)
+    if libKind ~= "table" or type(LibCustomMenu.RegisterContextMenu) ~= "function" then
+        if EZOArmory.DebugLog then
+            EZOArmory.DebugLog(string.format(
+                "StorageMenu: LibCustomMenu no disponible (type=%s). "
+                .. "Suele ser que el juego no la carga por APIVersion vieja: "
+                .. "activa 'permitir addons desactualizados'.", libKind))
+        end
         return
     end
-    if type(AddCustomSubMenuItem) ~= "function" then return end
+    if type(AddCustomSubMenuItem) ~= "function" then
+        if EZOArmory.DebugLog then
+            EZOArmory.DebugLog("StorageMenu: falta AddCustomSubMenuItem")
+        end
+        return
+    end
 
     registered = true
+    if EZOArmory.DebugLog then
+        EZOArmory.DebugLog("StorageMenu: menu contextual registrado")
+    end
 
     LibCustomMenu:RegisterContextMenu(function()
         -- Solo tiene sentido con el banco o un baul abierto: fuera de ahi el
         -- movimiento es imposible y las entradas solo estorbarian.
-        if type(IsBankOpen) ~= "function" or not IsBankOpen() then return end
-        if not (EZOArmory.Builds and EZOArmory.Storage) then return end
-        if #EZOArmory.Builds.ListBuilds() == 0 then return end
+        local bankOpen = type(IsBankOpen) == "function" and IsBankOpen()
+        local builds = (EZOArmory.Builds and EZOArmory.Storage)
+            and #EZOArmory.Builds.ListBuilds() or -1
+
+        if EZOArmory.DebugLog then
+            EZOArmory.DebugLog(string.format(
+                "StorageMenu: clic derecho, bankOpen=%s builds=%d",
+                tostring(bankOpen), builds))
+        end
+
+        if not bankOpen then return end
+        if builds <= 0 then return end
 
         AddCustomSubMenuItem(GetString(EZOARM_MENU_WITHDRAW_BUILD), BuildEntries(true))
         AddCustomSubMenuItem(GetString(EZOARM_MENU_DEPOSIT_BUILD), BuildEntries(false))

@@ -2,6 +2,20 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.39
+
+- Fix: moving a piece to or from the bank checked the wrong thing. It watched
+  for the item appearing in the exact free slot picked with
+  `FindFirstEmptySlotInBag`, but the server need not put it there - that slot
+  can be taken in the meantime, or the container reorganised. A piece that had
+  in fact moved was then declared "did not arrive" after the 3 s timeout and
+  counted as a failure. It now checks that the piece is **no longer at the
+  source**, which is conclusive.
+- Added diagnostics to the storage moves: how many pieces the build has, how
+  many were queued, how many were skipped as worn or not found, and per piece
+  whether it moved (and after how many polls) or not, with source and intended
+  destination.
+
 ## 0.11.38
 
 - Add: take a build's gear out of the bank, or store it, from the inventory

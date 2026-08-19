@@ -149,9 +149,19 @@ local function MoveNext(queue, destBag, state, onDone)
     EVENT_MANAGER:RegisterForUpdate(namespace, ARRIVAL_POLL_MS, function()
         tries = tries + 1
 
-        if EZOArmory.Gear.ReadItemId(target, destSlot) == entry.itemId then
+        -- Se comprueba que la pieza YA NO ESTA EN EL ORIGEN, no que haya
+        -- aparecido en el hueco calculado. El servidor no tiene por que
+        -- ponerla justo ahi: ese hueco puede ocuparse entre medias, o el
+        -- inventario reorganizarse. Vigilando el destino exacto, una pieza que
+        -- SI se habia movido se daba por no llegada al agotar los 3 s y se
+        -- informaba como fallo. Que desaparezca del origen es concluyente.
+        if EZOArmory.Gear.ReadItemId(entry.bag, entry.slot) ~= entry.itemId then
             EVENT_MANAGER:UnregisterForUpdate(namespace)
             state.moved = state.moved + 1
+            if EZOArmory.DebugLog then
+                EZOArmory.DebugLog(string.format(
+                    "Storage: movida %s (%d intentos)", tostring(entry.label), tries))
+            end
             MoveNext(queue, destBag, state, onDone)
             return
         end
@@ -160,6 +170,12 @@ local function MoveNext(queue, destBag, state, onDone)
             EVENT_MANAGER:UnregisterForUpdate(namespace)
             state.failed = state.failed + 1
             state.failedNames[#state.failedNames + 1] = entry.label
+            if EZOArmory.DebugLog then
+                EZOArmory.DebugLog(string.format(
+                    "Storage: NO movida %s (origen %s:%s -> destino %s:%s)",
+                    tostring(entry.label), tostring(entry.bag), tostring(entry.slot),
+                    tostring(target), tostring(destSlot)))
+            end
             MoveNext(queue, destBag, state, onDone)
         end
     end)
@@ -202,6 +218,13 @@ local function BuildQueue(buildId, sourceBags)
         end
         -- wornSlot no se usa: la pieza no se mueve.
         local _ = wornSlot
+    end
+
+    if EZOArmory.DebugLog then
+        EZOArmory.DebugLog(string.format(
+            "Storage: build %s -> %d piezas del kit, %d en cola, %d puestas, %d no encontradas",
+            tostring(buildId), #Storage.GetBuildItemIds(buildId),
+            #queue, state.worn, state.missing))
     end
 
     return queue, state
