@@ -418,6 +418,12 @@ function EZOA:Initialize()
         EZOArmory.Markers.Init()
     end
 
+    -- Menu contextual del inventario para guardar/sacar builds del banco. Se
+    -- rinde solo si falta LibCustomMenu, que es opcional a proposito.
+    if EZOArmory.StorageMenu and EZOArmory.StorageMenu.Init then
+        EZOArmory.StorageMenu.Init()
+    end
+
     if EZOArmory_Menu and EZOArmory_Menu.Init then
         EZOArmory_Menu.Init()
     end

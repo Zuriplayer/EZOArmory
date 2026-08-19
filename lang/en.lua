@@ -8,6 +8,18 @@ EZOARMORY_STRINGS_EN = {
     SI_BINDING_CATEGORY_EZOARMORY = "E|cB040FFZ|rOArmory",
     SI_BINDING_NAME_EZOARMORY_TOGGLE_WINDOW = "Open EZOArmory",
 
+    -- Banco / baules
+    EZOARM_MENU_WITHDRAW_BUILD = "EZOArmory: take out a build",
+    EZOARM_MENU_DEPOSIT_BUILD = "EZOArmory: store a build",
+    EZOARM_MSG_STORAGE_NO_BANK = "Open the bank or a chest first: items can only be moved while it is open.",
+    EZOARM_MSG_STORAGE_WITHDRAWN = "Taken out: <<1>> piece(s).",
+    EZOARM_MSG_STORAGE_DEPOSITED = "Stored: <<1>> piece(s).",
+    EZOARM_MSG_STORAGE_WORN = "Left alone because you are wearing them: <<1>>.",
+    EZOARM_MSG_STORAGE_MISSING = "Not found where it was looked for: <<1>>.",
+    EZOARM_MSG_STORAGE_NO_SPACE = "No room for: <<1>>.",
+    EZOARM_MSG_STORAGE_FAILED = "Did not arrive, try again: <<1>>.",
+    EZOARM_MSG_STORAGE_ABORTED = "The bank closed partway through, the rest was not moved.",
+
     EZOARM_MSG_INIT = "EZOArmory loaded. Type /ezoarmory to open the window.",
 
     EZOARM_WINDOW_CONTEXT_NONE = "Not in a trial",

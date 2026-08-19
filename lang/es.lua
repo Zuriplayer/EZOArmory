@@ -8,6 +8,18 @@ EZOARMORY_STRINGS_ES = {
     SI_BINDING_CATEGORY_EZOARMORY = "E|cB040FFZ|rOArmory",
     SI_BINDING_NAME_EZOARMORY_TOGGLE_WINDOW = "Abrir EZOArmory",
 
+    -- Banco / baules
+    EZOARM_MENU_WITHDRAW_BUILD = "EZOArmory: sacar una build",
+    EZOARM_MENU_DEPOSIT_BUILD = "EZOArmory: guardar una build",
+    EZOARM_MSG_STORAGE_NO_BANK = "Abre antes el banco o un baul: solo se pueden mover piezas con el abierto.",
+    EZOARM_MSG_STORAGE_WITHDRAWN = "Sacadas <<1>> pieza(s).",
+    EZOARM_MSG_STORAGE_DEPOSITED = "Guardadas <<1>> pieza(s).",
+    EZOARM_MSG_STORAGE_WORN = "Sin tocar porque las llevas puestas: <<1>>.",
+    EZOARM_MSG_STORAGE_MISSING = "No estaban donde se han buscado: <<1>>.",
+    EZOARM_MSG_STORAGE_NO_SPACE = "Sin sitio para: <<1>>.",
+    EZOARM_MSG_STORAGE_FAILED = "No han llegado, intentalo de nuevo: <<1>>.",
+    EZOARM_MSG_STORAGE_ABORTED = "El banco se ha cerrado a mitad, el resto no se ha movido.",
+
     EZOARM_MSG_INIT = "EZOArmory cargado. Escribe /ezoarmory para abrir la ventana.",
 
     EZOARM_WINDOW_CONTEXT_NONE = "Fuera de trial",

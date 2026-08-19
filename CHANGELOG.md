@@ -2,6 +2,32 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.38
+
+- Add: take a build's gear out of the bank, or store it, from the inventory
+  right-click menu. Works with the bank, the subscriber bank and house chests
+  alike - `GetBankingBag()` returns whichever container is open, so they need
+  no special casing.
+- **Nothing you are wearing is ever touched.** A piece of the build that is
+  currently equipped is counted and reported, never unequipped. That was the
+  agreed scope: it removes the case where one wrong click leaves you with no
+  gear on.
+- Pieces move one at a time, waiting for each to arrive before sending the
+  next (100 ms polling, 3 s timeout), because the server takes time and firing
+  them all at once loses pieces. Space is checked with `DoesBagHaveSpaceFor`
+  first, falling back to the subscriber bank when the normal one is full and
+  you have ESO Plus. Same approach as Wizard's Wardrobe's banking module, which
+  is where the pattern was verified.
+- The chat report distinguishes moved, left alone because worn, not found, no
+  room, and did not arrive - rather than a single count that hides what
+  happened.
+- **New optional dependency: LibCustomMenu**, for the context menu. This is a
+  second exception to the family rule that only LibAsync is allowed, requested
+  explicitly when choosing the context menu as the interface. It is declared
+  `OptionalDependsOn`, not `DependsOn`: without the library the add-on works
+  exactly as before, only the menu is missing, and `EZOArmory.Storage` is still
+  usable from code. The library is public domain (Unlicense).
+
 ## 0.11.37
 
 - Fix: "Copy worn setup" could produce a build with no skill kit and no CP kit
