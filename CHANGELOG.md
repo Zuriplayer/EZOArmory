@@ -2,6 +2,29 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.43
+
+- Add: boss rooms are recognised by **position**, so the build can be equipped
+  on walking in, before the pull. `EVENT_BOSSES_CHANGED` fires when the
+  encounter activates, which is usually once combat has already started - and
+  in combat nothing can be changed, so the boss build ended up applying after
+  the fight. This is the underlying problem behind the original Spindleclutch
+  report.
+- Rooms are **learned automatically**: the first time a boss is detected, the
+  player's position at that moment is stored as the centre of its room. From
+  the next visit on, position recognises it early. Nothing to configure, and
+  the position was already being logged since 0.11.23.
+- A single centre plus radius per room, not a six-sided box. One point is
+  enough for a boss room, and it needs no manual measuring. Where two rooms
+  overlap, the nearer centre wins.
+- Polls every 2 s and **stops in combat**, resuming on leaving it - the same
+  interval and policy as Wizard's Wardrobe (`zones/LC.lua`). Verified that this
+  is how everyone solves it: WW uses x/y/z boxes across 9 zones,
+  BSCs-HowToKynesAegis does the same inline. There is no better API.
+- Unlike WW, this does **not** replace `EVENT_BOSSES_CHANGED` - WW disables it
+  entirely in zones with boxes. Here the event stays as the safety net for
+  rooms not learned yet, and position only takes over when it recognises one.
+
 ## 0.11.42
 
 - Fix: the CP summary in a build row covered everything to its right. It was

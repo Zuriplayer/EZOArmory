@@ -43,6 +43,12 @@ function EZOArmory.savedVars.Init()
         -- juego en el marco del objetivo. Se rellena solo; ver
         -- modules/zones_trials.lua.
         discoveredBosses = {},
+        -- Salas de boss aprendidas: bossRooms[zoneTag][bossKey] =
+        -- { x, y, z, radius }. Se aprenden solas la primera vez que se detecta
+        -- cada boss, y sirven para reconocer la sala ANTES de que empiece el
+        -- combate (en combate no se puede equipar nada). Ver
+        -- modules/zones_trials.lua.
+        bossRooms = {},
         -- Ventana emergente (HUD). Posicion y aspecto. x/y NO llevan valor por
         -- defecto a proposito: window.lua los usa como senal de "nunca se ha
         -- movido" (SetAnchor CENTER en vez de TOPLEFT+x,y). Si aqui llevaran 0,

@@ -367,6 +367,88 @@ function Z.GetDiscoveredBosses(zoneTag)
     return list
 end
 
+-- ------------------------------------------------ Salas de boss ----
+--
+-- POR QUE HACE FALTA: EVENT_BOSSES_CHANGED avisa cuando el encuentro se
+-- activa, que suele ser cuando YA estas en combate; y en combate no se puede
+-- cambiar equipo, ni habilidades, ni CP. Resultado: la build de boss se acaba
+-- aplicando cuando la pelea ha terminado.
+--
+-- Como lo resuelve todo el mundo (verificado): comparando la posicion del
+-- jugador contra una zona de la sala. Wizard's Wardrobe lo hace en 9 zonas con
+-- cajas x/y/z y un bucle cada 2 s que PARA en combate (zones/LC.lua), y en
+-- esas zonas llega a desactivar EVENT_BOSSES_CHANGED del todo.
+-- BSCs-HowToKynesAegis hace lo mismo a pelo. No hay ninguna API mejor.
+--
+-- Aqui NO se copian las cajas de nadie: se aprenden las propias, con un punto
+-- por sala en vez de seis limites. Un centro se captura con un clic estando
+-- dentro, y para una sala de boss basta. Si dos salas solapan, gana la mas
+-- cercana.
+Z.DEFAULT_ROOM_RADIUS = 4000
+
+local function RoomStore(create)
+    local sv = EZOArmory.sv
+    if not sv then return nil end
+    if not sv.bossRooms then
+        if not create then return nil end
+        sv.bossRooms = {}
+    end
+    return sv.bossRooms
+end
+
+-- Guarda la posicion actual como centro de la sala de ese boss.
+function Z.LearnBossRoom(zoneTag, bossKey, x, y, z, radius)
+    if zoneTag == nil or bossKey == nil then return false end
+    local store = RoomStore(true)
+    if not store then return false end
+
+    store[zoneTag] = store[zoneTag] or {}
+    store[zoneTag][bossKey] = {
+        x = x, y = y, z = z,
+        radius = tonumber(radius) or Z.DEFAULT_ROOM_RADIUS,
+    }
+    return true
+end
+
+function Z.GetBossRoom(zoneTag, bossKey)
+    local store = RoomStore(false)
+    local perZone = store and store[zoneTag]
+    return perZone and perZone[bossKey] or nil
+end
+
+function Z.ForgetBossRoom(zoneTag, bossKey)
+    local store = RoomStore(false)
+    if store and store[zoneTag] then
+        store[zoneTag][bossKey] = nil
+        return true
+    end
+    return false
+end
+
+-- Boss cuya sala contiene esa posicion, o nil. Con varias salas solapadas gana
+-- la mas cercana al centro, que es lo que evita que dos salas contiguas se
+-- peleen por el jugador.
+function Z.FindBossByPosition(zone, x, y, z)
+    if not zone or x == nil then return nil end
+    local store = RoomStore(false)
+    local perZone = store and store[zone.tag]
+    if not perZone then return nil end
+
+    local best, bestDistance = nil, nil
+    for _, boss in ipairs(Z.GetZoneBosses(zone)) do
+        local room = perZone[boss.key]
+        if room and room.x then
+            local dx, dy, dz = x - room.x, y - room.y, z - room.z
+            local distance = math.sqrt(dx * dx + dy * dy + dz * dz)
+            local radius = tonumber(room.radius) or Z.DEFAULT_ROOM_RADIUS
+            if distance <= radius and (bestDistance == nil or distance < bestDistance) then
+                best, bestDistance = boss, distance
+            end
+        end
+    end
+    return best
+end
+
 -- Registra un boss visto en vivo. Devuelve true si era nuevo.
 function Z.DiscoverBoss(zoneTag, unitName, tier)
     if zoneTag == nil or unitName == nil or unitName == "" then return false end

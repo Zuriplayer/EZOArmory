@@ -151,6 +151,30 @@ local function RefreshBoss()
             matched = Zones.FindBossByName(Context.state.trial, primary)
         end
     end
+    -- APRENDIZAJE AUTOMATICO DE LA SALA. Cuando el encuentro se activa ya
+    -- sueles estar dentro de la sala (a menudo en combate, que es justo el
+    -- problema), asi que esa posicion sirve de centro. La primera vez se
+    -- aprende y a partir de la siguiente visita la deteccion por posicion se
+    -- adelanta al evento y da tiempo a equipar antes del pull.
+    --
+    -- Solo se aprende si no habia sala guardada: la posicion del primer
+    -- avistamiento es tan buena como cualquiera, y sobrescribirla cada vez
+    -- haria que el centro fuese saltando segun donde estuvieras.
+    if matched and Context.state.trial and Zones and Zones.LearnBossRoom
+        and not Zones.GetBossRoom(Context.state.trial.tag, matched.key)
+        and type(GetUnitWorldPosition) == "function" then
+        local ok, _, px, py, pz = pcall(GetUnitWorldPosition, "player")
+        if ok and px then
+            Zones.LearnBossRoom(Context.state.trial.tag, matched.key, px, py, pz)
+            if EZOArmory.DebugLog then
+                EZOArmory.DebugLog(string.format(
+                    "Boss room learned: %s/%s at %s,%s,%s",
+                    tostring(Context.state.trial.tag), tostring(matched.key),
+                    tostring(px), tostring(py), tostring(pz)))
+            end
+        end
+    end
+
     if matched ~= Context.state.matchedBoss then
         changed = true
     end
@@ -168,6 +192,67 @@ local function RefreshBoss()
     return changed
 end
 
+-- ------------------------------------- Deteccion por posicion ----
+--
+-- Sondeo cada 2 s de la posicion del jugador contra las salas aprendidas, para
+-- reconocer el boss ANTES de que el encuentro se active. Mismo intervalo y
+-- misma politica que Wizard's Wardrobe (zones/LC.lua): el bucle se PARA en
+-- combate y se reanuda al salir, porque en combate no se puede cambiar nada y
+-- comprobarlo no sirve de nada.
+--
+-- A diferencia de WW, esto NO sustituye a EVENT_BOSSES_CHANGED: lo complementa.
+-- WW llega a desactivar el evento en las zonas con cajas; aqui el evento sigue
+-- siendo la red de seguridad para salas que aun no se han aprendido.
+local POSITION_POLL_MS = 2000
+local positionLoopName = ADDON_NAME .. "_RoomPoll"
+local positionLoopRunning = false
+
+local function CheckRoomByPosition()
+    local zone = Context.state.trial
+    if not zone or not Zones or not Zones.FindBossByPosition then return end
+    -- Con el encuentro ya activo manda el evento: es mas fiable que la
+    -- posicion y no hay que pisarlo.
+    if Context.state.bossActive then return end
+    if type(GetUnitWorldPosition) ~= "function" then return end
+
+    local ok, _, x, y, z = pcall(GetUnitWorldPosition, "player")
+    if not ok or not x then return end
+
+    local matched = Zones.FindBossByPosition(zone, x, y, z)
+    if matched == Context.state.matchedBoss then return end
+
+    Context.state.matchedBoss = matched
+    if EZOArmory.DebugLog then
+        EZOArmory.DebugLog(string.format(
+            "Room by position: %s (zona %s)",
+            tostring(matched and matched.key or nil), tostring(zone.tag)))
+    end
+    FireChanged()
+end
+
+local function StopPositionLoop()
+    if not positionLoopRunning then return end
+    positionLoopRunning = false
+    EVENT_MANAGER:UnregisterForUpdate(positionLoopName)
+end
+
+local function StartPositionLoop()
+    if positionLoopRunning then return end
+    -- Solo dentro de una zona conocida: fuera no hay salas que reconocer.
+    if not Context.state.trial then return end
+    if type(IsUnitInCombat) == "function" and IsUnitInCombat("player") then return end
+    positionLoopRunning = true
+    EVENT_MANAGER:RegisterForUpdate(positionLoopName, POSITION_POLL_MS, CheckRoomByPosition)
+end
+
+local function OnCombatStateChanged(_, inCombat)
+    if inCombat then
+        StopPositionLoop()
+    else
+        StartPositionLoop()
+    end
+end
+
 local function OnZoneChanged()
     local previousZone = Context.state.zoneId
     RefreshZone()
@@ -182,6 +267,13 @@ local function OnZoneChanged()
             ))
         end
         FireChanged()
+    end
+
+    -- El sondeo de salas solo corre dentro de zonas conocidas.
+    if Context.state.trial then
+        StartPositionLoop()
+    else
+        StopPositionLoop()
     end
 end
 
@@ -291,6 +383,17 @@ function Context.Init()
     if type(EVENT_ZONE_CHANGED) ~= "nil" then
         EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_ContextZoneDetail", EVENT_ZONE_CHANGED, OnZoneChangedDetail)
     end
+
+    -- El sondeo de salas se para en combate y se reanuda al salir, igual que
+    -- hace WW: en combate no se puede equipar nada, asi que comprobar la
+    -- posicion no aporta y solo gasta.
+    if type(EVENT_PLAYER_COMBAT_STATE) ~= "nil" then
+        EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_ContextCombat",
+            EVENT_PLAYER_COMBAT_STATE, OnCombatStateChanged)
+    end
+
+    -- Arranque: si ya estas dentro de una zona conocida al cargar.
+    StartPositionLoop()
 
     eventsRegistered = true
 end
