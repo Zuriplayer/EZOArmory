@@ -2,6 +2,24 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.41
+
+- Fix: the bank menu never appeared at a **house storage coffer**, which is the
+  main place it would be used. `IsBankOpen()` returns false with a coffer open -
+  the diagnostic trace recorded `bankOpen=false` with one in front - so every
+  guard in the storage module refused to act.
+- Reading the game's code suggested the opposite (`banking_gamepad.lua` does
+  `IsBankOpen() and IsHouseBankBag(GetBankingBag())`), so this was found from
+  the trace, not from the source. The measured behaviour wins.
+- Open containers are now tracked through `EVENT_OPEN_BANK` / `EVENT_CLOSE_BANK`,
+  which carry the actual bag and work identically for the bank, the subscriber
+  bank and the ten house coffers. `Storage.IsOpen()` / `Storage.GetOpenBag()`
+  replace every `IsBankOpen()` check, and deposits now go to the container
+  actually open rather than assuming `BAG_BANK`.
+- `IsBankOpen()` survives only as a fallback inside `GetOpenBag`, for the case
+  where the open event was missed - reloading the UI with the container already
+  open, for instance.
+
 ## 0.11.40
 
 - Fix: consecutive pieces could be sent to the same destination slot and get in

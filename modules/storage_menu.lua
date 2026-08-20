@@ -102,7 +102,10 @@ function StorageMenu.Init()
     LibCustomMenu:RegisterContextMenu(function()
         -- Solo tiene sentido con el banco o un baul abierto: fuera de ahi el
         -- movimiento es imposible y las entradas solo estorbarian.
-        local bankOpen = type(IsBankOpen) == "function" and IsBankOpen()
+        -- Storage.IsOpen y no IsBankOpen: con un cofre de casa abierto,
+        -- IsBankOpen devuelve false y el menu no aparecia (comprobado en
+        -- juego, era justo el caso de uso real).
+        local bankOpen = EZOArmory.Storage and EZOArmory.Storage.IsOpen()
         local builds = (EZOArmory.Builds and EZOArmory.Storage)
             and #EZOArmory.Builds.ListBuilds() or -1
 

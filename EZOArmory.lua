@@ -418,6 +418,12 @@ function EZOA:Initialize()
         EZOArmory.Markers.Init()
     end
 
+    -- Rastreo de banco/cofre abierto. Va antes del menu: es lo que decide si
+    -- las entradas se muestran, y hace falta aunque no exista LibCustomMenu.
+    if EZOArmory.Storage and EZOArmory.Storage.InitEvents then
+        EZOArmory.Storage.InitEvents()
+    end
+
     -- Menu contextual del inventario para guardar/sacar builds del banco. Se
     -- rinde solo si falta LibCustomMenu, que es opcional a proposito.
     if EZOArmory.StorageMenu and EZOArmory.StorageMenu.Init then

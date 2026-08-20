@@ -6,11 +6,13 @@
 --   - RequestMoveItem ES una funcion protegida, pero se puede llamar con
 --     CallSecureProtected("RequestMoveItem", ...) SIN necesidad de que la
 --     accion venga de un clic: WW la invoca desde un temporizador y funciona.
---   - Solo se puede mover con el banco/baul ABIERTO (IsBankOpen). No existe
---     forma de depositar "desde el campo".
---   - GetBankingBag() devuelve la bolsa abierta, asi que lo mismo vale para el
---     banco normal, el de suscriptor y los baules de casa
---     (BAG_HOUSE_BANK_ONE..TEN) sin tratarlos por separado.
+--   - Solo se puede mover con el contenedor ABIERTO. No existe forma de
+--     depositar "desde el campo".
+--   - Para saber si hay uno abierto NO vale IsBankOpen(): con un cofre de
+--     almacenamiento de casa devuelve false. Se rastrean EVENT_OPEN_BANK /
+--     EVENT_CLOSE_BANK, que llevan la bolsa concreta y sirven igual para el
+--     banco, el de suscriptor y los cofres (BAG_HOUSE_BANK_ONE..TEN).
+--     Ver Storage.IsOpen / Storage.GetOpenBag.
 --   - Hay que mover UNA pieza cada vez y esperar a que llegue: el servidor
 --     tarda, y mandarlas todas de golpe pierde piezas por el camino. WW
 --     comprueba la llegada cada 100 ms y aborta a los 3 s.
@@ -34,22 +36,76 @@ local ARRIVAL_MAX_TRIES = 30
 
 local moveCounter = 0
 
+-- ------------------------------------- Contenedor abierto ahora mismo ----
+--
+-- IsBankOpen() NO basta: con un COFRE DE ALMACENAMIENTO de casa abierto
+-- devuelve false, comprobado en juego (la traza de diagnostico registro
+-- "bankOpen=false" con el cofre delante). Leyendo el codigo del juego se
+-- diria lo contrario -- banking_gamepad.lua hace
+-- "IsBankOpen() and IsHouseBankBag(GetBankingBag())" --, pero el dato real
+-- manda sobre la deduccion.
+--
+-- Se rastrea EVENT_OPEN_BANK / EVENT_CLOSE_BANK, que llevan la bolsa concreta
+-- y valen igual para el banco, el de suscriptor y los diez cofres de casa.
+local openBankBag = nil
+local eventsRegistered = false
+
+function Storage.InitEvents()
+    if eventsRegistered then return end
+    local kind = type(EVENT_MANAGER)
+    if kind ~= "table" and kind ~= "userdata" then return end
+    if EVENT_OPEN_BANK == nil or EVENT_CLOSE_BANK == nil then return end
+    eventsRegistered = true
+
+    EVENT_MANAGER:RegisterForEvent("EZOArmory_StorageOpen", EVENT_OPEN_BANK, function(_, bankBag)
+        openBankBag = bankBag
+        if EZOArmory.DebugLog then
+            EZOArmory.DebugLog(string.format(
+                "Storage: contenedor abierto, bag=%s (cofre de casa=%s)",
+                tostring(bankBag),
+                tostring(type(IsHouseBankBag) == "function" and IsHouseBankBag(bankBag))))
+        end
+    end)
+
+    EVENT_MANAGER:RegisterForEvent("EZOArmory_StorageClose", EVENT_CLOSE_BANK, function()
+        openBankBag = nil
+        if EZOArmory.DebugLog then
+            EZOArmory.DebugLog("Storage: contenedor cerrado")
+        end
+    end)
+end
+
+-- Bolsa de almacenamiento abierta ahora mismo, o nil. Es lo que sustituye a
+-- IsBankOpen() en todo el modulo.
+function Storage.GetOpenBag()
+    if openBankBag ~= nil then return openBankBag end
+    -- Respaldo por si el evento se perdio (recarga de interfaz con el
+    -- contenedor ya abierto, por ejemplo).
+    if type(IsBankOpen) == "function" and IsBankOpen() and type(GetBankingBag) == "function" then
+        local ok, banking = pcall(GetBankingBag)
+        if ok and banking then return banking end
+    end
+    return nil
+end
+
+function Storage.IsOpen()
+    return Storage.GetOpenBag() ~= nil
+end
+
 -- Bolsas donde puede estar una pieza guardada (no equipada).
 local function StorageBags()
     local bags = {}
     if BAG_BANK ~= nil then bags[#bags + 1] = BAG_BANK end
     if BAG_SUBSCRIBER_BANK ~= nil then bags[#bags + 1] = BAG_SUBSCRIBER_BANK end
-    -- La bolsa abierta puede ser un baul de casa, que no esta en la lista de
-    -- arriba; GetBankingBag la devuelve sea cual sea.
-    if type(GetBankingBag) == "function" then
-        local ok, banking = pcall(GetBankingBag)
-        if ok and banking then
-            local known = false
-            for _, bag in ipairs(bags) do
-                if bag == banking then known = true break end
-            end
-            if not known then bags[#bags + 1] = banking end
+    -- La bolsa abierta puede ser un cofre de casa, que no esta en la lista de
+    -- arriba. Se anade la que este abierta de verdad.
+    local open = Storage.GetOpenBag()
+    if open then
+        local known = false
+        for _, bag in ipairs(bags) do
+            if bag == open then known = true break end
         end
+        if not known then bags[#bags + 1] = open end
     end
     return bags
 end
@@ -113,7 +169,7 @@ local function MoveNext(queue, destBag, state, onDone)
     -- El banco puede haberse cerrado a mitad del proceso. Las piezas que
     -- quedaban se cuentan como no movidas en vez de desaparecer del informe:
     -- si no, el recuento final cuadra y aun asi faltan piezas por guardar.
-    if type(IsBankOpen) == "function" and not IsBankOpen() then
+    if not Storage.IsOpen() then
         state.aborted = true
         state.failed = state.failed + 1
         state.failedNames[#state.failedNames + 1] = entry.label
@@ -255,7 +311,7 @@ end
 
 -- Saca del banco (o baul abierto) a la mochila todas las piezas de la build.
 function Storage.Withdraw(buildId, onDone)
-    if type(IsBankOpen) ~= "function" or not IsBankOpen() then
+    if not Storage.IsOpen() then
         if onDone then onDone({ error = "noBank" }) end
         return false
     end
@@ -267,16 +323,13 @@ end
 -- Guarda en el banco (o baul abierto) las piezas de la build que estan en la
 -- mochila. Lo equipado no se toca.
 function Storage.Deposit(buildId, onDone)
-    if type(IsBankOpen) ~= "function" or not IsBankOpen() then
+    if not Storage.IsOpen() then
         if onDone then onDone({ error = "noBank" }) end
         return false
     end
 
-    local destBag = BAG_BANK
-    if type(GetBankingBag) == "function" then
-        local ok, banking = pcall(GetBankingBag)
-        if ok and banking then destBag = banking end
-    end
+    -- La bolsa REALMENTE abierta, que puede ser un cofre de casa y no el banco.
+    local destBag = Storage.GetOpenBag() or BAG_BANK
 
     local queue, state = BuildQueue(buildId, { BAG_BACKPACK })
     MoveNext(queue, destBag, state, onDone)
