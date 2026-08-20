@@ -100,6 +100,21 @@ local function BuildTargets(analysis)
     table.sort(targets, function(a, b)
         return (rank[a.slotKey] or 99) < (rank[b.slotKey] or 99)
     end)
+
+    -- Que slots han sobrevivido al analisis de coherencia. Una pieza que se
+    -- cae aqui (por conflicto entre kits, o porque su slot no se reconoce) no
+    -- llega a intentarse y NO aparece en ningun contador del informe: ni
+    -- equipada, ni ya puesta, ni fallida. Desaparece sin dejar rastro, que es
+    -- justo como se percibe "las armas no las equipa".
+    if EZOArmory.DebugLog then
+        local slots = {}
+        for _, target in ipairs(targets) do
+            slots[#slots + 1] = target.slotKey
+        end
+        EZOArmory.DebugLog(string.format(
+            "Equip targets (%d): %s", #targets, table.concat(slots, ", ")))
+    end
+
     return targets
 end
 

@@ -296,7 +296,16 @@ local function FillRowSkillsAndCp(row, build)
         else
             cpLabel:SetAnchor(TOPLEFT, row, TOPLEFT, 6, y)
         end
-        cpLabel:SetAnchor(RIGHT, row, RIGHT, -6, 0)
+
+        -- SIN ancla derecha, y con ancho medido del propio texto. Antes se
+        -- estiraba hasta el borde de la fila, y como ademas lleva el raton
+        -- activado (para su emergente), ese control ancho y transparente
+        -- cubria todo lo que quedara a su derecha: los iconos de ahi dejaban
+        -- de recibir el cursor y no mostraban su emergente. Mismo mecanismo
+        -- que el area "Scroll" que rompio los emergentes en 0.11.10: un
+        -- control por delante que se queda con el raton.
+        local textWidth = (cpLabel.GetTextWidth and cpLabel:GetTextWidth()) or 0
+        cpLabel:SetWidth(textWidth > 0 and textWidth + 4 or 120)
 
         -- El detalle por estrella ya se ve en la pestana CP; aqui basta un
         -- resumen agrupado por arbol al pasar el raton.

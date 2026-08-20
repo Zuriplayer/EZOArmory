@@ -2,6 +2,20 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.42
+
+- Fix: the CP summary in a build row covered everything to its right. It was
+  anchored to the row's right edge *and* had the mouse enabled, so that wide,
+  transparent control sat over the icons beyond it - which is why the pieces on
+  the right showed no tooltip, and why the text appeared on top of them. It now
+  takes the width of its own text. Same mechanism as the "Scroll" overlay that
+  broke tooltips in 0.11.10: a control in front keeping the cursor.
+- Added a trace listing which slots survive the coherence analysis and become
+  equip targets. A piece dropped there - by a conflict between kits, or an
+  unrecognised slot - is never attempted and appears in **no** counter in the
+  report: not equipped, not already on, not failed. It vanishes without trace,
+  which is exactly how "it doesn't equip the weapons" presents.
+
 ## 0.11.41
 
 - Fix: the bank menu never appeared at a **house storage coffer**, which is the
