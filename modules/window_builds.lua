@@ -52,6 +52,17 @@ local STATUS_COLOR = {
     error = { 1, 0.45, 0.45 },
 }
 
+-- Iconos de estado. Texturas NATIVAS del juego, verificadas contra el codigo
+-- fuente de la interfaz (aparecen referenciadas en esoui): no son rutas
+-- inventadas ni arte propio. Se tinen con STATUS_COLOR, asi que el mismo
+-- simbolo vale para el color que toque.
+local STATUS_ICON_SIZE = 20
+local STATUS_ICON = {
+    ok = "EsoUI/Art/Buttons/accept_up.dds",
+    warning = "EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds",
+    error = "EsoUI/Art/Buttons/decline_up.dds",
+}
+
 local NAME_COLOR_DEFAULT = { 0.92, 0.92, 0.95 }
 
 WB.state = WB.state or {
@@ -138,13 +149,23 @@ local function CreateBuildRow(parent, index)
     name:SetMouseEnabled(true)
     row.nameLabel = name
 
-    -- Estado (correcto / avisos / errores), alineado a la derecha.
+    -- Estado, a la derecha: un icono en vez de una frase. Ocupaba todo el lado
+    -- derecho de la fila para decir siempre lo mismo; el icono lo resume y
+    -- deja el sitio libre. El detalle sigue estando en el emergente.
+    local statusIcon = WM:CreateControl(nil, row, CT_TEXTURE)
+    statusIcon:SetDimensions(STATUS_ICON_SIZE, STATUS_ICON_SIZE)
+    statusIcon:SetAnchor(TOPRIGHT, row, TOPRIGHT, -6, (BUILD_ROW_HEADER_H - STATUS_ICON_SIZE) / 2)
+    statusIcon:SetMouseEnabled(true)
+    row.statusIcon = statusIcon
+
+    -- Cuando hay algo que revisar, el numero acompana al icono: "cuantas" es
+    -- informacion que el icono solo no da.
     local status = WM:CreateControl(nil, row, CT_LABEL)
     status:SetFont("ZoFontGameSmall")
     status:SetHeight(BUILD_ROW_HEADER_H)
     status:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     status:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-    status:SetAnchor(TOPRIGHT, row, TOPRIGHT, -6, 0)
+    status:SetAnchor(TOPRIGHT, statusIcon, TOPLEFT, -4, 0)
     status:SetMouseEnabled(true)
     row.statusLabel = status
     name:SetAnchor(TOPRIGHT, status, TOPLEFT, -8, 0)
@@ -214,6 +235,10 @@ local function ClearBuildRow(row)
     row.roleIcon:SetHandler("OnMouseExit", nil)
     row.statusLabel:SetHandler("OnMouseEnter", nil)
     row.statusLabel:SetHandler("OnMouseExit", nil)
+    -- Las filas se reciclan entre builds: sin limpiar esto, el emergente de
+    -- una build anterior se quedaria pegado al icono de la siguiente.
+    row.statusIcon:SetHandler("OnMouseEnter", nil)
+    row.statusIcon:SetHandler("OnMouseExit", nil)
 end
 
 -- Pinta las piezas de equipo de la build en orden canonico de slot, cada una
@@ -357,24 +382,28 @@ local function FillBuildRow(row, build)
     end)
     row.roleIcon:SetHandler("OnMouseExit", WK.HideTextSummary)
 
-    -- Estado: correcto, o el numero de cosas a revisar, en su color.
+    -- Estado: icono (correcto / aviso / error) y, si hay algo que revisar, el
+    -- numero al lado. Sin texto largo: ocupaba todo el ancho derecho.
     local issueCount = #report.issues
-    if issueCount == 0 then
-        row.statusLabel:SetText(GetString(EZOARM_BUILD_ALL_GOOD))
-    else
-        row.statusLabel:SetText(tostring(issueCount))
-    end
+    row.statusIcon:SetTexture(STATUS_ICON[report.status] or STATUS_ICON.error)
+    row.statusIcon:SetColor(StatusColor(report.status))
+    row.statusLabel:SetText(issueCount == 0 and "" or tostring(issueCount))
     row.statusLabel:SetColor(StatusColor(report.status))
 
     local issueLines = {}
     for _, issue in ipairs(report.issues) do
         issueLines[#issueLines + 1] = IssueText(issue)
     end
-    row.statusLabel:SetHandler("OnMouseEnter", function(control)
+    -- El mismo emergente en el icono y en el numero: el detalle no se pierde
+    -- al quitar el texto, solo deja de ocupar sitio.
+    local function ShowIssues(control)
         WK.ShowTextSummary(control, GetString(EZOARM_BUILD_SECTION_ISSUES),
             #issueLines > 0 and issueLines or { GetString(EZOARM_BUILD_ALL_GOOD) })
-    end)
+    end
+    row.statusLabel:SetHandler("OnMouseEnter", ShowIssues)
     row.statusLabel:SetHandler("OnMouseExit", WK.HideTextSummary)
+    row.statusIcon:SetHandler("OnMouseEnter", ShowIssues)
+    row.statusIcon:SetHandler("OnMouseExit", WK.HideTextSummary)
 
     FillRowGear(row, report)
     FillRowSkillsAndCp(row, build)

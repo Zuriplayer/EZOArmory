@@ -2,6 +2,20 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.44
+
+- Change: a build's status is now an **icon** instead of the sentence
+  "Everything checks out", which took up the whole right-hand side of the row
+  to say the same thing every time. Green tick when all is well, amber warning
+  triangle, red cross on errors - with the number of issues beside it when
+  there are any, since the icon alone cannot say *how many*.
+- The full detail is unchanged: hovering either the icon or the number lists
+  every issue, exactly as before.
+- Icons are **native game textures**, verified as referenced in the game's own
+  interface code rather than invented paths: `Buttons/accept_up.dds`,
+  `Miscellaneous/ESO_Icon_Warning.dds` and `Buttons/decline_up.dds`. They are
+  tinted with the existing status colours, so one symbol serves each state.
+
 ## 0.11.43
 
 - Add: boss rooms are recognised by **position**, so the build can be equipped
