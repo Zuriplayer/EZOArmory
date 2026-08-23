@@ -26,6 +26,12 @@
 --   4. armas de ataque                       -> dd
 -- El jugador puede forzar el rol; entonces build.role manda sobre la deteccion.
 --
+-- CATEGORIA (build.category): etiqueta puesta a mano por el jugador (PVP, BG,
+-- PVE DD/tanque/sanador, solo, mundo). NO participa en nada de lo que se
+-- equipa ni en las asignaciones: solo sirve para agrupar y filtrar la lista
+-- cuando hay muchas builds. Sin categoria vale nil, no la cadena "none": esa
+-- constante es solo el valor que usan los desplegables de la interfaz.
+--
 -- WEAPONTYPE_* y GetItemLinkWeaponType(itemLink) verificados en
 -- ESOUIDocumentation.txt; los iconos de rol son los nativos del juego
 -- (ZO_GetKeyboardRoleIcon / EsoUI/Art/LFG/LFG_icon_*.dds, confirmados en
@@ -60,6 +66,80 @@ end
 
 -- ---------------------------------------------------------------- CRUD ----
 
+-- --------------------------------------------------------- Categorias ----
+--
+-- Etiqueta libre para organizar la lista: para que sirve la build, no que
+-- lleva. Es independiente de "role" (que es el rol interno deducido de las
+-- armas y decide como se equipa): una build de PvP puede ser de dd, y aqui
+-- interesa la primera clasificacion, no la segunda.
+--
+-- Los iconos son texturas NATIVAS del juego, verificadas contra el codigo de
+-- la interfaz. Los tres de rol salen de ZO_GetKeyboardRoleIcon, que es la
+-- funcion oficial, en vez de escribir sus rutas a mano.
+Builds.CATEGORY_NONE = "none"
+
+Builds.CATEGORIES = {
+    { id = "pve_dd",     stringName = "EZOARM_CATEGORY_PVE_DD",     roleIcon = "dd" },
+    { id = "pve_tank",   stringName = "EZOARM_CATEGORY_PVE_TANK",   roleIcon = "tank" },
+    { id = "pve_healer", stringName = "EZOARM_CATEGORY_PVE_HEALER", roleIcon = "healer" },
+    { id = "pvp",        stringName = "EZOARM_CATEGORY_PVP",        icon = "EsoUI/Art/MainMenu/menuBar_ava_up.dds" },
+    { id = "bg",         stringName = "EZOARM_CATEGORY_BG",         icon = "EsoUI/Art/MainMenu/menuBar_group_up.dds" },
+    { id = "solo",       stringName = "EZOARM_CATEGORY_SOLO",       icon = "EsoUI/Art/Icons/mapKey/mapKey_soloInstance.dds" },
+    { id = "world",      stringName = "EZOARM_CATEGORY_WORLD",      icon = "EsoUI/Art/MainMenu/menuBar_map_up.dds" },
+}
+
+local ROLE_TO_LFG = {
+    dd = "LFG_ROLE_DPS",
+    tank = "LFG_ROLE_TANK",
+    healer = "LFG_ROLE_HEAL",
+}
+
+-- Icono de una categoria. Los de rol se piden a la funcion del juego para no
+-- fijar rutas que ZOS puede mover de sitio.
+function Builds.GetCategoryIcon(categoryId)
+    for _, entry in ipairs(Builds.CATEGORIES) do
+        if entry.id == categoryId then
+            if entry.roleIcon and type(ZO_GetKeyboardRoleIcon) == "function" then
+                local lfgRole = _G[ROLE_TO_LFG[entry.roleIcon]]
+                if lfgRole then
+                    local icon = ZO_GetKeyboardRoleIcon(lfgRole)
+                    if icon then return icon end
+                end
+            end
+            return entry.icon
+        end
+    end
+    return nil
+end
+
+function Builds.GetCategoryLabel(categoryId)
+    if categoryId == nil or categoryId == Builds.CATEGORY_NONE then
+        return GetString(EZOARM_CATEGORY_NONE)
+    end
+    for _, entry in ipairs(Builds.CATEGORIES) do
+        if entry.id == categoryId then
+            return GetString(_G[entry.stringName])
+        end
+    end
+    return tostring(categoryId)
+end
+
+function Builds.SetCategory(buildId, categoryId)
+    local build = Builds.GetBuild(buildId)
+    if not build then return false end
+    if categoryId == nil or categoryId == Builds.CATEGORY_NONE then
+        build.category = nil
+        return true
+    end
+    for _, entry in ipairs(Builds.CATEGORIES) do
+        if entry.id == categoryId then
+            build.category = categoryId
+            return true
+        end
+    end
+    return false
+end
+
 function Builds.CreateBuild(name)
     local sv = Store()
     if not sv then return nil end
@@ -73,6 +153,7 @@ function Builds.CreateBuild(name)
         skillKitId = nil,
         cpKitId = nil,
         role = nil, -- nil = automatico por armas
+        category = nil, -- nil = sin catalogar
     }
     sv.builds[id] = build
     return id, build

@@ -2,6 +2,30 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.45
+
+- Add: builds can be **catalogued** - PVE DD, PVE Tank, PVE Healer, PVP,
+  Battlegrounds, Solo (arenas) and Overland - from a dropdown in the build
+  editor. The category is a label only: it changes nothing about what gets
+  equipped, and it is not used by any assignment. It exists so a long list of
+  builds stops being a wall of names.
+- The list is now **grouped by category**, each group under a heading with its
+  icon and how many builds it holds. Uncategorised builds go last, so nothing
+  disappears just because it has not been catalogued yet.
+- Add: a **filter** above the list - all builds, one category, or only the
+  uncategorised ones. With a filter on, the counter counts what is on screen
+  rather than the total, and if the filter leaves the list empty it says so
+  instead of looking like the builds were lost. The filter is view state: it
+  lasts the session and is not saved.
+- The three PVE categories reuse the game's own role icons, which is what a
+  player recognises. That would put the same drawing twice on a row whose
+  detected role matches its category, so in that case the row shows it once.
+  When they differ it is drawn - and there the second icon says something: the
+  category set by hand does not match the role deduced from the gear.
+- Role and category share one row in the editor. The editor is laid out with
+  fixed vertical offsets (see the note at the top of the file), so an extra
+  full row would have pushed the issues list off the panel.
+
 ## 0.11.44
 
 - Change: a build's status is now an **icon** instead of the sentence

@@ -20,6 +20,19 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_MSG_STORAGE_FAILED = "Did not arrive, try again: <<1>>.",
     EZOARM_MSG_STORAGE_ABORTED = "The bank closed partway through, the rest was not moved.",
 
+    -- Categorias de build
+    EZOARM_CATEGORY_NONE = "Uncatalogued",
+    EZOARM_CATEGORY_PVE_DD = "PVE Damage",
+    EZOARM_CATEGORY_PVE_TANK = "PVE Tank",
+    EZOARM_CATEGORY_PVE_HEALER = "PVE Healer",
+    EZOARM_CATEGORY_PVP = "PVP",
+    EZOARM_CATEGORY_BG = "Battlegrounds",
+    EZOARM_CATEGORY_SOLO = "Solo (arenas)",
+    EZOARM_CATEGORY_WORLD = "Overland",
+    EZOARM_BUILD_CATEGORY = "Category",
+    EZOARM_FILTER_ALL = "All builds",
+    EZOARM_BUILD_NONE_IN_FILTER = "No builds in this category. Change the filter above, or set the category from the build editor.",
+
     EZOARM_MSG_INIT = "EZOArmory loaded. Type /ezoarmory to open the window.",
 
     EZOARM_WINDOW_CONTEXT_NONE = "Not in a trial",

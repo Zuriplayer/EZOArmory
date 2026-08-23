@@ -63,6 +63,14 @@ local STATUS_ICON = {
     error = "EsoUI/Art/Buttons/decline_up.dds",
 }
 
+-- Categoria: icono en la fila y cabecera de grupo en la lista.
+local CATEGORY_ICON_SIZE = 18
+local GROUP_HEADER_H = 22
+local GROUP_HEADER_GAP = 6
+-- Una cabecera por categoria mas la de "sin catalogar". Fijo y con holgura:
+-- las cabeceras se crean una vez y se reciclan, como las filas.
+local MAX_GROUP_HEADERS = 12
+
 local NAME_COLOR_DEFAULT = { 0.92, 0.92, 0.95 }
 
 WB.state = WB.state or {
@@ -70,6 +78,7 @@ WB.state = WB.state or {
     selectedId = nil,
     editingId = nil,
     pickGearKitId = nil,
+    filter = "all",    -- "all" | id de categoria | Builds.CATEGORY_NONE
 }
 
 -- ------------------------------------------------------------- Textos ----
@@ -139,13 +148,24 @@ local function CreateBuildRow(parent, index)
     roleIcon:SetHidden(true)
     row.roleIcon = roleIcon
 
+    -- Icono de categoria. Se queda siempre en el mismo sitio (oculto si la
+    -- build no tiene categoria) para que los nombres de todas las filas
+    -- empiecen alineados, con grupo o sin el.
+    local categoryIcon = WM:CreateControl(nil, row, CT_TEXTURE)
+    categoryIcon:SetDimensions(CATEGORY_ICON_SIZE, CATEGORY_ICON_SIZE)
+    categoryIcon:SetAnchor(TOPLEFT, roleIcon, TOPRIGHT, 4,
+        (BUILD_ROW_HEADER_H - CATEGORY_ICON_SIZE) / 2)
+    categoryIcon:SetMouseEnabled(true)
+    categoryIcon:SetHidden(true)
+    row.categoryIcon = categoryIcon
+
     local name = WM:CreateControl(nil, row, CT_LABEL)
     name:SetFont("ZoFontGameBold")
     name:SetColor(NAME_COLOR_DEFAULT[1], NAME_COLOR_DEFAULT[2], NAME_COLOR_DEFAULT[3], 1)
     name:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
     name:SetHeight(BUILD_ROW_HEADER_H)
     name:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-    name:SetAnchor(TOPLEFT, roleIcon, TOPRIGHT, 8, 0)
+    name:SetAnchor(TOPLEFT, categoryIcon, TOPRIGHT, 6, -(BUILD_ROW_HEADER_H - CATEGORY_ICON_SIZE) / 2)
     name:SetMouseEnabled(true)
     row.nameLabel = name
 
@@ -239,6 +259,39 @@ local function ClearBuildRow(row)
     -- una build anterior se quedaria pegado al icono de la siguiente.
     row.statusIcon:SetHandler("OnMouseEnter", nil)
     row.statusIcon:SetHandler("OnMouseExit", nil)
+    row.categoryIcon:SetHandler("OnMouseEnter", nil)
+    row.categoryIcon:SetHandler("OnMouseExit", nil)
+end
+
+-- Cabecera de grupo de la lista: icono de la categoria y su nombre.
+local function CreateGroupHeader(parent, index)
+    local header = WM:CreateControl("EZOArmoryBuildGroup" .. index, parent, CT_CONTROL)
+    header:SetHeight(GROUP_HEADER_H)
+
+    local icon = WM:CreateControl(nil, header, CT_TEXTURE)
+    icon:SetDimensions(CATEGORY_ICON_SIZE, CATEGORY_ICON_SIZE)
+    icon:SetAnchor(LEFT, header, LEFT, 6, 0)
+    icon:SetHidden(true)
+    header.icon = icon
+
+    local label = WM:CreateControl(nil, header, CT_LABEL)
+    label:SetFont("ZoFontGameBold")
+    label:SetColor(0.65, 0.62, 0.78, 1)
+    label:SetHeight(GROUP_HEADER_H)
+    label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    label:SetAnchor(LEFT, icon, RIGHT, 6, 0)
+    header.label = label
+
+    -- Linea fina bajo el titulo, para que el grupo se lea como bloque.
+    local line = WM:CreateControl(nil, header, CT_BACKDROP)
+    line:SetHeight(1)
+    line:SetAnchor(BOTTOMLEFT, header, BOTTOMLEFT, 6, 0)
+    line:SetAnchor(BOTTOMRIGHT, header, BOTTOMRIGHT, -6, 0)
+    line:SetEdgeTexture(nil, 1, 1, 1, 0)
+    line:SetCenterColor(0.55, 0.5, 0.7, 0.35)
+
+    header:SetHidden(true)
+    return header
 end
 
 -- Pinta las piezas de equipo de la build en orden canonico de slot, cada una
@@ -382,6 +435,31 @@ local function FillBuildRow(row, build)
     end)
     row.roleIcon:SetHandler("OnMouseExit", WK.HideTextSummary)
 
+    -- Categoria: solo se pinta si la build tiene una. El hueco se respeta
+    -- igualmente (el control sigue anclado aunque este oculto).
+    --
+    -- Y no se pinta si sale el MISMO icono que el de rol, que es el caso de
+    -- las categorias PVE: las tres usan los iconos de rol del juego (son los
+    -- que el jugador reconoce), asi que una build "PVE Tanque" detectada como
+    -- tanque mostraria dos veces el mismo dibujo pegados. Cuando difieren si
+    -- se pinta, y ahi el segundo icono dice algo: que la categoria puesta a
+    -- mano no cuadra con el rol que se deduce del equipo.
+    local categoryIcon = EZOArmory.Builds.GetCategoryIcon(build.category)
+    if categoryIcon and categoryIcon == roleIcon then
+        categoryIcon = nil
+    end
+    if categoryIcon then
+        row.categoryIcon:SetTexture(categoryIcon)
+        row.categoryIcon:SetHidden(false)
+        local categoryLabel = EZOArmory.Builds.GetCategoryLabel(build.category)
+        row.categoryIcon:SetHandler("OnMouseEnter", function(control)
+            WK.ShowTextSummary(control, categoryLabel, nil)
+        end)
+        row.categoryIcon:SetHandler("OnMouseExit", WK.HideTextSummary)
+    else
+        row.categoryIcon:SetHidden(true)
+    end
+
     -- Estado: icono (correcto / aviso / error) y, si hay algo que revisar, el
     -- numero al lado. Sin texto largo: ocupaba todo el ancho derecho.
     local issueCount = #report.issues
@@ -419,6 +497,36 @@ function WB.SelectBuild(buildId)
     WB.RefreshActionBar()
 end
 
+-- Reparte las builds en grupos por categoria, en el orden declarado en
+-- Builds.CATEGORIES (no el de la lista: asi los grupos salen siempre en el
+-- mismo sitio) y con las no catalogadas al final. Devuelve solo los grupos que
+-- pasan el filtro y que tienen algo dentro.
+local function GroupBuilds(list, filter)
+    local NONE = EZOArmory.Builds.CATEGORY_NONE
+    local groups = {}
+
+    local function Collect(categoryId)
+        if filter ~= "all" and filter ~= categoryId then return end
+        local builds = {}
+        for _, build in ipairs(list) do
+            local own = build.category or NONE
+            if own == categoryId then
+                builds[#builds + 1] = build
+            end
+        end
+        if #builds > 0 then
+            groups[#groups + 1] = { categoryId = categoryId, builds = builds }
+        end
+    end
+
+    for _, entry in ipairs(EZOArmory.Builds.CATEGORIES) do
+        Collect(entry.id)
+    end
+    Collect(NONE)
+
+    return groups
+end
+
 function WB.RefreshList()
     if not WB.rows or not WB.listRoot then return end
 
@@ -439,9 +547,35 @@ function WB.RefreshList()
         rowWidth = nil
     end
 
-    for index, row in ipairs(WB.rows) do
-        local build = list[index]
-        if build then
+    local groups = GroupBuilds(list, WB.state.filter or "all")
+    -- Con un solo grupo la cabecera no aporta nada: o se ha filtrado por esa
+    -- categoria, o todas las builds estan en ella.
+    local showHeaders = #groups > 1
+    local rowIndex, headerIndex = 0, 0
+    local shown = 0
+
+    for _, group in ipairs(groups) do
+        if showHeaders and headerIndex < MAX_GROUP_HEADERS then
+            headerIndex = headerIndex + 1
+            local header = WB.groupHeaders[headerIndex]
+            local icon = EZOArmory.Builds.GetCategoryIcon(group.categoryId)
+            header:ClearAnchors()
+            header:SetAnchor(TOPLEFT, WB.listRoot, TOPLEFT, 0, yOffset)
+            if rowWidth then
+                header:SetWidth(rowWidth)
+            end
+            header.icon:SetTexture(icon or "")
+            header.icon:SetHidden(icon == nil)
+            header.label:SetText(string.format("%s (%d)",
+                EZOArmory.Builds.GetCategoryLabel(group.categoryId), #group.builds))
+            header:SetHidden(false)
+            yOffset = yOffset + GROUP_HEADER_H + GROUP_HEADER_GAP
+        end
+
+        for _, build in ipairs(group.builds) do
+            if rowIndex >= MAX_BUILD_ROWS then break end
+            rowIndex = rowIndex + 1
+            local row = WB.rows[rowIndex]
             row.buildId = build.id
             row:ClearAnchors()
             row:SetAnchor(TOPLEFT, WB.listRoot, TOPLEFT, 0, yOffset)
@@ -457,31 +591,47 @@ function WB.RefreshList()
                 stillSelected = true
             end
             yOffset = yOffset + BUILD_ROW_HEIGHT + BUILD_ROW_SPACING
-        else
-            row.buildId = nil
-            row:SetHidden(true)
+            shown = shown + 1
         end
+    end
+
+    for i = rowIndex + 1, MAX_BUILD_ROWS do
+        WB.rows[i].buildId = nil
+        WB.rows[i]:SetHidden(true)
+    end
+    for i = headerIndex + 1, MAX_GROUP_HEADERS do
+        WB.groupHeaders[i]:SetHidden(true)
     end
 
     if not stillSelected then
         WB.state.selectedId = nil
     end
 
+    -- El contador cuenta lo que se ve, no lo que hay: con un filtro puesto,
+    -- decir el total confundiria mas que ayudar.
     if WB.countLabel then
         if #list == 0 then
             WB.countLabel:SetText(GetString(EZOARM_BUILD_NO_BUILDS))
         else
-            WB.countLabel:SetText(zo_strformat(GetString(EZOARM_BUILD_COUNT), #list))
+            WB.countLabel:SetText(zo_strformat(GetString(EZOARM_BUILD_COUNT), shown))
         end
     end
 
     -- Sin builds la lista queda vacia y no se ve por donde empezar, asi que el
     -- cartel explica que es una build y donde se le anaden los kits. Con builds
-    -- ya creadas basta una linea recordando el atajo.
+    -- ya creadas basta una linea recordando el atajo, salvo que sea el filtro
+    -- el que las este escondiendo: eso hay que decirlo, o parece que se han
+    -- perdido.
     if WB.emptyHint then
-        WB.emptyHint:SetText(#list == 0
-            and GetString(EZOARM_BUILD_EMPTY_HINT)
-            or GetString(EZOARM_BUILD_EDIT_HINT))
+        local hint
+        if #list == 0 then
+            hint = GetString(EZOARM_BUILD_EMPTY_HINT)
+        elseif shown == 0 then
+            hint = GetString(EZOARM_BUILD_NONE_IN_FILTER)
+        else
+            hint = GetString(EZOARM_BUILD_EDIT_HINT)
+        end
+        WB.emptyHint:SetText(hint)
     end
 
     -- Sin SetHeight a mano: el ScrollChild se autoajusta a sus filas. Ver el
@@ -534,6 +684,22 @@ local function PopulateRoleCombo(build, report)
         EZOArmory.Builds.SetRoleOverride(build.id, value ~= "auto" and value or nil)
         WB.RefreshEditor()
     end)
+end
+
+-- Categoria de la build: solo etiqueta, no cambia nada de lo que se equipa.
+-- Sirve para agrupar y filtrar la lista cuando hay muchas builds.
+local function PopulateCategoryCombo(build)
+    local labels = { EZOArmory.Builds.GetCategoryLabel(nil) }
+    local values = { EZOArmory.Builds.CATEGORY_NONE }
+    for _, entry in ipairs(EZOArmory.Builds.CATEGORIES) do
+        labels[#labels + 1] = EZOArmory.Builds.GetCategoryLabel(entry.id)
+        values[#values + 1] = entry.id
+    end
+    PopulateCombo(WB.categoryCombo, labels, values,
+        build.category or EZOArmory.Builds.CATEGORY_NONE, function(value)
+            EZOArmory.Builds.SetCategory(build.id, value)
+            WB.RefreshEditor()
+        end)
 end
 
 local function RefreshEditorGearRows(build)
@@ -635,6 +801,7 @@ function WB.RefreshEditor()
 
     WB.edNameLabel:SetText(zo_strformat(GetString(EZOARM_BUILD_EDITOR_TITLE), build.name))
     PopulateRoleCombo(build, report)
+    PopulateCategoryCombo(build)
     RefreshEditorGearRows(build)
     PopulateGearPickCombo(build)
     PopulateSkillCombo(build)
@@ -899,19 +1066,31 @@ end
 
 -- ---------------------------------------------------------- Construccion ----
 
-local function CreateComboRow(parent, name, labelStringId, y)
+-- "half" parte la fila en dos para meter dos combos cortos donde antes iba
+-- uno: el punto TOP del padre es el centro de su borde superior, asi que sirve
+-- de mitad sin tener que calcular anchos (que ademas cambian con la ventana).
+local function CreateComboRow(parent, name, labelStringId, y, half)
     local label = WM:CreateControl(nil, parent, CT_LABEL)
     label:SetFont("ZoFontGame")
     label:SetColor(0.75, 0.75, 0.8, 1)
-    label:SetDimensions(ED_LABEL_WIDTH, ED_ROW_HEIGHT)
+    label:SetDimensions(half and (ED_LABEL_WIDTH - 30) or ED_LABEL_WIDTH, ED_ROW_HEIGHT)
     label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-    label:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, y)
     label:SetText(GetString(labelStringId))
 
     local combo = WM:CreateControlFromVirtual(name, parent, "ZO_ComboBox")
     combo:SetHeight(ED_ROW_HEIGHT)
     combo:SetAnchor(TOPLEFT, label, TOPRIGHT, 8, 0)
-    combo:SetAnchor(TOPRIGHT, parent, TOPRIGHT, 0, y)
+
+    if half == "left" then
+        label:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, y)
+        combo:SetAnchor(TOPRIGHT, parent, TOP, -12, y)
+    elseif half == "right" then
+        label:SetAnchor(TOPLEFT, parent, TOP, 12, y)
+        combo:SetAnchor(TOPRIGHT, parent, TOPRIGHT, 0, y)
+    else
+        label:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, y)
+        combo:SetAnchor(TOPRIGHT, parent, TOPRIGHT, 0, y)
+    end
     return combo
 end
 
@@ -926,16 +1105,47 @@ local function CreateActionButton(parent, width, text, normalColor, overColor, h
     return button
 end
 
+-- Opciones del filtro: todas, cada categoria, y las sin catalogar al final
+-- (mismo orden que los grupos de la lista, para no tener dos ordenes
+-- distintos de las mismas categorias).
+local function PopulateFilterCombo()
+    if not WB.filterCombo then return end
+    local labels = { GetString(EZOARM_FILTER_ALL) }
+    local values = { "all" }
+    for _, entry in ipairs(EZOArmory.Builds.CATEGORIES) do
+        labels[#labels + 1] = EZOArmory.Builds.GetCategoryLabel(entry.id)
+        values[#values + 1] = entry.id
+    end
+    labels[#labels + 1] = EZOArmory.Builds.GetCategoryLabel(nil)
+    values[#values + 1] = EZOArmory.Builds.CATEGORY_NONE
+
+    PopulateCombo(WB.filterCombo, labels, values, WB.state.filter or "all", function(value)
+        WB.state.filter = value
+        WB.RefreshList()
+    end)
+end
+
 local function CreateListPanel(content)
     local panel = WM:CreateControl(nil, content, CT_CONTROL)
     panel:SetAnchorFill(content)
     WB.listPanel = panel
 
+    -- Filtro por categoria, arriba a la derecha. Va aqui y no en el editor
+    -- porque es estado de la vista, no de ninguna build: se recuerda mientras
+    -- dure la sesion y no se guarda.
+    local filterCombo = WM:CreateControlFromVirtual(
+        "EZOArmoryBuildFilterCombo", panel, "ZO_ComboBox")
+    filterCombo:SetDimensions(190, 24)
+    filterCombo:SetAnchor(TOPRIGHT, panel, TOPRIGHT, 0, -2)
+    WB.filterCombo = filterCombo
+
     local countLabel = WM:CreateControl(nil, panel, CT_LABEL)
     countLabel:SetFont("ZoFontGameSmall")
     countLabel:SetColor(0.7, 0.7, 0.75, 1)
+    countLabel:SetHeight(24)
+    countLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     countLabel:SetAnchor(TOPLEFT, panel, TOPLEFT, 0, 0)
-    countLabel:SetAnchor(TOPRIGHT, panel, TOPRIGHT, 0, 0)
+    countLabel:SetAnchor(TOPRIGHT, filterCombo, TOPLEFT, -12, 0)
     WB.countLabel = countLabel
 
     local actionBar = WM:CreateControl(nil, panel, CT_CONTROL)
@@ -1016,10 +1226,20 @@ local function CreateListPanel(content)
     -- builds, pero es el mismo control de ZOS y le pasaria lo mismo con mas.
     EZOArmory.DisableScrollWheelArea(scrollContainer)
 
+    -- Las cabeceras se crean antes que las filas para que queden por detras
+    -- en el orden de dibujo; ninguna tiene el raton activado, asi que no se
+    -- pisan los emergentes de los iconos (ver el aviso de CreateBuildRow).
+    WB.groupHeaders = {}
+    for i = 1, MAX_GROUP_HEADERS do
+        WB.groupHeaders[i] = CreateGroupHeader(listRoot, i)
+    end
+
     WB.rows = {}
     for i = 1, MAX_BUILD_ROWS do
         WB.rows[i] = CreateBuildRow(listRoot, i)
     end
+
+    PopulateFilterCombo()
 end
 
 local function CreateEditorPanel(content)
@@ -1041,8 +1261,15 @@ local function CreateEditorPanel(content)
     renameButton:SetAnchor(TOPRIGHT, panel, TOPRIGHT, 0, 0)
     nameLabel:SetAnchor(TOPRIGHT, renameButton, TOPLEFT, -12, 0)
 
+    -- Rol y categoria comparten fila. El editor se monta con desplazamientos
+    -- verticales FIJOS (ver cabecera del archivo), asi que anadir una fila
+    -- entera empujaria la lista de incidencias fuera del panel; ademas son dos
+    -- etiquetas cortas y sobra ancho.
     local roleY = 36
-    WB.roleCombo = CreateComboRow(panel, "EZOArmoryBuildRoleCombo", EZOARM_BUILD_SECTION_ROLE, roleY)
+    WB.roleCombo = CreateComboRow(
+        panel, "EZOArmoryBuildRoleCombo", EZOARM_BUILD_SECTION_ROLE, roleY, "left")
+    WB.categoryCombo = CreateComboRow(
+        panel, "EZOArmoryBuildCategoryCombo", EZOARM_BUILD_CATEGORY, roleY, "right")
 
     local gearHeaderY = roleY + ED_ROW_HEIGHT + 12
     local gearHeader = WM:CreateControl(nil, panel, CT_LABEL)
