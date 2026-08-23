@@ -65,6 +65,8 @@ local STATUS_ICON = {
 
 -- Categoria: icono en la fila y cabecera de grupo en la lista.
 local CATEGORY_ICON_SIZE = 18
+local ROW_COMBO_WIDTH = 150
+local ROW_COMBO_HEIGHT = 22
 local GROUP_HEADER_H = 22
 local GROUP_HEADER_GAP = 6
 -- Una cabecera por categoria mas la de "sin catalogar". Fijo y con holgura:
@@ -125,6 +127,58 @@ local function StatusColor(status)
     return color[1], color[2], color[3], 1
 end
 
+-- Igual que en la pestana Assign: combos nativos creados en runtime con
+-- CreateControlFromVirtual + ZO_ComboBox_ObjectFromContainer.
+--
+-- Vive aqui arriba, y no en la seccion del editor donde nacio, porque ahora
+-- tambien lo usan las filas de la lista, que se construyen antes.
+local function PopulateCombo(comboControl, labels, values, currentValue, onSelect)
+    local combo = ZO_ComboBox_ObjectFromContainer(comboControl)
+    combo:SetSortsItems(false)
+    combo:ClearItems()
+    local selectedLabel
+    for i, label in ipairs(labels) do
+        local value = values[i]
+        local entry = combo:CreateItemEntry(label, function() onSelect(value) end)
+        combo:AddItem(entry, ZO_COMBOBOX_SUPPRESS_UPDATE)
+        if value == currentValue then
+            selectedLabel = label
+        end
+    end
+    combo:UpdateItems()
+    combo:SetSelectedItemText(selectedLabel or GetString(EZOARM_BUILD_NONE_SELECTED))
+end
+
+-- Opciones de categoria para los desplegables. "Sin catalogar" va la primera
+-- donde se elige la categoria de una build (es el valor de partida) y la
+-- ultima en el filtro, para que ahi coincida con el orden de los grupos de la
+-- lista, donde las sin catalogar cierran el listado.
+local function CategoryChoices(noneFirst)
+    local labels, values = {}, {}
+    if noneFirst then
+        labels[1] = EZOArmory.Builds.GetCategoryLabel(nil)
+        values[1] = EZOArmory.Builds.CATEGORY_NONE
+    end
+    for _, entry in ipairs(EZOArmory.Builds.CATEGORIES) do
+        labels[#labels + 1] = EZOArmory.Builds.GetCategoryLabel(entry.id)
+        values[#values + 1] = entry.id
+    end
+    if not noneFirst then
+        labels[#labels + 1] = EZOArmory.Builds.GetCategoryLabel(nil)
+        values[#values + 1] = EZOArmory.Builds.CATEGORY_NONE
+    end
+    return labels, values
+end
+
+-- Cambiar la categoria reordena la lista entera (las builds se agrupan por
+-- ella), y eso no se puede hacer desde dentro del propio callback del combo:
+-- se estaria repintando el control que aun esta despachando su clic. Se deja
+-- para el fotograma siguiente.
+local function SetCategoryAndRefresh(buildId, value, refresh)
+    EZOArmory.Builds.SetCategory(buildId, value)
+    zo_callLater(refresh, 0)
+end
+
 -- ------------------------------------------------------- Fila de build ----
 
 -- OJO: la fila NO se habilita para el raton (ver el mismo aviso en
@@ -148,24 +202,19 @@ local function CreateBuildRow(parent, index)
     roleIcon:SetHidden(true)
     row.roleIcon = roleIcon
 
-    -- Icono de categoria. Se queda siempre en el mismo sitio (oculto si la
-    -- build no tiene categoria) para que los nombres de todas las filas
-    -- empiecen alineados, con grupo o sin el.
-    local categoryIcon = WM:CreateControl(nil, row, CT_TEXTURE)
-    categoryIcon:SetDimensions(CATEGORY_ICON_SIZE, CATEGORY_ICON_SIZE)
-    categoryIcon:SetAnchor(TOPLEFT, roleIcon, TOPRIGHT, 4,
-        (BUILD_ROW_HEADER_H - CATEGORY_ICON_SIZE) / 2)
-    categoryIcon:SetMouseEnabled(true)
-    categoryIcon:SetHidden(true)
-    row.categoryIcon = categoryIcon
-
     local name = WM:CreateControl(nil, row, CT_LABEL)
     name:SetFont("ZoFontGameBold")
     name:SetColor(NAME_COLOR_DEFAULT[1], NAME_COLOR_DEFAULT[2], NAME_COLOR_DEFAULT[3], 1)
     name:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
     name:SetHeight(BUILD_ROW_HEADER_H)
     name:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-    name:SetAnchor(TOPLEFT, categoryIcon, TOPRIGHT, 6, -(BUILD_ROW_HEADER_H - CATEGORY_ICON_SIZE) / 2)
+    -- Anclas LEFT/RIGHT, no TOPLEFT/TOPRIGHT: los vecinos de esta linea (el
+    -- desplegable de categoria, el icono de estado) son mas bajos que la banda
+    -- de cabecera y van centrados en ella, asi que con anclas TOP* habria que
+    -- compensar a mano la altura de cada uno, y las dos anclas de esta
+    -- etiqueta acabarian pidiendo Y distintas. Centro contra centro cuadra
+    -- solo, sin numeros magicos.
+    name:SetAnchor(LEFT, roleIcon, RIGHT, 8, 0)
     name:SetMouseEnabled(true)
     row.nameLabel = name
 
@@ -185,10 +234,31 @@ local function CreateBuildRow(parent, index)
     status:SetHeight(BUILD_ROW_HEADER_H)
     status:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     status:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-    status:SetAnchor(TOPRIGHT, statusIcon, TOPLEFT, -4, 0)
+    -- Centro contra centro, por el mismo motivo que la etiqueta del nombre:
+    -- el icono de estado es mas bajo que la banda de cabecera y va centrado
+    -- en ella, asi que anclar TOP con TOP arrastraria ese desfase a todo lo
+    -- que se encadene despues por la izquierda.
+    status:SetAnchor(RIGHT, statusIcon, LEFT, -4, 0)
     status:SetMouseEnabled(true)
     row.statusLabel = status
-    name:SetAnchor(TOPRIGHT, status, TOPLEFT, -8, 0)
+
+    -- Categoria en la propia fila. El hueco entre el nombre y el estado
+    -- estaba vacio, y catalogar quince builds de una en una entrando y
+    -- saliendo del editor es justo el trabajo que esto viene a quitar. La
+    -- misma opcion sigue en el editor: aqui es un atajo, no un traslado.
+    --
+    -- Ocupa solo la banda de la cabecera (26 px), asi que no se pone por
+    -- delante de las filas de iconos de abajo: un control ancho con el raton
+    -- activado tapando iconos es el fallo que ya se arreglo tres veces (ver
+    -- el aviso de cpLabel).
+    local categoryCombo = WM:CreateControlFromVirtual(
+        "EZOArmoryBuildRowCategory" .. index, row, "ZO_ComboBox")
+    categoryCombo:SetDimensions(ROW_COMBO_WIDTH, ROW_COMBO_HEIGHT)
+    categoryCombo:SetAnchor(RIGHT, status, LEFT, -8, 0)
+    ZO_ComboBox_ObjectFromContainer(categoryCombo):SetFont("ZoFontGameSmall")
+    row.categoryCombo = categoryCombo
+
+    name:SetAnchor(RIGHT, categoryCombo, LEFT, -8, 0)
 
     row.gearIcons = {}
     for i = 1, MAX_GEAR_ICONS do
@@ -259,8 +329,6 @@ local function ClearBuildRow(row)
     -- una build anterior se quedaria pegado al icono de la siguiente.
     row.statusIcon:SetHandler("OnMouseEnter", nil)
     row.statusIcon:SetHandler("OnMouseExit", nil)
-    row.categoryIcon:SetHandler("OnMouseEnter", nil)
-    row.categoryIcon:SetHandler("OnMouseExit", nil)
 end
 
 -- Cabecera de grupo de la lista: icono de la categoria y su nombre.
@@ -435,30 +503,14 @@ local function FillBuildRow(row, build)
     end)
     row.roleIcon:SetHandler("OnMouseExit", WK.HideTextSummary)
 
-    -- Categoria: solo se pinta si la build tiene una. El hueco se respeta
-    -- igualmente (el control sigue anclado aunque este oculto).
-    --
-    -- Y no se pinta si sale el MISMO icono que el de rol, que es el caso de
-    -- las categorias PVE: las tres usan los iconos de rol del juego (son los
-    -- que el jugador reconoce), asi que una build "PVE Tanque" detectada como
-    -- tanque mostraria dos veces el mismo dibujo pegados. Cuando difieren si
-    -- se pinta, y ahi el segundo icono dice algo: que la categoria puesta a
-    -- mano no cuadra con el rol que se deduce del equipo.
-    local categoryIcon = EZOArmory.Builds.GetCategoryIcon(build.category)
-    if categoryIcon and categoryIcon == roleIcon then
-        categoryIcon = nil
-    end
-    if categoryIcon then
-        row.categoryIcon:SetTexture(categoryIcon)
-        row.categoryIcon:SetHidden(false)
-        local categoryLabel = EZOArmory.Builds.GetCategoryLabel(build.category)
-        row.categoryIcon:SetHandler("OnMouseEnter", function(control)
-            WK.ShowTextSummary(control, categoryLabel, nil)
+    -- Las filas se reciclan, asi que el desplegable se rellena de cero en
+    -- cada refresco: si no, se quedaria mostrando la categoria de la build
+    -- que ocupaba antes esta fila.
+    local labels, values = CategoryChoices(true)
+    PopulateCombo(row.categoryCombo, labels, values,
+        build.category or EZOArmory.Builds.CATEGORY_NONE, function(value)
+            SetCategoryAndRefresh(build.id, value, WB.RefreshList)
         end)
-        row.categoryIcon:SetHandler("OnMouseExit", WK.HideTextSummary)
-    else
-        row.categoryIcon:SetHidden(true)
-    end
 
     -- Estado: icono (correcto / aviso / error) y, si hay algo que revisar, el
     -- numero al lado. Sin texto largo: ocupaba todo el ancho derecho.
@@ -642,25 +694,6 @@ end
 
 -- --------------------------------------------------------- Editor ----
 
--- Igual que en la pestana Assign: combos nativos creados en runtime con
--- CreateControlFromVirtual + ZO_ComboBox_ObjectFromContainer.
-local function PopulateCombo(comboControl, labels, values, currentValue, onSelect)
-    local combo = ZO_ComboBox_ObjectFromContainer(comboControl)
-    combo:SetSortsItems(false)
-    combo:ClearItems()
-    local selectedLabel
-    for i, label in ipairs(labels) do
-        local value = values[i]
-        local entry = combo:CreateItemEntry(label, function() onSelect(value) end)
-        combo:AddItem(entry, ZO_COMBOBOX_SUPPRESS_UPDATE)
-        if value == currentValue then
-            selectedLabel = label
-        end
-    end
-    combo:UpdateItems()
-    combo:SetSelectedItemText(selectedLabel or GetString(EZOARM_BUILD_NONE_SELECTED))
-end
-
 local function EditingBuild()
     return EZOArmory.Builds.GetBuild(WB.state.editingId)
 end
@@ -689,16 +722,10 @@ end
 -- Categoria de la build: solo etiqueta, no cambia nada de lo que se equipa.
 -- Sirve para agrupar y filtrar la lista cuando hay muchas builds.
 local function PopulateCategoryCombo(build)
-    local labels = { EZOArmory.Builds.GetCategoryLabel(nil) }
-    local values = { EZOArmory.Builds.CATEGORY_NONE }
-    for _, entry in ipairs(EZOArmory.Builds.CATEGORIES) do
-        labels[#labels + 1] = EZOArmory.Builds.GetCategoryLabel(entry.id)
-        values[#values + 1] = entry.id
-    end
+    local labels, values = CategoryChoices(true)
     PopulateCombo(WB.categoryCombo, labels, values,
         build.category or EZOArmory.Builds.CATEGORY_NONE, function(value)
-            EZOArmory.Builds.SetCategory(build.id, value)
-            WB.RefreshEditor()
+            SetCategoryAndRefresh(build.id, value, WB.RefreshEditor)
         end)
 end
 
@@ -1110,18 +1137,15 @@ end
 -- distintos de las mismas categorias).
 local function PopulateFilterCombo()
     if not WB.filterCombo then return end
-    local labels = { GetString(EZOARM_FILTER_ALL) }
-    local values = { "all" }
-    for _, entry in ipairs(EZOArmory.Builds.CATEGORIES) do
-        labels[#labels + 1] = EZOArmory.Builds.GetCategoryLabel(entry.id)
-        values[#values + 1] = entry.id
-    end
-    labels[#labels + 1] = EZOArmory.Builds.GetCategoryLabel(nil)
-    values[#values + 1] = EZOArmory.Builds.CATEGORY_NONE
+    local labels, values = CategoryChoices(false)
+    table.insert(labels, 1, GetString(EZOARM_FILTER_ALL))
+    table.insert(values, 1, "all")
 
     PopulateCombo(WB.filterCombo, labels, values, WB.state.filter or "all", function(value)
         WB.state.filter = value
-        WB.RefreshList()
+        -- Mismo motivo que en SetCategoryAndRefresh: no se repinta la lista
+        -- desde dentro del callback del combo que la esta despachando.
+        zo_callLater(WB.RefreshList, 0)
     end)
 end
 

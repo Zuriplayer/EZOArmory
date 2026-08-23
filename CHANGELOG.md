@@ -2,6 +2,25 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.46
+
+- Add: the category dropdown is now **on the build row itself**, in the gap
+  between the name and the status icon. Cataloguing a long list meant opening
+  the editor, choosing, going back, and repeating - which is the work this was
+  supposed to remove. The dropdown stays in the editor too: the row is a
+  shortcut, not a move.
+- Removed the category icon from the row. With the dropdown right there
+  spelling the category out in words, the icon was saying the same thing twice
+  on the same line. Group headings still carry it, which is where it reads as
+  a heading rather than as clutter.
+- Changing a category (or the filter) repaints the list **on the next frame**,
+  not inside the dropdown's own click callback: the list regroups, which means
+  repainting the very control that is still dispatching the click.
+- The row's header controls now anchor centre-to-centre instead of top-to-top.
+  The status icon and the dropdown are shorter than the 26px header band and
+  sit centred in it, so top anchors meant hand-compensating each height, and
+  the name label ended up with its two anchors asking for different Y.
+
 ## 0.11.45
 
 - Add: builds can be **catalogued** - PVE DD, PVE Tank, PVE Healer, PVP,
