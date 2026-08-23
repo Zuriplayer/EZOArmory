@@ -2,6 +2,16 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.50
+
+- Add: auto-equip is now labelled **experimental** in the Assign tab, with an
+  amber warning under the switch saying what that means in practice: it leans
+  on the zone declaring its bosses and on the boss rooms learned from your own
+  visits, so it can equip late, equip half a build, or not fire at all. Check
+  what you are wearing before a pull that matters.
+- The warning is always on screen, not only while the switch is on: the person
+  who needs to read it is the one still deciding whether to turn it on.
+
 ## 0.11.49
 
 - Change: every category icon is now sourced from the game's own interface

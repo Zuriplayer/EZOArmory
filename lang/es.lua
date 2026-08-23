@@ -65,6 +65,8 @@ EZOARMORY_STRINGS_ES = {
     -- Builds sustitutas
     EZOARM_AUTOEQUIP_LABEL = "Auto-equipar",
     EZOARM_AUTOEQUIP_HINT = "Con esto activado, EZOArmory equipa por ti segun te mueves: la build asignada a donde estes (default de la trial, trash, un boss concreto), o la build sustituta de abajo si no hay nada asignado y aplica a ese tipo de zona. Con esto desactivado, nada se equipa solo: todo queda manual.",
+    EZOARM_AUTOEQUIP_EXPERIMENTAL_TAG = "(experimental)",
+    EZOARM_AUTOEQUIP_EXPERIMENTAL = "Experimental: depende de que la zona declare sus bosses y de las salas que el addon haya aprendido de tus visitas. Puede equipar tarde, equipar media build, o no saltar. Comprueba lo que llevas antes de un pull que importe.",
     EZOARM_SUBSTITUTE_HEADER = "Builds sustitutas",
     EZOARM_SUBSTITUTE_HINT = "Se usan donde no haya nada asignado: con boss delante se equipa la build de boss, si no la de trash. Fuera de las trials esto depende de que la zona declare sus bosses, y no todas lo hacen: las mazmorras antiguas suelen ir peor que las nuevas.",
     EZOARM_SUBSTITUTE_TRIALS = "Trials",

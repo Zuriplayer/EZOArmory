@@ -65,6 +65,8 @@ EZOARMORY_STRINGS_EN = {
     -- Substitute builds
     EZOARM_AUTOEQUIP_LABEL = "Auto-equip",
     EZOARM_AUTOEQUIP_HINT = "When on, EZOArmory equips things for you as you move around: the build assigned to wherever you are (trial default, trash, a specific boss), or the substitute build below if nothing is assigned and it applies to this kind of zone. When off, nothing equips itself - everything stays manual.",
+    EZOARM_AUTOEQUIP_EXPERIMENTAL_TAG = "(experimental)",
+    EZOARM_AUTOEQUIP_EXPERIMENTAL = "Experimental: it depends on the zone declaring its bosses and on the rooms this add-on has learned from your visits. It can equip late, equip half a build, or not fire at all. Check what you are wearing before a pull that matters.",
     EZOARM_SUBSTITUTE_HEADER = "Substitute builds",
     EZOARM_SUBSTITUTE_HINT = "Used wherever nothing is assigned: boss in sight equips the boss build, otherwise the trash one. Outside trials this depends on the zone declaring its bosses, which not every zone does - older dungeons tend to be worse than newer ones.",
     EZOARM_SUBSTITUTE_TRIALS = "Trials",

@@ -81,6 +81,13 @@ local CATEGORIES = {
 -- Ancho de etiqueta pensado para la mas larga ("Build de trash"), no para la
 -- mas corta: con 70 se cortaba en "Trash bui".
 local ASSIGN_LABEL_WIDTH = 115
+-- Hueco reservado al aviso de "experimental" bajo el interruptor. La pagina
+-- Assign va con desplazamientos verticales FIJOS (ver el resto del archivo),
+-- asi que el hueco se reserva a mano: tres lineas a ZoFontGameSmall con el
+-- ancho util de la pagina, con margen para que el texto traducido no se coma
+-- el bloque de abajo.
+local EXPERIMENTAL_HINT_H = 56
+
 local ASSIGN_ROW_HEIGHT = 26
 local ASSIGN_ROW_GAP = 6
 -- Hueco reservado a la derecha de cada desplegable para el boton de equipar.
@@ -1643,9 +1650,31 @@ local function CreateAssignPanel(content)
     autoEquipHint:SetAnchor(TOPRIGHT, page, TOPRIGHT, 0, autoEquipY + 26)
     autoEquipHint:SetText(GetString(EZOARM_AUTOEQUIP_HINT))
 
+    -- Marca de "experimental" pegada al titulo, y debajo el aviso de que
+    -- significa eso en concreto. Va SIEMPRE visible, no solo con el
+    -- interruptor encendido: quien tiene que leerlo es justo el que aun no lo
+    -- ha activado y esta decidiendo si lo hace.
+    local experimentalTag = WM:CreateControl(nil, page, CT_LABEL)
+    experimentalTag:SetFont("ZoFontGameSmall")
+    experimentalTag:SetColor(1, 0.8, 0.35, 1)
+    experimentalTag:SetAnchor(LEFT, autoEquipLabel, RIGHT, 8, 2)
+    experimentalTag:SetText(GetString(EZOARM_AUTOEQUIP_EXPERIMENTAL_TAG))
+
+    -- Ambar, no gris como el resto de explicaciones: es el unico texto de la
+    -- pagina que AVISA en vez de contar como funciona algo, y tiene que
+    -- distinguirse a simple vista de las dos lineas grises de al lado.
+    local experimentalY = autoEquipY + 26 + 32
+    local experimentalHint = WM:CreateControl(nil, page, CT_LABEL)
+    experimentalHint:SetFont("ZoFontGameSmall")
+    experimentalHint:SetColor(1, 0.8, 0.35, 1)
+    experimentalHint:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+    experimentalHint:SetAnchor(TOPLEFT, page, TOPLEFT, 0, experimentalY)
+    experimentalHint:SetAnchor(TOPRIGHT, page, TOPRIGHT, 0, experimentalY)
+    experimentalHint:SetText(GetString(EZOARM_AUTOEQUIP_EXPERIMENTAL))
+
     -- Un bloque por grupo, uno debajo del otro y los dos visibles y
     -- configurables a la vez.
-    local nextY = autoEquipY + 26 + 32
+    local nextY = experimentalY + EXPERIMENTAL_HINT_H
     for index, group in ipairs(ASSIGN_GROUPS) do
         if index > 1 then
             local divider = WM:CreateControl(nil, page, CT_TEXTURE)
