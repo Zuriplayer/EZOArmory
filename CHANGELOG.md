@@ -2,6 +2,27 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.49
+
+- Change: every category icon is now sourced from the game's own interface
+  code, with the file each one comes from written down next to it.
+  - **PVP**: `LFG_indexIcon_allianceWar_up` (the Cyrodiil campaign browser)
+    instead of the main menu's AvA button.
+  - **Battlegrounds**: `LFG_indexIcon_battlegrounds_up` (the battleground
+    finder) instead of `menuBar_group_up`, which is the generic **group**
+    icon - it did not say "battlegrounds", it said "group".
+  - **Solo**: asked for with `ZO_GetZoneDisplayTypeIcon(ZONE_DISPLAY_TYPE_SOLO)`
+    rather than hardcoded. It is literally the icon the game marks solo zones
+    with, which is what the arenas in this category are.
+  - **PVE damage / tank / healer**: unchanged - still the game's role icons via
+    `ZO_GetKeyboardRoleIcon`. Role is the axis that separates those three, and
+    these are the icons a player already knows from the group finder.
+  - **Overland**: unchanged - the main menu's map icon. There is no
+    `ZONE_DISPLAY_TYPE` for open world, and the map is the nearest thing.
+- Where the game offers a function to ask for an icon, the function is used and
+  the literal path is kept only as a fallback: if ZOS moves the file, the icon
+  still appears.
+
 ## 0.11.48
 
 - Change: the icon on the left of a build row now shows its **category**

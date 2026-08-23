@@ -72,20 +72,49 @@ end
 -- lleva. Es independiente de "role" (que es el rol interno deducido de las
 -- armas y decide como se equipa): una build de PvP puede ser de dd, y aqui
 -- interesa la primera clasificacion, no la segunda.
---
--- Los iconos son texturas NATIVAS del juego, verificadas contra el codigo de
--- la interfaz. Los tres de rol salen de ZO_GetKeyboardRoleIcon, que es la
--- funcion oficial, en vez de escribir sus rutas a mano.
 Builds.CATEGORY_NONE = "none"
 
+-- Iconos: TODOS nativos y todos localizados en el codigo de interfaz del
+-- juego, ninguna ruta puesta a ojo. Donde el juego ofrece una funcion para
+-- pedirlos se usa la funcion, y la ruta queda solo de respaldo por si esa
+-- funcion no existiera: asi, si ZOS mueve el archivo de sitio, el icono sigue
+-- saliendo. Procedencia de cada uno:
+--
+--   PVE DD / tanque / sanador
+--       ZO_GetKeyboardRoleIcon -> LFG_icon_dps / _tank / _healer
+--       (KEYBOARD_ROLE_ICONS, publicallingames/globals/sharedtextures.lua)
+--       Las tres categorias PVE se distinguen por rol, que es justo el eje que
+--       las separa, y son los iconos de rol que el jugador ya conoce del
+--       buscador de grupo.
+--   PVP     LFG_indexIcon_allianceWar_up
+--       (ingame/campaign/campaignbrowser_manager.lua: el icono del navegador
+--       de campanas de Cyrodiil). Antes se usaba menuBar_ava_up, del menu
+--       principal: valia, pero este es el de la actividad, no el del menu.
+--   BG      LFG_indexIcon_battlegrounds_up
+--       (ingame/lfg/zo_battlegroundfinder_manager.lua). Antes habia aqui
+--       menuBar_group_up, que es el icono generico de GRUPO: no decia
+--       "battlegrounds", decia "grupo", que es otra cosa.
+--   Solo    ZO_GetZoneDisplayTypeIcon(ZONE_DISPLAY_TYPE_SOLO)
+--       -> mapKey_soloInstance (ZONE_DISPLAY_TYPE_ICONS, sharedtextures.lua).
+--       Es literalmente el icono con el que el juego marca las zonas en
+--       solitario, que es lo que son las arenas de este apartado.
+--   Mundo   menuBar_map_up
+--       (ingame/mainmenu/keyboard/zo_mainmenu_keyboard.lua: el mapa del menu
+--       principal). No hay ningun ZONE_DISPLAY_TYPE de "mundo abierto", y el
+--       mapa es lo que mas se le parece.
 Builds.CATEGORIES = {
     { id = "pve_dd",     stringName = "EZOARM_CATEGORY_PVE_DD",     roleIcon = "dd" },
     { id = "pve_tank",   stringName = "EZOARM_CATEGORY_PVE_TANK",   roleIcon = "tank" },
     { id = "pve_healer", stringName = "EZOARM_CATEGORY_PVE_HEALER", roleIcon = "healer" },
-    { id = "pvp",        stringName = "EZOARM_CATEGORY_PVP",        icon = "EsoUI/Art/MainMenu/menuBar_ava_up.dds" },
-    { id = "bg",         stringName = "EZOARM_CATEGORY_BG",         icon = "EsoUI/Art/MainMenu/menuBar_group_up.dds" },
-    { id = "solo",       stringName = "EZOARM_CATEGORY_SOLO",       icon = "EsoUI/Art/Icons/mapKey/mapKey_soloInstance.dds" },
-    { id = "world",      stringName = "EZOARM_CATEGORY_WORLD",      icon = "EsoUI/Art/MainMenu/menuBar_map_up.dds" },
+    { id = "pvp",        stringName = "EZOARM_CATEGORY_PVP",
+      icon = "EsoUI/Art/LFG/LFG_indexIcon_allianceWar_up.dds" },
+    { id = "bg",         stringName = "EZOARM_CATEGORY_BG",
+      icon = "EsoUI/Art/LFG/LFG_indexIcon_battlegrounds_up.dds" },
+    { id = "solo",       stringName = "EZOARM_CATEGORY_SOLO",
+      zoneType = "ZONE_DISPLAY_TYPE_SOLO",
+      icon = "EsoUI/Art/Icons/mapKey/mapKey_soloInstance.dds" },
+    { id = "world",      stringName = "EZOARM_CATEGORY_WORLD",
+      icon = "EsoUI/Art/MainMenu/menuBar_map_up.dds" },
 }
 
 local ROLE_TO_LFG = {
@@ -94,8 +123,8 @@ local ROLE_TO_LFG = {
     healer = "LFG_ROLE_HEAL",
 }
 
--- Icono de una categoria. Los de rol se piden a la funcion del juego para no
--- fijar rutas que ZOS puede mover de sitio.
+-- Icono de una categoria. Se pide al juego cuando hay funcion para ello (ver
+-- la tabla de arriba) y solo se cae a la ruta fija si esa funcion no esta.
 function Builds.GetCategoryIcon(categoryId)
     for _, entry in ipairs(Builds.CATEGORIES) do
         if entry.id == categoryId then
@@ -103,6 +132,13 @@ function Builds.GetCategoryIcon(categoryId)
                 local lfgRole = _G[ROLE_TO_LFG[entry.roleIcon]]
                 if lfgRole then
                     local icon = ZO_GetKeyboardRoleIcon(lfgRole)
+                    if icon then return icon end
+                end
+            end
+            if entry.zoneType and type(ZO_GetZoneDisplayTypeIcon) == "function" then
+                local zoneType = _G[entry.zoneType]
+                if zoneType then
+                    local icon = ZO_GetZoneDisplayTypeIcon(zoneType)
                     if icon then return icon end
                 end
             end
