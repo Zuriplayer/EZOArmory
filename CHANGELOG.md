@@ -2,6 +2,31 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.47
+
+- Add: an **undress** button at the bottom of the Builds tab. It takes off all
+  your armour, jewelry and both weapon bars and drops them in your bag.
+  Costumes, tabards, capes and poisons are left alone - they belong to no
+  build, and stripping someone's costume unasked would be an unpleasant
+  surprise.
+- **If it does not all fit, nothing comes off.** The free bag slots are counted
+  first, and if there are fewer than there are pieces, it refuses and says how
+  many of each. A half-undressed character with a full bag has no idea what is
+  missing and no room to fix it.
+- It asks for confirmation. Undressing is undone by equipping any build, so it
+  is not grave - but this is a small unlabelled icon next to six other buttons,
+  and a slip of the mouse should not leave you naked mid-trial in silence.
+- Same rules as equipping: not in combat, not dead, and readiness is rechecked
+  before **each** piece rather than once for the batch, since fourteen
+  unequips spread across several frames and a fight can start partway.
+- The icon is native: it is the game's own "clear this slot" texture from the
+  outfit screen (`OUTFIT_SLOT_CLEAR_TEXTURES` in
+  `esoui/ingame/restyle/restyle_shared.lua`). ESO has no undress icon; this is
+  the closest thing a player has already seen.
+- The button chains off the left-hand row rather than centring in the bar: the
+  bar's centre falls inside the left row, so centring would have overlapped
+  "Update worn" - the same arithmetic that was missed in 0.11.44.
+
 ## 0.11.46
 
 - Add: the category dropdown is now **on the build row itself**, in the gap

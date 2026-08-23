@@ -67,6 +67,10 @@ local STATUS_ICON = {
 local CATEGORY_ICON_SIZE = 18
 local ROW_COMBO_WIDTH = 150
 local ROW_COMBO_HEIGHT = 22
+-- Mismo alto que los botones de texto de la barra (CreateActionButton usa 24):
+-- encadenado a ellos, uno mas alto sobresaldria por arriba de la barra.
+local UNDRESS_BUTTON_SIZE = 24
+local UNDRESS_BUTTON_IDLE_ALPHA = 0.65
 local GROUP_HEADER_H = 22
 local GROUP_HEADER_GAP = 6
 -- Una cabecera por categoria mas la de "sin catalogar". Fijo y con holgura:
@@ -1091,6 +1095,78 @@ local function OnEquipClicked()
     EZOArmory.Builds.Equip(build.id, WB.ReportEquipPart)
 end
 
+-- ------------------------------------------------------------ Desvestir ----
+
+local UNDRESS_DIALOG = "EZOARMORY_UNDRESS"
+local undressDialogRegistered = false
+
+local function ReportUndress(state)
+    if not EZOArmory.Print then return end
+
+    if state.error == "empty" then
+        EZOArmory.Print(GetString(EZOARM_MSG_UNDRESS_EMPTY))
+        return
+    end
+    if state.error == "noSpace" then
+        EZOArmory.Print(zo_strformat(
+            GetString(EZOARM_MSG_UNDRESS_NO_SPACE), state.needed, state.free))
+        return
+    end
+    if state.error then
+        EZOArmory.Print(GetString(EZOARM_MSG_EQUIP_NO_LIBASYNC))
+        return
+    end
+
+    EZOArmory.Print(zo_strformat(GetString(EZOARM_MSG_UNDRESS_DONE), state.removed))
+    if state.failed > 0 then
+        local names = {}
+        for _, key in ipairs(state.failedKeys) do
+            names[#names + 1] = EZOArmory.SlotLabel(key)
+        end
+        EZOArmory.Print(zo_strformat(
+            GetString(EZOARM_MSG_UNDRESS_FAILED), table.concat(names, ", ")))
+    end
+end
+
+-- Se confirma antes. Quitarse catorce piezas se deshace equipando cualquier
+-- build, asi que grave no es, pero es un boton pequeno y sin texto al lado de
+-- otros seis: un resbalon del raton no deberia dejarte desnudo en mitad de
+-- una trial sin haber dicho nada.
+local function EnsureUndressDialog()
+    if undressDialogRegistered then return true end
+    if type(ZO_Dialogs_RegisterCustomDialog) ~= "function" then return false end
+
+    ZO_Dialogs_RegisterCustomDialog(UNDRESS_DIALOG, {
+        canQueue = true,
+        title = { text = GetString(EZOARM_DIALOG_UNDRESS_TITLE) },
+        mainText = { text = GetString(EZOARM_DIALOG_UNDRESS_TEXT) },
+        buttons = {
+            [1] = {
+                keybind = "DIALOG_PRIMARY",
+                text = SI_DIALOG_CONFIRM,
+                callback = function()
+                    EZOArmory.Equip.UndressAll(ReportUndress)
+                end,
+            },
+            [2] = {
+                keybind = "DIALOG_NEGATIVE",
+                text = SI_DIALOG_CANCEL,
+            },
+        },
+    })
+    undressDialogRegistered = true
+    return true
+end
+
+local function OnUndressClicked()
+    -- Sin dialogos disponibles no se hace a la brava: mejor no hacer nada que
+    -- desvestir sin preguntar.
+    if not EnsureUndressDialog() or type(ZO_Dialogs_ShowDialog) ~= "function" then
+        return
+    end
+    ZO_Dialogs_ShowDialog(UNDRESS_DIALOG)
+end
+
 -- ---------------------------------------------------------- Construccion ----
 
 -- "half" parte la fila en dos para meter dos combos cortos donde antes iba
@@ -1223,6 +1299,46 @@ local function CreateListPanel(content)
     updateWornButton:SetAnchor(LEFT, copyWornButton, RIGHT, BTN_GAP, 0)
     updateWornButton:SetHidden(true)
     WB.updateWornButton = updateWornButton
+
+    -- Desvestir, en el hueco entre los tres botones de la izquierda (354 px
+    -- con sus separaciones) y los tres de la derecha (304): de los ~726
+    -- utiles quedan unos 68 libres, asi que entra un boton de icono pero no
+    -- uno con texto.
+    --
+    -- Encadenado al ultimo de la izquierda, NO centrado en la barra: el
+    -- centro de la barra cae en 363 y la fila izquierda termina en 354, asi
+    -- que centrarlo lo dejaria montado encima de "Update worn". Misma
+    -- leccion que en 0.11.44, cuando "Update worn" y "Equip" se pisaron por
+    -- meter un boton mas sin hacer la cuenta.
+    --
+    -- No depende de que haya build elegida, asi que no se oculta con la
+    -- seleccion como hacen Equip, Edit y Borrar. Se ancla igualmente al boton
+    -- de actualizar, que si se oculta: un control oculto conserva su sitio,
+    -- asi que la posicion no baila al seleccionar y deseleccionar.
+    --
+    -- Icono NATIVO: es el que usa el propio juego para "vaciar este slot" en
+    -- la pantalla de estilo (tabla OUTFIT_SLOT_CLEAR_TEXTURES en
+    -- esoui/ingame/restyle/restyle_shared.lua). ESO no tiene ningun icono de
+    -- "desvestir", y este es el que mas se le parece de los que el jugador ya
+    -- ha visto en el juego.
+    local undressButton = WM:CreateControl(nil, actionBar, CT_BUTTON)
+    undressButton:SetDimensions(UNDRESS_BUTTON_SIZE, UNDRESS_BUTTON_SIZE)
+    undressButton:SetAnchor(LEFT, updateWornButton, RIGHT, BTN_GAP, 0)
+    undressButton:SetNormalTexture("EsoUI/Art/Restyle/gearSlot_chest_remove.dds")
+    undressButton:SetMouseOverTexture("EsoUI/Art/Restyle/gearSlot_chest_remove.dds")
+    undressButton:SetHandler("OnClicked", OnUndressClicked)
+    undressButton:SetHandler("OnMouseEnter", function(control)
+        control:SetAlpha(1)
+        EZOArmory.WindowKits.ShowTextSummary(control, GetString(EZOARM_UNDRESS),
+            { GetString(EZOARM_UNDRESS_TOOLTIP) })
+    end)
+    undressButton:SetHandler("OnMouseExit", function(control)
+        control:SetAlpha(UNDRESS_BUTTON_IDLE_ALPHA)
+        EZOArmory.WindowKits.HideTextSummary()
+    end)
+    -- Apagado en reposo: es la unica accion de la barra que no construye ni
+    -- equipa nada, y no tiene que pedir la vista tanto como las demas.
+    undressButton:SetAlpha(UNDRESS_BUTTON_IDLE_ALPHA)
 
     -- Cartel de ayuda entre el contador y la lista. Su alto cambia con el
     -- texto y la lista se ancla debajo, asi que la cadena de anclas absorbe

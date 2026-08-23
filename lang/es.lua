@@ -20,6 +20,16 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_MSG_STORAGE_FAILED = "No han llegado, intentalo de nuevo: <<1>>.",
     EZOARM_MSG_STORAGE_ABORTED = "El banco se ha cerrado a mitad, el resto no se ha movido.",
 
+    -- Desvestir
+    EZOARM_UNDRESS = "Desvestir",
+    EZOARM_UNDRESS_TOOLTIP = "Se quita todo lo que llevas puesto (armadura, joyeria y las dos barras de armas) y lo deja en la mochila. Disfraces, tabardos y venenos no se tocan. Hace falta un hueco libre por pieza: si no caben todas, no se quita nada.",
+    EZOARM_DIALOG_UNDRESS_TITLE = "Desvestir",
+    EZOARM_DIALOG_UNDRESS_TEXT = "Esto se quita toda la armadura, la joyeria y las armas y las deja en la mochila. Disfraces, tabardos y venenos no se tocan. ¿Continuar?",
+    EZOARM_MSG_UNDRESS_DONE = "Quitadas <<1>> pieza(s).",
+    EZOARM_MSG_UNDRESS_FAILED = "Siguen puestas: <<1>>.",
+    EZOARM_MSG_UNDRESS_EMPTY = "No llevas nada que quitar.",
+    EZOARM_MSG_UNDRESS_NO_SPACE = "No caben: <<1>> pieza(s) que quitar y solo <<2>> hueco(s) libre(s) en la mochila. No se ha quitado nada.",
+
     -- Categorias de build
     EZOARM_CATEGORY_NONE = "Sin catalogar",
     EZOARM_CATEGORY_PVE_DD = "PVE Dano",

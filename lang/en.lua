@@ -20,6 +20,16 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_MSG_STORAGE_FAILED = "Did not arrive, try again: <<1>>.",
     EZOARM_MSG_STORAGE_ABORTED = "The bank closed partway through, the rest was not moved.",
 
+    -- Desvestir
+    EZOARM_UNDRESS = "Undress",
+    EZOARM_UNDRESS_TOOLTIP = "Takes off everything you are wearing - armour, jewelry and both weapon bars - and drops it in your bag. Costumes, tabards and poisons are left alone. Needs a free bag slot for every piece: if they do not all fit, nothing is taken off.",
+    EZOARM_DIALOG_UNDRESS_TITLE = "Undress",
+    EZOARM_DIALOG_UNDRESS_TEXT = "This takes off all your armour, jewelry and weapons and puts them in your bag. Costumes, tabards and poisons are not touched. Continue?",
+    EZOARM_MSG_UNDRESS_DONE = "Taken off: <<1>> piece(s).",
+    EZOARM_MSG_UNDRESS_FAILED = "Still on: <<1>>.",
+    EZOARM_MSG_UNDRESS_EMPTY = "Nothing to take off.",
+    EZOARM_MSG_UNDRESS_NO_SPACE = "Not enough room: <<1>> piece(s) to take off and only <<2>> free bag slot(s). Nothing was taken off.",
+
     -- Categorias de build
     EZOARM_CATEGORY_NONE = "Uncatalogued",
     EZOARM_CATEGORY_PVE_DD = "PVE Damage",

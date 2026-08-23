@@ -360,6 +360,117 @@ function Equip.ApplyKits(kitIds, onReport)
     return true
 end
 
+-- ------------------------------------------------------------ Desvestir ----
+--
+-- Quitar TODO lo puesto y dejarlo en la mochila. Recorre Gear.SLOT_DEFS, que
+-- son los catorce slots que gestiona el addon: armadura, joyeria y las dos
+-- barras de armas. Disfraz, tabardo, capa y venenos NO se tocan: no son parte
+-- de ninguna build ni de lo que pidio el encargo, y quitarle el disfraz a
+-- alguien sin que lo haya pedido seria una sorpresa desagradable.
+--
+-- Mismas reglas que el equipado: fuera de combate y no muerto, con
+-- RequestUnequipItem (que no es funcion protegida, ver el comentario de
+-- UnequipConflictingMythic) pieza a pieza y comprobando antes de cada una.
+
+-- Slots que ahora mismo llevan algo puesto. HasItemInSlot(BAG_WORN, equipSlot)
+-- verificado en ESOUIDocumentation.txt.
+local function WornSlots()
+    local slots = {}
+    if type(HasItemInSlot) ~= "function" or not EZOArmory.Gear then
+        return slots
+    end
+    for _, def in ipairs(EZOArmory.Gear.SLOT_DEFS) do
+        local equipSlot = EZOArmory.Gear.GetEquipSlotId(def.key)
+        if equipSlot then
+            local ok, has = pcall(HasItemInSlot, BAG_WORN, equipSlot)
+            if ok and has then
+                slots[#slots + 1] = { key = def.key, equipSlot = equipSlot }
+            end
+        end
+    end
+    return slots
+end
+
+-- Deja al personaje desnudo: todo a la mochila. onReport(state) al terminar.
+-- state al terminar: { removed, failed, failedKeys, queued }
+-- state de error: { error = "noLibAsync" | "empty" }
+--                 { error = "noSpace", needed = n, free = n }
+--
+-- Si no cabe TODO, no se quita NADA. Un desvestido a medias con la mochila
+-- llena deja al personaje sin saber que le falta y sin sitio para arreglarlo;
+-- decir cuantos huecos hacen falta antes de tocar nada se puede deshacer.
+function Equip.UndressAll(onReport)
+    if not Equip.IsAvailable() or type(RequestUnequipItem) ~= "function" then
+        if onReport then onReport({ error = "noLibAsync" }) end
+        return false
+    end
+
+    local slots = WornSlots()
+    if #slots == 0 then
+        if onReport then onReport({ error = "empty" }) end
+        return false
+    end
+
+    if type(GetNumBagFreeSlots) == "function" then
+        local ok, free = pcall(GetNumBagFreeSlots, BAG_BACKPACK)
+        if ok and type(free) == "number" and free < #slots then
+            if onReport then
+                onReport({ error = "noSpace", needed = #slots, free = free })
+            end
+            return false
+        end
+    end
+
+    local state = {
+        removed = 0,
+        failed = 0,
+        failedKeys = {},
+        queued = not Equip.IsReady(),
+    }
+
+    if state.queued then
+        NotifyQueued("combat")
+    end
+
+    local task = LibAsync:Create("EZOArmory_Undress")
+    task:WaitUntil(function()
+        return Equip.IsReady()
+    end):Then(function(innerTask)
+        -- Se comprueba "listo" antes de CADA pieza, no solo una vez para todo
+        -- el lote: mismo motivo que en ApplyKits, un lote de catorce se
+        -- reparte entre frames y el combate puede empezar a mitad.
+        innerTask:For(1, #slots):Do(function(index)
+            innerTask:WaitUntil(function()
+                return Equip.IsReady()
+            end):Then(function()
+                pcall(RequestUnequipItem, BAG_WORN, slots[index].equipSlot)
+            end)
+        end):Then(function(verifyTask)
+            -- Margen antes de contar: las peticiones que acabamos de enviar
+            -- pueden seguir en vuelo. Se cuenta lo que ha quedado VACIO de
+            -- verdad, no lo que se ha pedido quitar.
+            verifyTask:Delay(EQUIP_VERIFY_DELAY_MS, function()
+                for _, entry in ipairs(slots) do
+                    local ok, has = pcall(HasItemInSlot, BAG_WORN, entry.equipSlot)
+                    if ok and not has then
+                        state.removed = state.removed + 1
+                    else
+                        state.failed = state.failed + 1
+                        state.failedKeys[#state.failedKeys + 1] = entry.key
+                    end
+                end
+                if EZOArmory.DebugLog then
+                    EZOArmory.DebugLog(string.format(
+                        "Undress: %d removed, %d failed", state.removed, state.failed))
+                end
+                if onReport then onReport(state) end
+            end)
+        end)
+    end)
+
+    return true
+end
+
 -- ------------------------------------------------------- Kits de habilidades ----
 --
 -- Ranurar una habilidad por codigo (verificado contra el manager nativo,
