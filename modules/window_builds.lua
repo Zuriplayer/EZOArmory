@@ -489,21 +489,36 @@ local function FillBuildRow(row, build)
         row.nameLabel:SetColor(StatusColor(report.status))
     end
 
+    -- El icono de la izquierda pasa a llevar la CATEGORIA, no el rol.
+    --
+    -- Con el rol se veia siempre lo mismo: casi todas las builds son de dano,
+    -- asi que era el mismo dibujo repetido fila tras fila. Ademas el rol se
+    -- deduce de las armas, y las armas ya estan pintadas en la propia fila
+    -- justo debajo: era el dato menos informativo del sitio mas visible.
+    --
+    -- Sin categoria puesta se sigue pintando el rol, para no dejar el hueco
+    -- mudo. El emergente dice SIEMPRE las dos cosas (categoria y rol), asi
+    -- que no hay que adivinar cual de los dos se esta viendo, y el aviso de
+    -- "duda" del rol -baston de hielo sin escudo, que no se puede decidir por
+    -- el arma- no se pierde por el camino.
     local roleIcon = EZOArmory.Builds.GetRoleIcon(report.role)
-    if roleIcon then
-        row.roleIcon:SetTexture(roleIcon)
+    local rowIcon = EZOArmory.Builds.GetCategoryIcon(build.category) or roleIcon
+    if rowIcon then
+        row.roleIcon:SetTexture(rowIcon)
         row.roleIcon:SetHidden(false)
     else
         row.roleIcon:SetHidden(true)
     end
 
-    -- El rol se explica al pasar el raton: si es automatico o forzado, y por
-    -- que "duda" cuando no se puede deducir del arma.
     local roleLabel = EZOArmory.Builds.GetRoleLabel(report.role)
     local roleTitle = report.roleForced and roleLabel
         or zo_strformat(GetString(EZOARM_BUILD_ROLE_AUTO), roleLabel)
+    local iconLines = {
+        zo_strformat(GetString(EZOARM_BUILD_ROW_ROLE_LINE), roleTitle),
+    }
     row.roleIcon:SetHandler("OnMouseEnter", function(control)
-        WK.ShowTextSummary(control, roleTitle, nil)
+        WK.ShowTextSummary(control,
+            EZOArmory.Builds.GetCategoryLabel(build.category), iconLines)
     end)
     row.roleIcon:SetHandler("OnMouseExit", WK.HideTextSummary)
 

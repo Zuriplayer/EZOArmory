@@ -41,6 +41,7 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_CATEGORY_WORLD = "Mundo",
     EZOARM_BUILD_CATEGORY = "Categoria",
     EZOARM_FILTER_ALL = "Todas las builds",
+    EZOARM_BUILD_ROW_ROLE_LINE = "Rol: <<1>>",
     EZOARM_BUILD_NONE_IN_FILTER = "Ninguna build en esta categoria. Cambia el filtro de arriba, o ponle categoria desde el editor de la build.",
 
     EZOARM_MSG_INIT = "EZOArmory cargado. Escribe /ezoarmory para abrir la ventana.",

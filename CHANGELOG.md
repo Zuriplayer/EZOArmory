@@ -2,6 +2,19 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.48
+
+- Change: the icon on the left of a build row now shows its **category**
+  instead of its role. With the role it was the same drawing repeated down the
+  whole list - nearly every build is a damage build - and the role is deduced
+  from the weapons, which are already painted on the row right underneath. It
+  was the least informative thing in the most visible spot.
+- Builds with no category still show the role icon there, so the slot is never
+  mute. The tooltip always names **both** - category as the title, role as a
+  line under it - so there is no guessing which of the two is on screen, and
+  the role's "unclear" warning (ice staff without a shield, which cannot be
+  decided from the weapon) is not lost along the way.
+
 ## 0.11.47
 
 - Add: an **undress** button at the bottom of the Builds tab. It takes off all
