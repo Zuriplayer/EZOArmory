@@ -81,12 +81,22 @@ local CATEGORIES = {
 -- Ancho de etiqueta pensado para la mas larga ("Build de trash"), no para la
 -- mas corta: con 70 se cortaba en "Trash bui".
 local ASSIGN_LABEL_WIDTH = 115
--- Hueco reservado al aviso de "experimental" bajo el interruptor. La pagina
--- Assign va con desplazamientos verticales FIJOS (ver el resto del archivo),
--- asi que el hueco se reserva a mano: tres lineas a ZoFontGameSmall con el
--- ancho util de la pagina, con margen para que el texto traducido no se coma
--- el bloque de abajo.
-local EXPERIMENTAL_HINT_H = 56
+
+-- Alto reservado a cada texto largo de la pagina Assign.
+--
+-- Estos textos se ajustan solos al ancho de la ventana, asi que su alto real
+-- depende de la traduccion y de lo ancha que la tenga el jugador. La pagina va
+-- con desplazamientos verticales FIJOS (a proposito, ver el resto del
+-- archivo), asi que si no se les fija alto crecen por debajo del hueco que se
+-- les habia reservado y se comen lo de abajo: eso es lo que paso en 0.11.50,
+-- donde se reservaron 32 px para un texto que ocupa tres lineas.
+--
+-- Con SetHeight ademas de la reserva, el peor caso deja de ser un solape y
+-- pasa a ser un recorte con puntos suspensivos, que es feo pero legible.
+local HINT_LINE_H = 18
+local HINT_LINES = 3
+local HINT_BLOCK_H = HINT_LINE_H * HINT_LINES
+local HINT_BLOCK_GAP = 6
 
 local ASSIGN_ROW_HEIGHT = 26
 local ASSIGN_ROW_GAP = 6
@@ -1646,6 +1656,7 @@ local function CreateAssignPanel(content)
     autoEquipHint:SetFont("ZoFontGameSmall")
     autoEquipHint:SetColor(0.65, 0.65, 0.72, 1)
     autoEquipHint:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+    autoEquipHint:SetHeight(HINT_BLOCK_H)
     autoEquipHint:SetAnchor(TOPLEFT, page, TOPLEFT, 0, autoEquipY + 26)
     autoEquipHint:SetAnchor(TOPRIGHT, page, TOPRIGHT, 0, autoEquipY + 26)
     autoEquipHint:SetText(GetString(EZOARM_AUTOEQUIP_HINT))
@@ -1663,18 +1674,20 @@ local function CreateAssignPanel(content)
     -- Ambar, no gris como el resto de explicaciones: es el unico texto de la
     -- pagina que AVISA en vez de contar como funciona algo, y tiene que
     -- distinguirse a simple vista de las dos lineas grises de al lado.
-    local experimentalY = autoEquipY + 26 + 32
     local experimentalHint = WM:CreateControl(nil, page, CT_LABEL)
     experimentalHint:SetFont("ZoFontGameSmall")
     experimentalHint:SetColor(1, 0.8, 0.35, 1)
     experimentalHint:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
-    experimentalHint:SetAnchor(TOPLEFT, page, TOPLEFT, 0, experimentalY)
-    experimentalHint:SetAnchor(TOPRIGHT, page, TOPRIGHT, 0, experimentalY)
+    experimentalHint:SetHeight(HINT_BLOCK_H)
+    -- Anclado DEBAJO de la pista gris, no a una Y calculada a mano: aunque
+    -- alguien cambie el alto de una de las dos, no pueden solaparse.
+    experimentalHint:SetAnchor(TOPLEFT, autoEquipHint, BOTTOMLEFT, 0, HINT_BLOCK_GAP)
+    experimentalHint:SetAnchor(TOPRIGHT, autoEquipHint, BOTTOMRIGHT, 0, HINT_BLOCK_GAP)
     experimentalHint:SetText(GetString(EZOARM_AUTOEQUIP_EXPERIMENTAL))
 
     -- Un bloque por grupo, uno debajo del otro y los dos visibles y
     -- configurables a la vez.
-    local nextY = experimentalY + EXPERIMENTAL_HINT_H
+    local nextY = autoEquipY + 26 + (HINT_BLOCK_H + HINT_BLOCK_GAP) * 2 + 10
     for index, group in ipairs(ASSIGN_GROUPS) do
         if index > 1 then
             local divider = WM:CreateControl(nil, page, CT_TEXTURE)
@@ -1699,6 +1712,11 @@ local function CreateAssignPanel(content)
     local subHintLabel = WM:CreateControl(nil, page, CT_LABEL)
     subHintLabel:SetFont("ZoFontGameSmall")
     subHintLabel:SetColor(0.65, 0.65, 0.72, 1)
+    subHintLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+    -- Mismo motivo que las dos pistas de arriba: sin alto fijo, este texto
+    -- crece por debajo de los 56 px que tiene reservados y se come las
+    -- casillas. Hoy cabe justo, que no es lo mismo que estar bien.
+    subHintLabel:SetHeight(HINT_BLOCK_H)
     subHintLabel:SetAnchor(TOPLEFT, page, TOPLEFT, 0, subHeaderY + 20)
     subHintLabel:SetAnchor(TOPRIGHT, page, TOPRIGHT, 0, subHeaderY + 20)
     subHintLabel:SetText(GetString(EZOARM_SUBSTITUTE_HINT))

@@ -2,6 +2,19 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.51
+
+- Fix: the experimental warning added in 0.11.50 was drawn **on top of** the
+  grey explanation above it. That text wraps to three lines and only two lines'
+  worth of space had been reserved for it.
+- The wrapping hints on the Assign tab now have an explicit height, and the
+  warning is anchored **below** the grey hint rather than at a hand-counted Y.
+  These texts reflow with the window width and the translation, so their real
+  height was never something to guess at; with a set height the worst case is
+  an ellipsis instead of an overlap.
+- The substitute-builds hint further down had the same latent problem - fitting
+  its reserved space by three pixels - and got the same fix.
+
 ## 0.11.50
 
 - Add: auto-equip is now labelled **experimental** in the Assign tab, with an
