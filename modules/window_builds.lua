@@ -1115,7 +1115,7 @@ end
 local UNDRESS_DIALOG = "EZOARMORY_UNDRESS"
 local undressDialogRegistered = false
 
-local function ReportUndress(state)
+function WB.ReportUndress(state)
     if not EZOArmory.Print then return end
 
     if state.error == "empty" then
@@ -1160,7 +1160,10 @@ local function EnsureUndressDialog()
                 keybind = "DIALOG_PRIMARY",
                 text = SI_DIALOG_CONFIRM,
                 callback = function()
-                    EZOArmory.Equip.UndressAll(ReportUndress)
+                    if EZOArmory.DebugLog then
+                        EZOArmory.DebugLog("Undress: confirmed")
+                    end
+                    EZOArmory.Equip.UndressAll(WB.ReportUndress)
                 end,
             },
             [2] = {
@@ -1174,9 +1177,16 @@ local function EnsureUndressDialog()
 end
 
 local function OnUndressClicked()
+    if EZOArmory.DebugLog then EZOArmory.DebugLog("Undress: button clicked") end
+
     -- Sin dialogos disponibles no se hace a la brava: mejor no hacer nada que
-    -- desvestir sin preguntar.
+    -- desvestir sin preguntar. Pero SE DICE: una rama que se va en silencio es
+    -- indistinguible desde fuera de un boton que no llama a nada, y esa
+    -- confusion ya ha costado varias versiones en este addon.
     if not EnsureUndressDialog() or type(ZO_Dialogs_ShowDialog) ~= "function" then
+        if EZOArmory.Print then
+            EZOArmory.Print(GetString(EZOARM_MSG_UNDRESS_NO_DIALOG))
+        end
         return
     end
     ZO_Dialogs_ShowDialog(UNDRESS_DIALOG)

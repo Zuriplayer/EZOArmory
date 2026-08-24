@@ -442,6 +442,23 @@ function EZOA:Initialize()
         EZOArmory_ToggleWindow()
     end
 
+    -- Atajo de diagnostico: llama a UndressAll SALTANDOSE el boton y el
+    -- dialogo. Sirve para separar dos cosas que desde fuera se ven igual - "no
+    -- pasa nada al pulsar" puede ser que el boton no llegue a llamar, que el
+    -- dialogo no salga, o que el desequipado no haga su trabajo - y para saber
+    -- cual de las tres es hay que poder probar cada capa por separado.
+    SLASH_COMMANDS["/ezoarmoryundress"] = function()
+        if not (EZOA.Equip and EZOA.Equip.UndressAll) then
+            Print("EZOArmory: UndressAll no esta disponible.")
+            return
+        end
+        EZOA.Equip.UndressAll(function(state)
+            if EZOA.WindowBuilds and EZOA.WindowBuilds.ReportUndress then
+                EZOA.WindowBuilds.ReportUndress(state)
+            end
+        end)
+
+    end
     Print(GetString(EZOARM_MSG_INIT))
 end
 

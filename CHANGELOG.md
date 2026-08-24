@@ -2,6 +2,25 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.52
+
+- Diagnostics for undress not working. Nothing about how it works was changed
+  blindly: the unequip call and its arguments were re-checked against the
+  game's own code first (`RequestUnequipItem(BAG_WORN, equipSlot)`,
+  `inventoryslot.lua:1137` - a plain call, not a protected one), and they are
+  right, so the fault is somewhere earlier and guessing which part would just
+  burn a version.
+- Add `/ezoarmoryundress`: runs the undress **skipping the button and the
+  dialog**. "Nothing happens when I click" covers three different faults - the
+  button never calls, the dialog never shows, or the unequip does nothing - and
+  they can only be told apart by testing each layer on its own.
+- The whole path now logs to LibDebugLogger: the click, the confirmation, how
+  many worn slots were found, how many free bag slots there are, and each
+  individual unequip with whether the call went through.
+- Fix: clicking undress when the dialog cannot be registered used to return in
+  **silence**, which from outside looks exactly like a dead button. It now says
+  so and points at the slash command.
+
 ## 0.11.51
 
 - Fix: the experimental warning added in 0.11.50 was drawn **on top of** the

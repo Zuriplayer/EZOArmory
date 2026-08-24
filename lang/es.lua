@@ -28,6 +28,7 @@ EZOARMORY_STRINGS_ES = {
     EZOARM_MSG_UNDRESS_DONE = "Quitadas <<1>> pieza(s).",
     EZOARM_MSG_UNDRESS_FAILED = "Siguen puestas: <<1>>.",
     EZOARM_MSG_UNDRESS_EMPTY = "No llevas nada que quitar.",
+    EZOARM_MSG_UNDRESS_NO_DIALOG = "No se puede mostrar el dialogo de confirmacion, asi que no se ha quitado nada. Usa /ezoarmoryundress para hacerlo sin confirmar.",
     EZOARM_MSG_UNDRESS_NO_SPACE = "No caben: <<1>> pieza(s) que quitar y solo <<2>> hueco(s) libre(s) en la mochila. No se ha quitado nada.",
 
     -- Categorias de build

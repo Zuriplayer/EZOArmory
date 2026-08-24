@@ -400,12 +400,20 @@ end
 -- llena deja al personaje sin saber que le falta y sin sitio para arreglarlo;
 -- decir cuantos huecos hacen falta antes de tocar nada se puede deshacer.
 function Equip.UndressAll(onReport)
+    local Log = EZOArmory.DebugLog
+    if Log then Log("Undress: requested") end
+
     if not Equip.IsAvailable() or type(RequestUnequipItem) ~= "function" then
+        if Log then
+            Log(string.format("Undress: unavailable (libAsync=%s, unequip=%s)",
+                tostring(Equip.IsAvailable()), type(RequestUnequipItem)))
+        end
         if onReport then onReport({ error = "noLibAsync" }) end
         return false
     end
 
     local slots = WornSlots()
+    if Log then Log(string.format("Undress: %d worn slot(s) found", #slots)) end
     if #slots == 0 then
         if onReport then onReport({ error = "empty" }) end
         return false
@@ -413,6 +421,7 @@ function Equip.UndressAll(onReport)
 
     if type(GetNumBagFreeSlots) == "function" then
         local ok, free = pcall(GetNumBagFreeSlots, BAG_BACKPACK)
+        if Log then Log(string.format("Undress: free bag slots = %s", tostring(free))) end
         if ok and type(free) == "number" and free < #slots then
             if onReport then
                 onReport({ error = "noSpace", needed = #slots, free = free })
@@ -443,7 +452,12 @@ function Equip.UndressAll(onReport)
             innerTask:WaitUntil(function()
                 return Equip.IsReady()
             end):Then(function()
-                pcall(RequestUnequipItem, BAG_WORN, slots[index].equipSlot)
+                local sent = pcall(RequestUnequipItem, BAG_WORN, slots[index].equipSlot)
+                if Log then
+                    Log(string.format("Undress: unequip %s (slot %s) sent=%s",
+                        tostring(slots[index].key), tostring(slots[index].equipSlot),
+                        tostring(sent)))
+                end
             end)
         end):Then(function(verifyTask)
             -- Margen antes de contar: las peticiones que acabamos de enviar

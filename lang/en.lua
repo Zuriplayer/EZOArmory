@@ -28,6 +28,7 @@ EZOARMORY_STRINGS_EN = {
     EZOARM_MSG_UNDRESS_DONE = "Taken off: <<1>> piece(s).",
     EZOARM_MSG_UNDRESS_FAILED = "Still on: <<1>>.",
     EZOARM_MSG_UNDRESS_EMPTY = "Nothing to take off.",
+    EZOARM_MSG_UNDRESS_NO_DIALOG = "Cannot show the confirmation dialog, so nothing was taken off. Use /ezoarmoryundress to do it without confirming.",
     EZOARM_MSG_UNDRESS_NO_SPACE = "Not enough room: <<1>> piece(s) to take off and only <<2>> free bag slot(s). Nothing was taken off.",
 
     -- Categorias de build
