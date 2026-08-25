@@ -2,6 +2,21 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.53
+
+- `/ezoarmoryundress` now reports **to chat** instead of to LibDebugLogger. The
+  previous version's instrumentation measured nothing at all, because debug
+  mode is off (as it should be) and everything was being written to a log that
+  was never running. A diagnostic that depends on an option you have to
+  remember to switch on is not a diagnostic.
+- It also unequips **directly**, in a plain loop with no LibAsync, instead of
+  going through the queue. That separates two things: if it undresses this way,
+  the fault is in the queue or the button; if it does not, the fault is in the
+  game call and the answer is somewhere else entirely.
+- It prints, in order: whether equipment can be changed right now, free bag
+  slots, how many slots have something on, how many unequip requests went out,
+  any that threw, and - after a short pause - what is still worn.
+
 ## 0.11.52
 
 - Diagnostics for undress not working. Nothing about how it works was changed

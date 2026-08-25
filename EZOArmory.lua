@@ -442,22 +442,65 @@ function EZOA:Initialize()
         EZOArmory_ToggleWindow()
     end
 
-    -- Atajo de diagnostico: llama a UndressAll SALTANDOSE el boton y el
-    -- dialogo. Sirve para separar dos cosas que desde fuera se ven igual - "no
-    -- pasa nada al pulsar" puede ser que el boton no llegue a llamar, que el
-    -- dialogo no salga, o que el desequipado no haga su trabajo - y para saber
-    -- cual de las tres es hay que poder probar cada capa por separado.
+    -- Diagnostico de desvestir. Escribe POR CHAT, no al log: la version
+    -- anterior mandaba todo esto a LibDebugLogger y con el modo depuracion
+    -- apagado (que es lo normal) no media absolutamente nada. Un diagnostico
+    -- que depende de una opcion que hay que acordarse de encender no sirve.
+    --
+    -- Ademas desequipa DIRECTAMENTE, en un bucle normal y sin LibAsync, en vez
+    -- de por la cola de Equip.UndressAll. Asi separa dos cosas: si por aqui se
+    -- desviste, el fallo esta en la cola o en el boton; si tampoco, esta en la
+    -- llamada del juego y hay que mirar hacia otro lado.
     SLASH_COMMANDS["/ezoarmoryundress"] = function()
-        if not (EZOA.Equip and EZOA.Equip.UndressAll) then
-            Print("EZOArmory: UndressAll no esta disponible.")
+        local Gear = EZOA.Gear
+        if not Gear then
+            Print("EZOArmory: modulo Gear no cargado.")
             return
         end
-        EZOA.Equip.UndressAll(function(state)
-            if EZOA.WindowBuilds and EZOA.WindowBuilds.ReportUndress then
-                EZOA.WindowBuilds.ReportUndress(state)
-            end
-        end)
 
+        Print(string.format("EZOArmory: listo=%s, huecos libres=%s",
+            tostring(EZOA.Equip and EZOA.Equip.IsReady()),
+            tostring(type(GetNumBagFreeSlots) == "function"
+                and GetNumBagFreeSlots(BAG_BACKPACK) or "?")))
+
+        local found, sent, failed = 0, 0, {}
+        for _, def in ipairs(Gear.SLOT_DEFS) do
+            local equipSlot = Gear.GetEquipSlotId(def.key)
+            if equipSlot == nil then
+                failed[#failed + 1] = def.key .. ":sin-constante"
+            elseif HasItemInSlot(BAG_WORN, equipSlot) then
+                found = found + 1
+                local ok, err = pcall(RequestUnequipItem, BAG_WORN, equipSlot)
+                if ok then
+                    sent = sent + 1
+                else
+                    failed[#failed + 1] = def.key .. ":" .. tostring(err)
+                end
+            end
+        end
+
+        Print(string.format("EZOArmory: %d puestas, %d peticiones enviadas.",
+            found, sent))
+        if #failed > 0 then
+            Print("EZOArmory: fallos -> " .. table.concat(failed, " | "))
+        end
+
+        -- Se comprueba despues, no en el momento: la peticion de desequipar no
+        -- es instantanea y contar aqui mismo diria siempre que no ha pasado.
+        zo_callLater(function()
+            local stillOn = {}
+            for _, def in ipairs(Gear.SLOT_DEFS) do
+                local equipSlot = Gear.GetEquipSlotId(def.key)
+                if equipSlot and HasItemInSlot(BAG_WORN, equipSlot) then
+                    stillOn[#stillOn + 1] = def.key
+                end
+            end
+            if #stillOn == 0 then
+                Print("EZOArmory: no queda nada puesto.")
+            else
+                Print("EZOArmory: siguen puestas -> " .. table.concat(stillOn, ", "))
+            end
+        end, 800)
     end
     Print(GetString(EZOARM_MSG_INIT))
 end
