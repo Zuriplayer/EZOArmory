@@ -365,15 +365,37 @@ end
 -- Quitar TODO lo puesto y dejarlo en la mochila. Recorre Gear.SLOT_DEFS, que
 -- son los catorce slots que gestiona el addon: armadura, joyeria y las dos
 -- barras de armas. Disfraz, tabardo, capa y venenos NO se tocan: no son parte
--- de ninguna build ni de lo que pidio el encargo, y quitarle el disfraz a
--- alguien sin que lo haya pedido seria una sorpresa desagradable.
+-- de ninguna build ni de lo que pidio el encargo.
 --
--- Mismas reglas que el equipado: fuera de combate y no muerto, con
--- RequestUnequipItem (que no es funcion protegida, ver el comentario de
--- UnequipConflictingMythic) pieza a pieza y comprobando antes de cada una.
+-- COMO SE QUITA, y por que asi (verificado en Wizard's Wardrobe, en
+-- produccion, WizardsWardrobe.lua:404 moveItemToDestination y :625):
+--
+--   WW NO usa RequestUnequipItem para desvestir. Trata cada pieza como un
+--   MOVIMIENTO de BAG_WORN a BAG_BACKPACK, con
+--   CallSecureProtected("RequestMoveItem", ...) y un hueco de destino
+--   CONCRETO y distinto para cada pieza, que precalcula antes de empezar
+--   (WW.GetFreeSlots) y revalida justo antes de mover.
+--
+--   Ese "hueco distinto para cada una" es la clave. RequestUnequipItem deja
+--   elegir el destino al juego, y lanzando catorce seguidas todas apuntan al
+--   mismo primer hueco libre: se quita la primera y las demas no van a ningun
+--   sitio. Es exactamente el sintoma que aparecio (una pieza quitada, trece
+--   puestas) y es el MISMO fallo que ya se arreglo en storage.lua en 0.11.40,
+--   donde FindFirstEmptySlotInBag devolvia el mismo hueco a dos piezas
+--   seguidas.
+--
+-- Asi que aqui se hace igual que en storage.lua, que es codigo ya probado en
+-- este addon: una pieza cada vez, con destino calculado en el momento, y sin
+-- pasar a la siguiente hasta comprobar que la anterior ha SALIDO de su slot.
+
+local UNDRESS_POLL_MS = 100
+-- Espera entre reintentos cuando no se puede cambiar equipo (combate, muerto).
+local UNDRESS_WAIT_MS = 500
+local UNDRESS_MAX_TRIES = 30
+local undressCounter = 0
 
 -- Slots que ahora mismo llevan algo puesto. HasItemInSlot(BAG_WORN, equipSlot)
--- verificado en ESOUIDocumentation.txt.
+-- verificado en ESOUIDocumentation.txt y en hudequipmentstatus.lua:110.
 local function WornSlots()
     local slots = {}
     if type(HasItemInSlot) ~= "function" or not EZOArmory.Gear then
@@ -384,11 +406,91 @@ local function WornSlots()
         if equipSlot then
             local ok, has = pcall(HasItemInSlot, BAG_WORN, equipSlot)
             if ok and has then
-                slots[#slots + 1] = { key = def.key, equipSlot = equipSlot }
+                slots[#slots + 1] = {
+                    key = def.key,
+                    equipSlot = equipSlot,
+                    itemId = EZOArmory.Gear.ReadItemId(BAG_WORN, equipSlot),
+                }
             end
         end
     end
     return slots
+end
+
+-- Saca una pieza y, cuando confirma que ha salido, sigue con la siguiente.
+local function UndressNext(queue, state, onDone)
+    if #queue == 0 then
+        if onDone then onDone(state) end
+        return
+    end
+
+    local entry = table.remove(queue, 1)
+
+    local function Failed(reason)
+        state.failed = state.failed + 1
+        state.failedKeys[#state.failedKeys + 1] = entry.key
+        if EZOArmory.DebugLog then
+            EZOArmory.DebugLog(string.format(
+                "Undress: %s no sale (%s)", tostring(entry.key), tostring(reason)))
+        end
+        UndressNext(queue, state, onDone)
+    end
+
+    -- El combate puede empezar a mitad del lote, asi que se comprueba antes de
+    -- CADA pieza y no una sola vez para todas. Y si no se puede, se ESPERA: no
+    -- es un fallo de la pieza, es que ahora no toca. Darla por fallida seria
+    -- mentir en el informe y ademas perderla.
+    if not Equip.IsReady() then
+        table.insert(queue, 1, entry)
+        zo_callLater(function()
+            UndressNext(queue, state, onDone)
+        end, UNDRESS_WAIT_MS)
+        return
+    end
+    if type(CallSecureProtected) ~= "function"
+        or type(FindFirstEmptySlotInBag) ~= "function" then
+        return Failed("sin API de movimiento")
+    end
+
+    -- El hueco se busca AHORA, no al principio: entre pieza y pieza el
+    -- inventario cambia, y usar un mapa calculado al empezar es justo lo que
+    -- hace que dos piezas apunten al mismo sitio.
+    local destSlot = FindFirstEmptySlotInBag(BAG_BACKPACK)
+    if not destSlot then
+        return Failed("mochila llena")
+    end
+
+    CallSecureProtected("RequestMoveItem", BAG_WORN, entry.equipSlot,
+        BAG_BACKPACK, destSlot, 1)
+
+    undressCounter = undressCounter + 1
+    local namespace = "EZOArmory_Undress_" .. tostring(undressCounter)
+    local tries = 0
+
+    EVENT_MANAGER:RegisterForUpdate(namespace, UNDRESS_POLL_MS, function()
+        tries = tries + 1
+
+        -- Se comprueba que el SLOT DE EQUIPO se ha vaciado, no que la pieza
+        -- haya aparecido en el hueco calculado: el servidor no tiene por que
+        -- ponerla justo ahi. Misma leccion que en storage.lua.
+        local ok, stillOn = pcall(HasItemInSlot, BAG_WORN, entry.equipSlot)
+        if ok and not stillOn then
+            EVENT_MANAGER:UnregisterForUpdate(namespace)
+            state.removed = state.removed + 1
+            -- Pausa antes de la siguiente: se sabe que la pieza ha salido,
+            -- pero no que ya ocupe su hueco, y sin esto el
+            -- FindFirstEmptySlotInBag de la siguiente devuelve el mismo.
+            zo_callLater(function()
+                UndressNext(queue, state, onDone)
+            end, UNDRESS_POLL_MS)
+            return
+        end
+
+        if tries >= UNDRESS_MAX_TRIES then
+            EVENT_MANAGER:UnregisterForUpdate(namespace)
+            Failed("agotado el tiempo")
+        end
+    end)
 end
 
 -- Deja al personaje desnudo: todo a la mochila. onReport(state) al terminar.
@@ -397,23 +499,14 @@ end
 --                 { error = "noSpace", needed = n, free = n }
 --
 -- Si no cabe TODO, no se quita NADA. Un desvestido a medias con la mochila
--- llena deja al personaje sin saber que le falta y sin sitio para arreglarlo;
--- decir cuantos huecos hacen falta antes de tocar nada se puede deshacer.
+-- llena deja al personaje sin saber que le falta y sin sitio para arreglarlo.
 function Equip.UndressAll(onReport)
-    local Log = EZOArmory.DebugLog
-    if Log then Log("Undress: requested") end
-
-    if not Equip.IsAvailable() or type(RequestUnequipItem) ~= "function" then
-        if Log then
-            Log(string.format("Undress: unavailable (libAsync=%s, unequip=%s)",
-                tostring(Equip.IsAvailable()), type(RequestUnequipItem)))
-        end
+    if type(CallSecureProtected) ~= "function" then
         if onReport then onReport({ error = "noLibAsync" }) end
         return false
     end
 
     local slots = WornSlots()
-    if Log then Log(string.format("Undress: %d worn slot(s) found", #slots)) end
     if #slots == 0 then
         if onReport then onReport({ error = "empty" }) end
         return false
@@ -421,7 +514,6 @@ function Equip.UndressAll(onReport)
 
     if type(GetNumBagFreeSlots) == "function" then
         local ok, free = pcall(GetNumBagFreeSlots, BAG_BACKPACK)
-        if Log then Log(string.format("Undress: free bag slots = %s", tostring(free))) end
         if ok and type(free) == "number" and free < #slots then
             if onReport then
                 onReport({ error = "noSpace", needed = #slots, free = free })
@@ -430,56 +522,22 @@ function Equip.UndressAll(onReport)
         end
     end
 
-    local state = {
-        removed = 0,
-        failed = 0,
-        failedKeys = {},
-        queued = not Equip.IsReady(),
-    }
+    local state = { removed = 0, failed = 0, failedKeys = {}, queued = false }
 
-    if state.queued then
+    -- Sin LibAsync aqui: la cadena va encadenada por la propia confirmacion de
+    -- cada pieza (el temporizador de arriba), igual que en storage.lua. Meter
+    -- ademas la cola de LibAsync solo anadiria una segunda forma de esperar.
+    if not Equip.IsReady() then
+        state.queued = true
         NotifyQueued("combat")
     end
 
-    local task = LibAsync:Create("EZOArmory_Undress")
-    task:WaitUntil(function()
-        return Equip.IsReady()
-    end):Then(function(innerTask)
-        -- Se comprueba "listo" antes de CADA pieza, no solo una vez para todo
-        -- el lote: mismo motivo que en ApplyKits, un lote de catorce se
-        -- reparte entre frames y el combate puede empezar a mitad.
-        innerTask:For(1, #slots):Do(function(index)
-            innerTask:WaitUntil(function()
-                return Equip.IsReady()
-            end):Then(function()
-                local sent = pcall(RequestUnequipItem, BAG_WORN, slots[index].equipSlot)
-                if Log then
-                    Log(string.format("Undress: unequip %s (slot %s) sent=%s",
-                        tostring(slots[index].key), tostring(slots[index].equipSlot),
-                        tostring(sent)))
-                end
-            end)
-        end):Then(function(verifyTask)
-            -- Margen antes de contar: las peticiones que acabamos de enviar
-            -- pueden seguir en vuelo. Se cuenta lo que ha quedado VACIO de
-            -- verdad, no lo que se ha pedido quitar.
-            verifyTask:Delay(EQUIP_VERIFY_DELAY_MS, function()
-                for _, entry in ipairs(slots) do
-                    local ok, has = pcall(HasItemInSlot, BAG_WORN, entry.equipSlot)
-                    if ok and not has then
-                        state.removed = state.removed + 1
-                    else
-                        state.failed = state.failed + 1
-                        state.failedKeys[#state.failedKeys + 1] = entry.key
-                    end
-                end
-                if EZOArmory.DebugLog then
-                    EZOArmory.DebugLog(string.format(
-                        "Undress: %d removed, %d failed", state.removed, state.failed))
-                end
-                if onReport then onReport(state) end
-            end)
-        end)
+    UndressNext(slots, state, function(finalState)
+        if EZOArmory.DebugLog then
+            EZOArmory.DebugLog(string.format(
+                "Undress: %d quitadas, %d fallidas", finalState.removed, finalState.failed))
+        end
+        if onReport then onReport(finalState) end
     end)
 
     return true

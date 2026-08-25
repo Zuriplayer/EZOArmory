@@ -2,6 +2,27 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.54
+
+- Fix: undress took **one** piece off and left the rest on. It was using
+  `RequestUnequipItem`, which lets the game choose where the piece lands - so
+  fourteen calls in a row all aim at the same first free bag slot, the first
+  one goes and the rest go nowhere.
+- Checked how Wizard's Wardrobe does it, and it does **not** use
+  `RequestUnequipItem` at all: it treats taking a piece off as a **move** from
+  `BAG_WORN` to `BAG_BACKPACK` via
+  `CallSecureProtected("RequestMoveItem", ...)`, into a specific destination
+  slot, a different one for each piece
+  (`WizardsWardrobe.lua:404` and `:625`).
+- Undress now works the same way, and one piece at a time: the destination slot
+  is picked at the moment of the move, and the next piece does not start until
+  the equipment slot is confirmed empty, with a pause after so the freed slot
+  is not handed to the next piece as well. This is the mechanism already proven
+  in `storage.lua` for bank and chest moves - the identical bug was fixed there
+  in 0.11.40.
+- If equipment cannot be changed mid-batch (combat starts, you die), the piece
+  now **waits its turn** instead of being reported as failed.
+
 ## 0.11.53
 
 - `/ezoarmoryundress` now reports **to chat** instead of to LibDebugLogger. The
