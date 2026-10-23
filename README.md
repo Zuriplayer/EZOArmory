@@ -3,7 +3,7 @@
 Loadout, gear-set, Champion Point and skill manager for ESO trials and bosses.
 Part of the EZO addon family.
 
-> Status: **development (0.1.0)** — early scaffold. The build-management engine is
+> Status: **development (0.11.57)** — active beta. The build-management engine is
 > under construction; this release lays down the addon skeleton, the trial/boss
 > reference data and the EZOCore integration.
 
@@ -52,7 +52,7 @@ full gear snapshot for every boss:
   captures with the same stars count as the same kit.
 - **One-step capture** of everything: gear sets, loose pieces, skill bars and
   Champion stars, each into its own section, never duplicating an existing kit.
-- **Its own window**, opened with a keybind or `/ezoarmory`, showing the current
+- **Its own window**, opened with the default `Shift+NumPad 0` keybind or `/ezoarmory`, showing the current
   trial and boss. Its **Builds** tab lists every build with its role, its status
   and the pieces, abilities and stars that make it up — hover any of them for the
   real in-game tooltip — and equips a whole build in one click. A separate editor
@@ -82,6 +82,10 @@ Install into `Documents/Elder Scrolls Online/live/AddOns/EZOArmory`. During
 development the folder is a symlink to the repository at `E:\dev\EZOArmory`.
 
 ## Testing
+
+- Unlock the HUD window and move it with the right mouse button; confirm the
+  left button keeps its normal window actions and that the position persists
+  after `/reloadui`.
 
 - The addon loads without Lua errors.
 - `/reloadui` works.

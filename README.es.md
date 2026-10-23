@@ -3,7 +3,7 @@
 Gestor de loadouts, sets de equipo, Puntos de Campeon y habilidades para las
 trials y bosses de ESO. Forma parte de la familia de addons EZO.
 
-> Estado: **desarrollo (0.1.0)** — esqueleto inicial. El motor de gestion de
+> Estado: **desarrollo (0.11.57)** — beta activa. El motor de gestion de
 > builds esta en construccion; esta version sienta la base del addon, los datos
 > de referencia de trials/bosses y la integracion con EZOCore.
 
@@ -57,7 +57,7 @@ guardar una foto completa del equipo para cada boss:
 - **Captura en un paso** de todo: sets de equipo, piezas sueltas, barras de
   habilidades y estrellas de Campeon, cada cosa en su seccion, sin duplicar
   nunca un kit existente.
-- **Ventana propia**, que se abre con una tecla o con `/ezoarmory`, y muestra la
+- **Ventana propia**, que se abre con el atajo predeterminado `Mayusculas+NumPad 0` o con `/ezoarmory`, y muestra la
   trial y el boss actuales. Su pestana **Builds** lista todas las builds con su
   rol, su estado y las piezas, habilidades y estrellas que las componen —pasa el
   cursor por cualquiera para ver su tooltip real del juego— y equipa una build
@@ -89,6 +89,10 @@ Instalar en `Documents/Elder Scrolls Online/live/AddOns/EZOArmory`. Durante el
 desarrollo la carpeta es un symlink al repositorio en `E:\dev\EZOArmory`.
 
 ## Pruebas
+
+- Desbloquea la ventana HUD y muévela con el botón derecho; confirma que el
+  botón izquierdo conserva las acciones normales de la ventana y que la
+  posición persiste tras `/reloadui`.
 
 - El addon carga sin errores Lua.
 - `/reloadui` funciona.

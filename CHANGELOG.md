@@ -2,11 +2,6 @@
 
 All notable changes to EZOArmory are documented here.
 
-## Unreleased
-
-- Standardizes the movable HUD window on right-mouse-button dragging while
-  preserving normal left-click behavior.
-
 ## 0.11.57
 
 - The boss catalogue now fills itself in **any instanced content**, not just
@@ -30,6 +25,12 @@ All notable changes to EZOArmory are documented here.
   which are both `boss2`. Reading a non-existent tag produced an invented tier
   and picked the wrong mini/boss build, silently. It now reads from the first
   tag that actually exists.
+
+## 0.11.56
+
+- Add: a default keybind for opening the window, Shift+Numpad0, created only
+  if that combination is not already bound to something else. It never
+  overwrites an existing binding, and if it cannot check, it creates nothing.
 
 ## 0.11.54
 
