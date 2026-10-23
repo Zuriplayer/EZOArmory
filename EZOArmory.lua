@@ -12,31 +12,6 @@ local languageCallbackRegistered = false
 local ezocoreRegistered = false
 local debugControllerRegistered = false
 
-local function IsAddonInstalledAndEnabled(addonName)
-    local manager
-    if type(GetAddOnManager) == "function" then
-        local ok, resolved = pcall(GetAddOnManager)
-        if ok then
-            manager = resolved
-        end
-    end
-    manager = manager or AddOnManager or ADD_ON_MANAGER
-    if not manager or type(manager.GetNumAddOns) ~= "function" or type(manager.GetAddOnInfo) ~= "function" then
-        return false
-    end
-
-    local ok, enabled = pcall(function()
-        for index = 1, manager:GetNumAddOns() do
-            local name, _, _, _, isEnabled = manager:GetAddOnInfo(index)
-            if name == addonName then
-                return isEnabled == true
-            end
-        end
-        return false
-    end)
-    return ok and enabled == true
-end
-
 local function IsBindingAssignedToOtherAction(targetKey, targetMod1, targetMod2, targetMod3, targetMod4, excludedAction)
     if type(GetNumActionLayers) ~= "function"
         or type(GetActionLayerInfo) ~= "function"
@@ -80,7 +55,11 @@ local function IsBindingAssignedToOtherAction(targetKey, targetMod1, targetMod2,
 end
 
 local function RegisterDefaultKeybind()
-    if not IsAddonInstalledAndEnabled(ADDON_NAME) or type(CreateDefaultActionBind) ~= "function" then
+    -- No se comprueba que el addon este instalado y activado: si esta linea
+    -- se esta ejecutando, lo esta. Habia aqui una funcion que recorria el
+    -- gestor de complementos para averiguarlo, veinticinco lineas para
+    -- responder a una pregunta cuya respuesta no podia ser otra.
+    if type(CreateDefaultActionBind) ~= "function" then
         return false
     end
     if IsBindingAssignedToOtherAction(

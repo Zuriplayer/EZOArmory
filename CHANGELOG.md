@@ -2,6 +2,14 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.58
+
+- Removed a 25-line function that walked the add-on manager to check whether
+  EZOArmory was installed and enabled, before creating the default keybind. If
+  that line is running, it is. The two globals it fell back on when the manager
+  was unavailable, `AddOnManager` and `ADD_ON_MANAGER`, do not exist in the
+  game either - so the fallback could never have worked, and never needed to.
+
 ## 0.11.57
 
 - The boss catalogue now fills itself in **any instanced content**, not just
