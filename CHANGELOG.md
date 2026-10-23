@@ -2,6 +2,28 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.59
+
+- Add: a **Dungeons** tab. The dungeons the catalogue has learned on its own now
+  show up with their bosses, and a build can be assigned to each one, the same
+  way trials and arenas already worked. Until now they filled up but there was
+  nowhere to use them from.
+- They get their own tab rather than a third group inside Assign on purpose:
+  trials and arenas are a short fixed list known in advance, while this one
+  grows by itself depending on where you play. Mixing them would make the
+  Assign screen change size without anyone having touched anything.
+- Assignments made there are now honoured by auto-equip. They resolve **before**
+  the substitute builds, so a build assigned by hand to a specific boss wins
+  over the generic fallback - exactly as in a trial. Without this the tab would
+  have let you assign builds that then never applied.
+- A boss in a dungeon is now matched against the catalogue when the encounter
+  fires, not only by position. Position needs a room that has been learned
+  already, so on a first visit it did not help.
+- Add: a **Forget this dungeon** button, with confirmation, for when something
+  was learned wrong. It clears its bosses and rooms but leaves the builds
+  assigned to them alone, since zone keys do not change - walk in again and it
+  relearns itself.
+
 ## 0.11.58
 
 - Removed a 25-line function that walked the add-on manager to check whether

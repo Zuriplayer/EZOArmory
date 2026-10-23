@@ -69,8 +69,15 @@ local CATEGORY_ASSIGN = "assign"
 -- punto de entrada natural. Las pestanas de kits son los bloques con los que se
 -- componen.
 local CATEGORY_BUILDS = "builds"
+-- Las mazmorras van en su propia pestana y no como un grupo mas dentro de
+-- Asignar. Son otra cosa: las trials y arenas son una lista corta y fija que
+-- se conoce de antemano, y las mazmorras son una lista que crece sola segun
+-- donde juegues. Mezclarlas haria que la pestana Asignar cambiara de tamano
+-- sin que nadie hubiera tocado nada.
+local CATEGORY_DUNGEONS = "dungeons"
 local CATEGORIES = {
     CATEGORY_BUILDS, CATEGORY_GEAR, CATEGORY_SKILLS, CATEGORY_CP, CATEGORY_ASSIGN,
+    CATEGORY_DUNGEONS,
 }
 
 -- Layout de la pestana Assign: bloque superior de altura fija (rol, trial,
@@ -645,12 +652,14 @@ end
 function WK.RefreshVisibility()
     local isAssign = WK.state.category == CATEGORY_ASSIGN
     local isBuilds = WK.state.category == CATEGORY_BUILDS
-    local isKitList = not isAssign and not isBuilds
+    local isDungeons = WK.state.category == CATEGORY_DUNGEONS
+    local isKitList = not isAssign and not isBuilds and not isDungeons
 
     if WK.countLabel then WK.countLabel:SetHidden(not isKitList) end
     if WK.scrollContainer then WK.scrollContainer:SetHidden(not isKitList) end
     if WK.actionBar then WK.actionBar:SetHidden(not isKitList) end
     if WK.assignRoot then WK.assignRoot:SetHidden(not isAssign) end
+    if WK.dungeonRoot then WK.dungeonRoot:SetHidden(not isDungeons) end
     if EZOArmory.WindowBuilds and EZOArmory.WindowBuilds.root then
         EZOArmory.WindowBuilds.root:SetHidden(not isBuilds)
     end
@@ -663,6 +672,8 @@ end
 function WK.RefreshActive()
     if WK.state.category == CATEGORY_ASSIGN then
         WK.RefreshAssignPanel()
+    elseif WK.state.category == CATEGORY_DUNGEONS then
+        WK.RefreshDungeonPanel()
     elseif WK.state.category == CATEGORY_BUILDS then
         if EZOArmory.WindowBuilds and EZOArmory.WindowBuilds.Refresh then
             EZOArmory.WindowBuilds.Refresh()
@@ -678,6 +689,8 @@ function WK.SetCategory(category)
     WK.RefreshVisibility()
     if category == CATEGORY_ASSIGN then
         WK.RefreshAssignPanel()
+    elseif category == CATEGORY_DUNGEONS then
+        WK.RefreshDungeonPanel()
     elseif category == CATEGORY_BUILDS then
         EZOArmory.WindowBuilds.Refresh()
     else
@@ -998,6 +1011,7 @@ local TAB_STRING = {
     [CATEGORY_SKILLS] = "EZOARM_WINDOW_TAB_SKILLS",
     [CATEGORY_CP] = "EZOARM_WINDOW_TAB_CP",
     [CATEGORY_ASSIGN] = "EZOARM_WINDOW_TAB_ASSIGN",
+    [CATEGORY_DUNGEONS] = "EZOARM_WINDOW_TAB_DUNGEONS",
 }
 
 function WK.RefreshTabs()
@@ -1067,6 +1081,7 @@ local ASSIGN_GROUPS = {
         targetField = "assignTargetKey",
         headerString = "EZOARM_ASSIGN_GROUP_TRIALS",
         controlPrefix = "EZOArmoryAssignTrial",
+        panel = "assign",
     },
     {
         id = "arenas",
@@ -1075,6 +1090,27 @@ local ASSIGN_GROUPS = {
         targetField = "assignArenaTargetKey",
         headerString = "EZOARM_ASSIGN_GROUP_ARENAS",
         controlPrefix = "EZOArmoryAssignArena",
+        panel = "assign",
+    },
+    -- Mazmorras. Mismo mecanismo que los otros dos grupos, pero se dibuja en
+    -- OTRA pestana: lo dice el campo "panel". La razon de separarlas es que
+    -- esta lista no es fija como las otras dos, crece sola segun donde juegues,
+    -- y meterla dentro de Asignar haria que esa pantalla cambiase de tamano sin
+    -- que nadie hubiera tocado nada.
+    --
+    -- El estado y el refresco si se comparten con los otros grupos, que es
+    -- justo la parte que no conviene duplicar.
+    {
+        id = "dungeons",
+        zones = function()
+            return (EZOArmory.Zones.GetDiscoveredZones
+                and EZOArmory.Zones.GetDiscoveredZones()) or {}
+        end,
+        tagField = "assignDungeonTag",
+        targetField = "assignDungeonTargetKey",
+        headerString = "EZOARM_WINDOW_TAB_DUNGEONS",
+        controlPrefix = "EZOArmoryAssignDungeon",
+        panel = "dungeons",
     },
 }
 
@@ -1584,6 +1620,179 @@ local function CreateAssignGroupBlock(parent, group, y)
     return actionsY + 24
 end
 
+
+-- Olvidar una mazmorra aprendida. Se confirma antes: borra sus bosses y las
+-- salas que se habian aprendido para ellos, que es trabajo de varias visitas.
+-- No se tocan las builds asignadas: si la zona se vuelve a aprender -- y se
+-- vuelve con solo entrar -- las asignaciones siguen ahi, porque van por clave
+-- de zona y esa no cambia.
+local FORGET_ZONE_DIALOG = "EZOARMORY_FORGET_ZONE"
+local forgetZoneDialogRegistered = false
+
+local function EnsureForgetZoneDialog()
+    if forgetZoneDialogRegistered then return true end
+    if type(ZO_Dialogs_RegisterCustomDialog) ~= "function" then return false end
+
+    ZO_Dialogs_RegisterCustomDialog(FORGET_ZONE_DIALOG, {
+        canQueue = true,
+        title = { text = GetString(EZOARM_DIALOG_FORGET_ZONE_TITLE) },
+        mainText = { text = GetString(EZOARM_DIALOG_FORGET_ZONE_TEXT) },
+        buttons = {
+            [1] = {
+                keybind = "DIALOG_PRIMARY",
+                text = SI_DIALOG_CONFIRM,
+                callback = function(dialog)
+                    local zoneTag = dialog and dialog.data and dialog.data.zoneTag
+                    if not zoneTag or not EZOArmory.Zones.ForgetDiscoveredZone then return end
+                    local label = dialog.data.label or zoneTag
+                    if EZOArmory.Zones.ForgetDiscoveredZone(zoneTag) and EZOArmory.Print then
+                        EZOArmory.Print(zo_strformat(GetString(EZOARM_MSG_ZONE_FORGOTTEN), label))
+                    end
+                    -- El desplegable apuntaba a una zona que ya no existe.
+                    WK.state.assignDungeonTag = nil
+                    WK.state.assignDungeonTargetKey = nil
+                    WK.RefreshDungeonPanel()
+                end,
+            },
+            [2] = {
+                keybind = "DIALOG_NEGATIVE",
+                text = SI_DIALOG_CANCEL,
+            },
+        },
+    })
+    forgetZoneDialogRegistered = true
+    return true
+end
+
+local function OnForgetDungeonClicked()
+    local zoneTag = WK.state.assignDungeonTag
+    if not zoneTag then return end
+
+    local label = zoneTag
+    for _, zone in ipairs((EZOArmory.Zones.GetDiscoveredZones
+        and EZOArmory.Zones.GetDiscoveredZones()) or {}) do
+        if zone.tag == zoneTag then
+            label = zone.name
+            break
+        end
+    end
+
+    if not EnsureForgetZoneDialog() or type(ZO_Dialogs_ShowDialog) ~= "function" then
+        -- Sin dialogo no se borra a la brava: lo que se pierde son varias
+        -- visitas de aprendizaje.
+        return
+    end
+    ZO_Dialogs_ShowDialog(FORGET_ZONE_DIALOG, { zoneTag = zoneTag, label = label },
+        { mainTextParams = { label } })
+end
+-- Pestana "Mazmorras": las zonas que el catalogo ha aprendido solo. Misma
+-- maquinaria que los grupos de Asignar (CreateAssignGroupBlock), en su propio
+-- panel. Mas simple que aquella: aqui no hay interruptor maestro ni builds
+-- sustitutas, que gobiernan el addon entero y tienen su sitio alli.
+local function CreateDungeonPanel(content)
+    local root = WM:CreateControl(nil, content, CT_CONTROL)
+    root:SetAnchorFill(content)
+    root:SetHidden(true)
+    WK.dungeonRoot = root
+
+    local countLabel = WM:CreateControl(nil, root, CT_LABEL)
+    countLabel:SetFont("ZoFontGameSmall")
+    countLabel:SetColor(0.7, 0.7, 0.75, 1)
+    countLabel:SetAnchor(TOPLEFT, root, TOPLEFT, 0, 0)
+    countLabel:SetAnchor(TOPRIGHT, root, TOPRIGHT, 0, 0)
+    WK.dungeonCountLabel = countLabel
+
+    -- Cartel para cuando aun no hay nada. Es la primera vez que alguien abre
+    -- esta pestana, asi que explica que no hay que activar nada: solo jugar.
+    local emptyLabel = WM:CreateControl(nil, root, CT_LABEL)
+    emptyLabel:SetFont("ZoFontGame")
+    emptyLabel:SetColor(0.7, 0.7, 0.78, 1)
+    emptyLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+    emptyLabel:SetHeight(HINT_BLOCK_H)
+    emptyLabel:SetAnchor(TOPLEFT, countLabel, BOTTOMLEFT, 0, 10)
+    emptyLabel:SetAnchor(TOPRIGHT, countLabel, BOTTOMRIGHT, 0, 10)
+    emptyLabel:SetText(GetString(EZOARM_DUNGEON_EMPTY))
+    WK.dungeonEmptyLabel = emptyLabel
+
+    local actionBar = WM:CreateControl(nil, root, CT_CONTROL)
+    actionBar:SetDimensions(1, 26)
+    actionBar:SetAnchor(BOTTOMLEFT, root, BOTTOMLEFT, 0, 0)
+    actionBar:SetAnchor(BOTTOMRIGHT, root, BOTTOMRIGHT, 0, 0)
+    WK.dungeonActionBar = actionBar
+
+    local scroll = WM:CreateControlFromVirtual(
+        "EZOArmoryDungeonScroll", root, "ZO_ScrollContainer")
+    scroll:SetAnchor(TOPLEFT, emptyLabel, BOTTOMLEFT, 0, 10)
+    scroll:SetAnchor(BOTTOMRIGHT, actionBar, TOPRIGHT, 0, -8)
+    WK.dungeonScroll = scroll
+    EZOArmory.DisableScrollWheelArea(scroll)
+
+    -- Pagina intermedia de ancho explicito, por el mismo motivo que en el
+    -- panel de Asignar: anclar a los dos lados del ScrollChild crea el ciclo
+    -- que colapso las filas en 0.7.2 y 0.10.1.
+    local scrollChild = scroll:GetNamedChild("ScrollChild")
+    local page = WM:CreateControl(nil, scrollChild, CT_CONTROL)
+    page:SetAnchor(TOPLEFT, scrollChild, TOPLEFT, 0, 0)
+    WK.dungeonPage = page
+
+    local nextY = 0
+    for _, group in ipairs(ASSIGN_GROUPS) do
+        if group.panel == "dungeons" then
+            nextY = CreateAssignGroupBlock(page, group, nextY) + 12
+        end
+    end
+    page:SetHeight(nextY)
+
+    local forgetButton = WM:CreateControl(nil, actionBar, CT_BUTTON)
+    forgetButton:SetDimensions(200, 24)
+    forgetButton:SetAnchor(BOTTOMLEFT, actionBar, BOTTOMLEFT, 0, 0)
+    forgetButton:SetFont("ZoFontGameBold")
+    forgetButton:SetNormalFontColor(1, 0.55, 0.55, 1)
+    forgetButton:SetMouseOverFontColor(1, 0.3, 0.3, 1)
+    forgetButton:SetText(GetString(EZOARM_DUNGEON_FORGET))
+    forgetButton:SetHandler("OnClicked", OnForgetDungeonClicked)
+    WK.dungeonForgetButton = forgetButton
+end
+
+function WK.RefreshDungeonPanel()
+    if not WK.dungeonRoot then return end
+    EnsureAssignState()
+
+    if WK.dungeonPage and WK.dungeonScroll then
+        local scrollbarWidth = (type(ZO_SCROLL_BAR_WIDTH) == "number" and ZO_SCROLL_BAR_WIDTH or 16) + 8
+        local width = (WK.dungeonScroll:GetWidth() or 0) - scrollbarWidth
+        if width > 0 then
+            WK.dungeonPage:SetWidth(width)
+        end
+    end
+
+    local zones = (EZOArmory.Zones.GetDiscoveredZones
+        and EZOArmory.Zones.GetDiscoveredZones()) or {}
+    local hasAny = #zones > 0
+
+    if WK.dungeonCountLabel then
+        WK.dungeonCountLabel:SetText(hasAny
+            and zo_strformat(GetString(EZOARM_DUNGEON_COUNT), #zones) or "")
+    end
+    -- El cartel de "aun no hay nada" se queda SIEMPRE anclado, visible o no:
+    -- el scroll cuelga de el, y ocultarlo sin mas dejaria el hueco igual. Lo
+    -- que cambia es el texto, a vacio, para no decir dos veces lo mismo.
+    if WK.dungeonEmptyLabel then
+        WK.dungeonEmptyLabel:SetText(hasAny and "" or GetString(EZOARM_DUNGEON_EMPTY))
+    end
+    if WK.dungeonScroll then WK.dungeonScroll:SetHidden(not hasAny) end
+    if WK.dungeonForgetButton then WK.dungeonForgetButton:SetHidden(not hasAny) end
+
+    for _, group in ipairs(ASSIGN_GROUPS) do
+        if group.panel == "dungeons" then
+            PopulateZoneCombo(group)
+            PopulateTargetCombo(group)
+            PopulateBuildCombo(group)
+            RefreshAssignSummary(group)
+        end
+    end
+end
+
 -- Construye la pestana Assign completa dentro de "content", oculta hasta que
 -- se seleccione esa pestana.
 --
@@ -1909,6 +2118,7 @@ function WK.Create(parent)
     EnsureRows(listRoot)
 
     CreateAssignPanel(content)
+    CreateDungeonPanel(content)
     EZOArmory.WindowBuilds.Create(content)
 
     WK.RefreshTabs()

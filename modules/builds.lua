@@ -1025,6 +1025,41 @@ function Builds.ResolveForCurrentContext(role)
         end
     end
 
+
+    -- Zonas instanciadas que no estan en la tabla escrita a mano, o sea las
+    -- mazmorras que el catalogo ha aprendido solo. Mismo orden de preferencia
+    -- que arriba -- el boss concreto, luego el generico de su nivel, luego
+    -- trash -- pero con la clave de zona generica en lugar del tag de la
+    -- trial.
+    --
+    -- Va ANTES de las sustitutas a proposito: una build que alguien ha
+    -- asignado a mano a un boss concreto tiene que mandar sobre el respaldo
+    -- generico, exactamente igual que en una trial. Sin este bloque, la
+    -- pestana de mazmorras dejaria asignar builds que luego no se aplicarian
+    -- nunca.
+    if not context.trial and context.zoneId and EZOArmory.Zones.GetZoneKey then
+        local zoneKey = EZOArmory.Zones.GetZoneKey(context.zoneId)
+        if zoneKey then
+            local candidates = {}
+            if context.matchedBoss then
+                candidates[#candidates + 1] = context.matchedBoss.key
+            end
+            if context.bossActive then
+                if context.bossTier == EZOArmory.Zones.BOSS_TIER_MINI then
+                    candidates[#candidates + 1] = EZOArmory.Kits.TARGET_MINI
+                end
+            else
+                candidates[#candidates + 1] = EZOArmory.Kits.TARGET_TRASH
+            end
+
+            for _, targetKey in ipairs(candidates) do
+                local resolved = Builds.ResolveForTarget(role, zoneKey, targetKey)
+                if resolved and resolved.kind == "build" then
+                    return resolved
+                end
+            end
+        end
+    end
     -- Para la sustituta, una ARENA no cuenta como trial: si contase, el
     -- interruptor "Trials" gobernaria tambien las arenas, que es
     -- contraintuitivo. Al no contar, se resuelven por el tipo de zona real

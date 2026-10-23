@@ -649,6 +649,75 @@ end
 
 -- Todos los objetivos-boss de una zona: los de la tabla mas los descubiertos
 -- jugando. Es lo que alimenta el desplegable de objetivos.
+
+-- ------------------------------------- Zonas descubiertas (mazmorras) ----
+--
+-- Las 18 trials y arenas viven en una tabla escrita a mano. Las mazmorras no:
+-- aparecen solas en el catalogo segun se juegan, con la clave "z" mas su
+-- zoneId (ver Z.GetZoneKey).
+--
+-- Aqui se les da la MISMA FORMA que a las de la tabla -- tag, name, zoneId y
+-- una lista de bosses con key y name -- para que el resto del addon no tenga
+-- que distinguir de donde salio cada zona. La pestana de asignacion, la
+-- resolucion de builds y la busqueda por posicion funcionan igual con unas y
+-- con otras, sin codigo aparte.
+--
+-- Se devuelven ordenadas por nombre: el orden de pairs() no es estable y la
+-- lista bailaria de una apertura a otra.
+function Z.GetDiscoveredZones()
+    local store = DiscoveredStore(false)
+    if not store then return {} end
+
+    local zones = {}
+    for zoneKey, entries in pairs(store) do
+        -- Solo las que NO estan en la tabla. Las conocidas ya salen por su
+        -- grupo y repetirlas aqui seria confuso.
+        local zoneId = tonumber(tostring(zoneKey):match("^z(%d+)$"))
+        if zoneId and type(entries) == "table" then
+            local bosses = {}
+            for key, info in pairs(entries) do
+                if type(info) == "table" and info.name then
+                    bosses[#bosses + 1] = {
+                        key = key,
+                        name = info.name,
+                        tier = info.tier,
+                    }
+                end
+            end
+            if #bosses > 0 then
+                table.sort(bosses, function(a, b) return a.name < b.name end)
+                zones[#zones + 1] = {
+                    tag = zoneKey,
+                    zoneId = zoneId,
+                    name = Z.GetZoneLabel(zoneKey, zoneId),
+                    category = "dungeon",
+                    bosses = bosses,
+                }
+            end
+        end
+    end
+
+    table.sort(zones, function(a, b) return a.name < b.name end)
+    return zones
+end
+
+-- Olvida una zona descubierta entera, con sus bosses y sus salas. Para poder
+-- deshacer un aprendizaje equivocado sin tocar el fichero guardado a mano.
+function Z.ForgetDiscoveredZone(zoneKey)
+    if zoneKey == nil then return false end
+    local store = DiscoveredStore(false)
+    local rooms = RoomStore(false)
+    local removed = false
+    if store and store[zoneKey] then
+        store[zoneKey] = nil
+        removed = true
+    end
+    if rooms and rooms[zoneKey] then
+        rooms[zoneKey] = nil
+        removed = true
+    end
+    return removed
+end
 function Z.GetZoneBosses(zone)
     if not zone then return {} end
 

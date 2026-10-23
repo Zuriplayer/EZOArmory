@@ -148,6 +148,24 @@ local function RefreshBoss()
         matched = Zones.FindBossByName(Context.state.trial, primary)
     end
 
+    -- En una zona que no esta en la tabla (mazmorra), el boss se resuelve
+    -- contra lo que el catalogo haya aprendido de ella. Sin esto, matchedBoss
+    -- quedaba nil en mazmorras y solo se reconocia el boss por posicion, que
+    -- es un camino mas lento y que no siempre llega: hay salas que aun no se
+    -- han aprendido.
+    if not matched and primary and Zones and Zones.GetZoneKey
+        and Zones.DiscoveredKeyFor then
+        local zoneKey = Zones.GetZoneKey(Context.state.zoneId)
+        local known = zoneKey and Zones.GetDiscoveredBosses
+            and Zones.GetDiscoveredBosses(zoneKey) or {}
+        for _, boss in ipairs(known) do
+            if boss.name == primary then
+                matched = boss
+                break
+            end
+        end
+    end
+
     -- ------------------------------------------- Catalogo automatico ----
     --
     -- Todo boss que aparezca en contenido instanciado se apunta solo, con el
