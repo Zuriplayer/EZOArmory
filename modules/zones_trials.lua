@@ -548,10 +548,43 @@ function Z.DiscoverBoss(zoneTag, unitName, tier, zoneId)
     local key = DiscoveredKey(unitName)
     local existing = store[zoneTag][key]
     if existing then
-        -- Ya conocido: solo se refresca el nivel, por si la primera vez se
-        -- leyo antes de que el motor tuviera el dato definitivo.
-        existing.tier = tier or existing.tier
         existing.zoneId = existing.zoneId or zoneId
+
+        -- DISCREPANCIAS DE NIVEL. Antes la lectura nueva machacaba sin mas a
+        -- la guardada, para poder corregir una primera lectura hecha antes de
+        -- que el motor tuviera el dato. El problema es que iba en las dos
+        -- direcciones: si la rara era la ultima, borraba la buena y no quedaba
+        -- ni rastro de que hubiera pasado.
+        --
+        -- Ahora un nivel distinto no se acepta a la primera: se apunta como
+        -- pendiente y solo sustituye al guardado si la siguiente vez vuelve a
+        -- leerse igual. Dos lecturas coincidentes ganan a una suelta, que es
+        -- lo que se queria decir con "corregir una lectura prematura" sin dar
+        -- por bueno cualquier dato raro.
+        if tier and tier ~= existing.tier then
+            if existing.pendingTier == tier then
+                if EZOArmory.DebugLog then
+                    EZOArmory.DebugLog(string.format(
+                        "Boss tier changed: %s/%s %s -> %s (confirmado)",
+                        tostring(zoneTag), tostring(unitName),
+                        tostring(existing.tier), tostring(tier)))
+                end
+                existing.tier = tier
+                existing.pendingTier = nil
+            else
+                if EZOArmory.DebugLog then
+                    EZOArmory.DebugLog(string.format(
+                        "Boss tier discrepancy: %s/%s guardado=%s leido=%s (a la espera)",
+                        tostring(zoneTag), tostring(unitName),
+                        tostring(existing.tier), tostring(tier)))
+                end
+                existing.pendingTier = tier
+            end
+        elseif tier then
+            -- Coincide con lo guardado: se olvida cualquier discrepancia que
+            -- estuviera a la espera, no vaya a confirmarse meses despues.
+            existing.pendingTier = nil
+        end
         return false
     end
 

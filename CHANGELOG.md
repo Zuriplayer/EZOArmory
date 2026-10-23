@@ -2,6 +2,27 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.60
+
+- The **Infinite Archive** no longer gets catalogued, neither bosses nor rooms.
+  It is procedural: bosses come from a deck and rooms are recombined every run,
+  so a position learned today means nothing tomorrow. And there is nothing to
+  gain - the only thing that changes what you should be wearing is whether what
+  is in front of you is trash, a mini or a boss, and the game says that live
+  through the `bossN` tag and `GetUnitDifficulty`. It works there through the
+  substitute builds, with nothing to configure per boss.
+- It is detected with `IsInstanceEndlessDungeon()`, official API, rather than
+  comparing against zone id 1436 by hand, so it keeps working if another
+  archive is ever added.
+- Position polling is skipped there too: with no rooms learned there is nothing
+  to recognise.
+- Fix: a different boss tier is no longer accepted on the first reading. It
+  used to overwrite whatever was stored, which was meant to correct a reading
+  taken before the engine had the data - but it cut both ways, and a freak
+  reading silently erased a good one. Now a differing tier is noted as pending
+  and only replaces the stored one if the next reading agrees. Both the
+  discrepancy and the confirmation are logged.
+
 ## 0.11.59
 
 - Add: a **Dungeons** tab. The dungeons the catalogue has learned on its own now

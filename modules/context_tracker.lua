@@ -95,6 +95,35 @@ end
 -- unidades bossN de forma fiable, y por tanto donde el catalogo automatico
 -- tiene sentido. El mundo abierto queda fuera a proposito: alli marca como
 -- boss cosas que no lo son y el catalogo se llenaria de ruido.
+
+-- Archivo Infinito. Se pregunta al juego con IsInstanceEndlessDungeon(), que
+-- es API oficial (verificada en ESOUIDocumentation.txt y usada por el propio
+-- juego en ingame/endlessdungeon/endlessdungeonmanager.lua:175), en vez de
+-- comparar contra el zoneId 1436 a mano: asi sigue valiendo si manana anaden
+-- otro archivo.
+--
+-- Alli NO se memoriza nada, ni bosses ni salas, y es deliberado:
+--
+--   - Es contenido procedural. Los bosses salen de una baraja y las salas se
+--     recombinan en cada partida, asi que una posicion aprendida hoy no
+--     significa nada manana: reconoceria una sala donde no esta.
+--   - Y no hace falta. Lo unico que cambia lo que hay que llevar puesto es si
+--     delante tienes trash, un mini o un boss, y eso el juego ya lo dice en
+--     vivo: lo marca con un tag bossN y GetUnitDifficulty da el nivel. El
+--     nombre concreto del boss no aporta nada cuando no se repite.
+--
+-- O sea que el Archivo Infinito funciona con las builds sustitutas de trash,
+-- mini y boss, sin catalogo y sin que haya que configurar nada por boss.
+--
+-- El juego ofrece ademas el contador de progreso (GetEndlessDungeonCounterValue
+-- con ENDLESS_DUNGEON_COUNTER_TYPE_STAGE / _CYCLE / _ARC) por si algun dia
+-- hiciera falta saber en que punto de la partida estas. Hoy no hace falta:
+-- el tag bossN llega igual y es mas directo.
+local function IsEndlessArchive()
+    if type(IsInstanceEndlessDungeon) ~= "function" then return false end
+    local ok, isEndless = pcall(IsInstanceEndlessDungeon)
+    return ok and isEndless == true
+end
 --
 -- IsUnitInDungeon + IsPlayerInRaid es la pareja que usa Wizard's Wardrobe en
 -- produccion (modules/WizardsWardrobeFood.lua:25); ambas verificadas en
@@ -181,7 +210,7 @@ local function RefreshBoss()
     -- encuentro de varios, los demas se perdian.
     local zoneKey = Zones and Zones.GetZoneKey and Zones.GetZoneKey(Context.state.zoneId)
     if Context.state.bossActive and zoneKey and Zones and Zones.DiscoverBoss
-        and IsInstancedContent() then
+        and IsInstancedContent() and not IsEndlessArchive() then
         local maxBosses = (type(BOSS_RANK_ITERATION_END) == "number" and BOSS_RANK_ITERATION_END) or 6
         for index = 1, maxBosses do
             local unitTag = "boss" .. tostring(index)
@@ -331,6 +360,9 @@ local function StartPositionLoop()
     -- arrancara en las conocidas nadie las consultaria. En mundo abierto no se
     -- aprende nada, asi que ahi no hay nada que reconocer y el bucle sobra.
     if not IsInstancedContent() then return end
+    -- En el Archivo Infinito no se aprenden salas, asi que no hay ninguna que
+    -- reconocer y el sondeo solo gastaria.
+    if IsEndlessArchive() then return end
     if type(IsUnitInCombat) == "function" and IsUnitInCombat("player") then return end
     positionLoopRunning = true
     EVENT_MANAGER:RegisterForUpdate(positionLoopName, POSITION_POLL_MS, CheckRoomByPosition)
