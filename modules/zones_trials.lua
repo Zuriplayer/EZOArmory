@@ -332,8 +332,51 @@ end
 -- este cliente y con su nivel (mini o boss) leido del motor. La lista se
 -- puebla sola, en cualquier idioma, y vale igual para contenido futuro.
 
+
+-- ------------------------------------------- Clave de zona generica ----
+--
+-- El catalogo se indexaba por el "tag" de las 18 trials y arenas de la tabla,
+-- asi que en una mazmorra no habia donde guardar nada y no se aprendia. Ahora
+-- cualquier zona instanciada tiene clave: su tag si es una de las conocidas,
+-- y si no "z" mas su zoneId.
+--
+-- El tag se mantiene para las conocidas en vez de pasarlo todo a zoneId
+-- porque es lo que ya hay guardado en los ficheros de los jugadores y en las
+-- asignaciones; cambiarlo obligaria a migrar eso tambien, sin ganar nada.
+function Z.GetZoneKey(zoneId)
+    if zoneId == nil then return nil end
+    local trial = Z.GetTrialByZoneId(zoneId)
+    if trial and trial.tag then
+        return trial.tag
+    end
+    return "z" .. tostring(zoneId)
+end
+
+-- Nombre legible de una zona del catalogo, para la interfaz. Las conocidas
+-- traen el suyo de la tabla; las demas se lo piden al juego, que lo da ya en
+-- el idioma del cliente.
+function Z.GetZoneLabel(zoneKey, zoneId)
+    local trial = zoneId and Z.GetTrialByZoneId(zoneId)
+    if trial and trial.name then
+        return trial.name
+    end
+    local id = zoneId
+    if not id and type(zoneKey) == "string" then
+        id = tonumber(zoneKey:match("^z(%d+)$"))
+    end
+    if id and type(GetZoneNameById) == "function" then
+        local ok, name = pcall(GetZoneNameById, id)
+        if ok and name and name ~= "" then
+            return zo_strformat("<<C:1>>", name)
+        end
+    end
+    return tostring(zoneKey)
+end
+-- El catalogo vive en el ambito de CUENTA (EZOArmory.svAccount), no en el del
+-- personaje: donde esta un boss y si es mini no depende de con quien entres.
+-- Ver la explicacion y la migracion en modules/saved_vars.lua.
 local function DiscoveredStore(create)
-    local sv = EZOArmory.sv
+    local sv = EZOArmory.svAccount
     if not sv then return nil end
     if not sv.discoveredBosses then
         if not create then return nil end
@@ -347,6 +390,14 @@ end
 -- recapturar no rompa las asignaciones ya hechas.
 local function DiscoveredKey(unitName)
     return "found_" .. tostring(unitName)
+end
+
+-- La misma clave, publica: context_tracker la necesita para guardar la sala de
+-- un boss recien descubierto, que aun no tiene entrada en la tabla y por tanto
+-- no tiene otra key.
+function Z.DiscoveredKeyFor(unitName)
+    if unitName == nil or unitName == "" then return nil end
+    return DiscoveredKey(unitName)
 end
 
 function Z.GetDiscoveredBosses(zoneTag)
@@ -386,8 +437,9 @@ end
 -- cercana.
 Z.DEFAULT_ROOM_RADIUS = 4000
 
+-- Tambien en el ambito de cuenta, por el mismo motivo que DiscoveredStore.
 local function RoomStore(create)
-    local sv = EZOArmory.sv
+    local sv = EZOArmory.svAccount
     if not sv then return nil end
     if not sv.bossRooms then
         if not create then return nil end
@@ -449,8 +501,44 @@ function Z.FindBossByPosition(zone, x, y, z)
     return best
 end
 
+
+-- Igual que FindBossByPosition, pero por clave de zona generica, para que
+-- tambien valga en mazmorras: esas no estan en la tabla, asi que no hay objeto
+-- "zone" del que sacar una lista de bosses. Aqui se recorren directamente las
+-- SALAS guardadas, que para esas zonas son exactamente los bosses descubiertos.
+--
+-- Devuelve una entrada con la misma forma que las de la tabla (key, name,
+-- tier) para que el resto del addon no tenga que distinguir de donde salio.
+function Z.FindBossByPositionInZone(zoneKey, x, y, z)
+    if zoneKey == nil or x == nil then return nil end
+    local rooms = RoomStore(false)
+    local perZone = rooms and rooms[zoneKey]
+    if not perZone then return nil end
+
+    local discovered = DiscoveredStore(false)
+    local perZoneBosses = (discovered and discovered[zoneKey]) or {}
+
+    local best, bestDistance = nil, nil
+    for bossKey, room in pairs(perZone) do
+        if type(room) == "table" and room.x then
+            local dx, dy, dz = x - room.x, y - room.y, z - room.z
+            local distance = math.sqrt(dx * dx + dy * dy + dz * dz)
+            local radius = tonumber(room.radius) or Z.DEFAULT_ROOM_RADIUS
+            if distance <= radius and (bestDistance == nil or distance < bestDistance) then
+                local info = perZoneBosses[bossKey]
+                best = {
+                    key = bossKey,
+                    name = (info and info.name) or bossKey,
+                    tier = (info and info.tier) or Z.BOSS_TIER_BOSS,
+                }
+                bestDistance = distance
+            end
+        end
+    end
+    return best
+end
 -- Registra un boss visto en vivo. Devuelve true si era nuevo.
-function Z.DiscoverBoss(zoneTag, unitName, tier)
+function Z.DiscoverBoss(zoneTag, unitName, tier, zoneId)
     if zoneTag == nil or unitName == nil or unitName == "" then return false end
 
     local store = DiscoveredStore(true)
@@ -463,10 +551,18 @@ function Z.DiscoverBoss(zoneTag, unitName, tier)
         -- Ya conocido: solo se refresca el nivel, por si la primera vez se
         -- leyo antes de que el motor tuviera el dato definitivo.
         existing.tier = tier or existing.tier
+        existing.zoneId = existing.zoneId or zoneId
         return false
     end
 
-    store[zoneTag][key] = { name = tostring(unitName), tier = tier or Z.BOSS_TIER_BOSS }
+    -- Se guarda tambien el zoneId para poder poner nombre a la zona en la
+    -- interfaz: la clave de una mazmorra es "z" mas el id y por si sola no se
+    -- lee, y GetZoneNameById necesita el numero.
+    store[zoneTag][key] = {
+        name = tostring(unitName),
+        tier = tier or Z.BOSS_TIER_BOSS,
+        zoneId = zoneId,
+    }
     return true
 end
 

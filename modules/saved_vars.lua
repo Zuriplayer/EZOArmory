@@ -63,6 +63,60 @@ function EZOArmory.savedVars.Init()
 
     EZOArmory.sv = ZO_SavedVars:NewCharacterIdSettings("EZOArmory_Saved", 1, world, defaults)
 
+    -- -------------------------------------------- Catalogo de bosses ----
+    --
+    -- discoveredBosses y bossRooms son conocimiento del MUNDO, no del
+    -- personaje: donde esta Rakkhat y si es mini o boss no depende de con
+    -- quien entres. Guardarlos por personaje obligaba a cada PJ a aprenderlo
+    -- todo otra vez desde cero, y en el fichero guardado se veian los mismos
+    -- bosses repetidos perfil a perfil.
+    --
+    -- Van en un ambito de CUENTA aparte (ZO_SavedVars:NewAccountWide sobre la
+    -- misma variable guardada), asi que lo que aprende un personaje lo saben
+    -- todos. El resto de ajustes sigue siendo por personaje: los kits, las
+    -- builds y las asignaciones si son suyos.
+    local accountDefaults = {
+        discoveredBosses = {},
+        bossRooms = {},
+    }
+    EZOArmory.svAccount = ZO_SavedVars:NewAccountWide(
+        "EZOArmory_Saved", 1, "shared", accountDefaults)
+
+    EZOArmory.svAccount.discoveredBosses = EZOArmory.svAccount.discoveredBosses or {}
+    EZOArmory.svAccount.bossRooms = EZOArmory.svAccount.bossRooms or {}
+
+    -- Migracion: lo que cada personaje habia aprendido por su cuenta se FUSIONA
+    -- en el catalogo comun, sin borrar nada. Se fusiona y no se sobrescribe
+    -- porque cada PJ puede haber visto bosses distintos; lo primero que llegue
+    -- gana, que para estos datos da igual (el nombre y el nivel de un boss no
+    -- cambian segun quien lo mire).
+    --
+    -- No se borra el original: si algo saliera mal, el dato viejo sigue ahi.
+    local function MergeInto(target, source)
+        if type(source) ~= "table" then return 0 end
+        local added = 0
+        for zoneKey, entries in pairs(source) do
+            if type(entries) == "table" then
+                target[zoneKey] = target[zoneKey] or {}
+                for key, value in pairs(entries) do
+                    if target[zoneKey][key] == nil then
+                        target[zoneKey][key] = value
+                        added = added + 1
+                    end
+                end
+            end
+        end
+        return added
+    end
+
+    local migratedBosses = MergeInto(EZOArmory.svAccount.discoveredBosses, EZOArmory.sv.discoveredBosses)
+    local migratedRooms = MergeInto(EZOArmory.svAccount.bossRooms, EZOArmory.sv.bossRooms)
+    if (migratedBosses > 0 or migratedRooms > 0) and EZOArmory.DebugLog then
+        EZOArmory.DebugLog(string.format(
+            "Catalogo compartido: %d boss(es) y %d sala(s) fusionadas desde este personaje",
+            migratedBosses, migratedRooms))
+    end
+
     -- Normalizacion defensiva de la seccion general.
     EZOArmory.sv.general = EZOArmory.sv.general or {}
     EZOArmory.sv.general.language = EZOArmory.sv.general.language or defaults.general.language

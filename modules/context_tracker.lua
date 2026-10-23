@@ -90,6 +90,31 @@ local function CollectBossNames()
     return names
 end
 
+
+-- Contenido instanciado: trial, arena o mazmorra. Es donde el juego declara
+-- unidades bossN de forma fiable, y por tanto donde el catalogo automatico
+-- tiene sentido. El mundo abierto queda fuera a proposito: alli marca como
+-- boss cosas que no lo son y el catalogo se llenaria de ruido.
+--
+-- IsUnitInDungeon + IsPlayerInRaid es la pareja que usa Wizard's Wardrobe en
+-- produccion (modules/WizardsWardrobeFood.lua:25); ambas verificadas en
+-- ESOUIDocumentation.txt. Se acepta ademas cualquier zona de nuestra propia
+-- tabla como red de seguridad, por si alguna arena no contara como mazmorra
+-- para el juego.
+local function IsInstancedContent()
+    if Context.state.trial ~= nil then
+        return true
+    end
+    if type(IsUnitInDungeon) == "function" then
+        local ok, inDungeon = pcall(IsUnitInDungeon, "player")
+        if ok and inDungeon then return true end
+    end
+    if type(IsPlayerInRaid) == "function" then
+        local ok, inRaid = pcall(IsPlayerInRaid)
+        if ok and inRaid then return true end
+    end
+    return false
+end
 -- Recalcula el estado de zona a partir del zoneId actual.
 local function RefreshZone()
     local zoneId = GetCurrentZoneId()
@@ -121,56 +146,69 @@ local function RefreshBoss()
     local matched = nil
     if Context.state.trial and primary and Zones then
         matched = Zones.FindBossByName(Context.state.trial, primary)
-
-        -- Descubrimiento: un boss que aparece en una zona conocida y no se
-        -- reconoce se apunta con el nombre EXACTO de este cliente y con su
-        -- nivel (mini o boss) leido del motor. Asi la lista de objetivos se
-        -- puebla jugando, sin depender de tablas de nombres traducidos -- que
-        -- para las arenas no existen completas en ninguna fuente fiable.
-        if not matched and Zones.DiscoverBoss then
-            -- Se busca el tag concreto cuyo nombre coincide, porque el nivel
-            -- hay que leerlo de ESA unidad y no siempre es boss1.
-            local unitTag = "boss1"
-            local maxBosses = (type(BOSS_RANK_ITERATION_END) == "number" and BOSS_RANK_ITERATION_END) or 6
-            for index = 1, maxBosses do
-                local candidate = "boss" .. tostring(index)
-                if GetUnitName(candidate) == primary then
-                    unitTag = candidate
-                    break
-                end
-            end
-
-            local tier = Zones.GetBossTierForUnit(unitTag)
-            if Zones.DiscoverBoss(Context.state.trial.tag, primary, tier) then
-                if EZOArmory.DebugLog then
-                    EZOArmory.DebugLog(string.format(
-                        "Boss discovered: zone=%s name=%s tier=%s",
-                        tostring(Context.state.trial.tag), tostring(primary), tostring(tier)))
-                end
-            end
-            matched = Zones.FindBossByName(Context.state.trial, primary)
-        end
     end
-    -- APRENDIZAJE AUTOMATICO DE LA SALA. Cuando el encuentro se activa ya
-    -- sueles estar dentro de la sala (a menudo en combate, que es justo el
-    -- problema), asi que esa posicion sirve de centro. La primera vez se
-    -- aprende y a partir de la siguiente visita la deteccion por posicion se
-    -- adelanta al evento y da tiempo a equipar antes del pull.
+
+    -- ------------------------------------------- Catalogo automatico ----
     --
-    -- Solo se aprende si no habia sala guardada: la posicion del primer
-    -- avistamiento es tan buena como cualquiera, y sobrescribirla cada vez
-    -- haria que el centro fuese saltando segun donde estuvieras.
-    if matched and Context.state.trial and Zones and Zones.LearnBossRoom
-        and not Zones.GetBossRoom(Context.state.trial.tag, matched.key)
-        and type(GetUnitWorldPosition) == "function" then
-        local ok, _, px, py, pz = pcall(GetUnitWorldPosition, "player")
-        if ok and px then
-            Zones.LearnBossRoom(Context.state.trial.tag, matched.key, px, py, pz)
-            if EZOArmory.DebugLog then
-                EZOArmory.DebugLog(string.format(
-                    "Boss room learned: %s/%s at %s,%s,%s",
-                    tostring(Context.state.trial.tag), tostring(matched.key),
-                    tostring(px), tostring(py), tostring(pz)))
+    -- Todo boss que aparezca en contenido instanciado se apunta solo, con el
+    -- nombre EXACTO que da este cliente y con su nivel (mini o boss) leido del
+    -- motor. Sin pulsar nada y sin recargar: la tabla se puebla jugando.
+    --
+    -- Antes esto solo pasaba dentro de las 18 trials y arenas de la tabla,
+    -- porque el catalogo se indexaba por su "tag" y una mazmorra no tenia
+    -- clave donde guardarse. Ahora cualquier zona instanciada tiene la suya
+    -- (Zones.GetZoneKey), asi que las mazmorras tambien aprenden.
+    --
+    -- Se descubren TODOS los bosses presentes, no solo el primero: en un
+    -- encuentro de varios, los demas se perdian.
+    local zoneKey = Zones and Zones.GetZoneKey and Zones.GetZoneKey(Context.state.zoneId)
+    if Context.state.bossActive and zoneKey and Zones and Zones.DiscoverBoss
+        and IsInstancedContent() then
+        local maxBosses = (type(BOSS_RANK_ITERATION_END) == "number" and BOSS_RANK_ITERATION_END) or 6
+        for index = 1, maxBosses do
+            local unitTag = "boss" .. tostring(index)
+            local name = DoesUnitExist(unitTag) and GetUnitName(unitTag) or nil
+            if name and name ~= "" then
+                -- El nivel se lee de ESA unidad, no de boss1: hay encuentros
+                -- donde boss1 ni existe (Crutch documenta que Felms y Llothis
+                -- son los dos "boss2"), y leerlo del tag equivocado da un
+                -- nivel inventado.
+                local tier = Zones.GetBossTierForUnit(unitTag)
+                if Zones.DiscoverBoss(zoneKey, name, tier, Context.state.zoneId) then
+                    if EZOArmory.DebugLog then
+                        EZOArmory.DebugLog(string.format(
+                            "Boss discovered: zone=%s (%s) name=%s tier=%s",
+                            tostring(zoneKey), tostring(Context.state.zoneId),
+                            tostring(name), tostring(tier)))
+                    end
+                end
+
+                -- APRENDIZAJE AUTOMATICO DE LA SALA, para CUALQUIER boss y no
+                -- solo para los que ya estaban en la tabla. Antes se exigia
+                -- "matched", asi que los recien descubiertos -justo los que
+                -- mas falta les hace- no aprendian su posicion nunca.
+                --
+                -- Cuando el encuentro se activa ya sueles estar dentro de la
+                -- sala (a menudo en combate, que es el problema de fondo), asi
+                -- que esa posicion sirve de centro. Solo se aprende si no
+                -- habia nada guardado: la del primer avistamiento vale tanto
+                -- como cualquiera, y reescribirla cada vez haria que el centro
+                -- fuese saltando segun donde estuvieras al entrar.
+                local bossKey = Zones.DiscoveredKeyFor and Zones.DiscoveredKeyFor(name)
+                if bossKey and Zones.LearnBossRoom and Zones.GetBossRoom
+                    and not Zones.GetBossRoom(zoneKey, bossKey)
+                    and type(GetUnitWorldPosition) == "function" then
+                    local ok, _, px, py, pz = pcall(GetUnitWorldPosition, "player")
+                    if ok and px then
+                        Zones.LearnBossRoom(zoneKey, bossKey, px, py, pz)
+                        if EZOArmory.DebugLog then
+                            EZOArmory.DebugLog(string.format(
+                                "Boss room learned: %s/%s at %s,%s,%s",
+                                tostring(zoneKey), tostring(bossKey),
+                                tostring(px), tostring(py), tostring(pz)))
+                        end
+                    end
+                end
             end
         end
     end
@@ -182,9 +220,24 @@ local function RefreshBoss()
 
     -- Nivel del boss presente, para poder resolver los objetivos genericos
     -- "mini" y "boss" aunque no haya asignacion para ese boss concreto.
+    --
+    -- Se lee del PRIMER TAG QUE EXISTA, no de "boss1" a secas. Hay encuentros
+    -- donde boss1 no existe en absoluto y el primero es boss2 -- CrutchAlerts
+    -- lo documenta con Felms y Llothis, y por eso usa GetFirstValidBossTag en
+    -- vez de boss1. Leyendo de un tag inexistente, el nivel salia inventado y
+    -- la build de mini o de boss se elegia mal sin dar ningun error.
     if Context.state.bossActive and Zones and Zones.GetBossTierForUnit then
+        local tierTag = nil
+        local maxBosses = (type(BOSS_RANK_ITERATION_END) == "number" and BOSS_RANK_ITERATION_END) or 6
+        for index = 1, maxBosses do
+            local candidate = "boss" .. tostring(index)
+            if DoesUnitExist(candidate) then
+                tierTag = candidate
+                break
+            end
+        end
         Context.state.bossTier = (matched and matched.tier)
-            or Zones.GetBossTierForUnit("boss1")
+            or (tierTag and Zones.GetBossTierForUnit(tierTag))
     else
         Context.state.bossTier = nil
     end
@@ -208,8 +261,7 @@ local positionLoopName = ADDON_NAME .. "_RoomPoll"
 local positionLoopRunning = false
 
 local function CheckRoomByPosition()
-    local zone = Context.state.trial
-    if not zone or not Zones or not Zones.FindBossByPosition then return end
+    if not Zones then return end
     -- Con el encuentro ya activo manda el evento: es mas fiable que la
     -- posicion y no hay que pisarlo.
     if Context.state.bossActive then return end
@@ -218,14 +270,32 @@ local function CheckRoomByPosition()
     local ok, _, x, y, z = pcall(GetUnitWorldPosition, "player")
     if not ok or not x then return end
 
-    local matched = Zones.FindBossByPosition(zone, x, y, z)
+    -- Dos caminos, segun la zona este o no en la tabla. En las conocidas se
+    -- buscan sus bosses declarados; en una mazmorra no hay lista que recorrer,
+    -- asi que se van a ver las salas aprendidas de esa zona. Sin esto, las
+    -- salas que ahora se aprenden en mazmorras no las consultaria nadie.
+    local zone = Context.state.trial
+    local matched
+    local label
+    if zone and Zones.FindBossByPosition then
+        matched = Zones.FindBossByPosition(zone, x, y, z)
+        label = zone.tag
+    elseif Zones.FindBossByPositionInZone and Zones.GetZoneKey then
+        label = Zones.GetZoneKey(Context.state.zoneId)
+        matched = label and Zones.FindBossByPositionInZone(label, x, y, z)
+    end
+
     if matched == Context.state.matchedBoss then return end
 
     Context.state.matchedBoss = matched
+    -- El nivel tambien sale de la sala reconocida: es lo que permite equipar
+    -- la build de mini o de boss ANTES de que empiece el encuentro, que es
+    -- todo el objetivo de reconocer por posicion.
+    Context.state.bossTier = matched and matched.tier or nil
     if EZOArmory.DebugLog then
         EZOArmory.DebugLog(string.format(
             "Room by position: %s (zona %s)",
-            tostring(matched and matched.key or nil), tostring(zone.tag)))
+            tostring(matched and matched.key or nil), tostring(label)))
     end
     FireChanged()
 end
@@ -238,8 +308,11 @@ end
 
 local function StartPositionLoop()
     if positionLoopRunning then return end
-    -- Solo dentro de una zona conocida: fuera no hay salas que reconocer.
-    if not Context.state.trial then return end
+    -- Dentro de contenido instanciado, sea o no una de las zonas de la tabla:
+    -- en mazmorras tambien se aprenden salas ahora, y si el bucle solo
+    -- arrancara en las conocidas nadie las consultaria. En mundo abierto no se
+    -- aprende nada, asi que ahi no hay nada que reconocer y el bucle sobra.
+    if not IsInstancedContent() then return end
     if type(IsUnitInCombat) == "function" and IsUnitInCombat("player") then return end
     positionLoopRunning = true
     EVENT_MANAGER:RegisterForUpdate(positionLoopName, POSITION_POLL_MS, CheckRoomByPosition)

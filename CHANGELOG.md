@@ -2,6 +2,35 @@
 
 All notable changes to EZOArmory are documented here.
 
+## Unreleased
+
+- Standardizes the movable HUD window on right-mouse-button dragging while
+  preserving normal left-click behavior.
+
+## 0.11.57
+
+- The boss catalogue now fills itself in **any instanced content**, not just
+  the 18 trials and arenas in the table. It was indexed by those zones' tags,
+  so a dungeon had nowhere to store anything and learned nothing - which is why
+  the saved catalogue had Dragonstar and Vateshran full and no dungeon at all.
+  Every instanced zone now has a key of its own.
+- It records **every boss present**, not only the first one. In a multi-boss
+  encounter the rest were being dropped.
+- Boss rooms are now learned for **any** boss, not only ones already in the
+  table. Previously it required a table match, so freshly discovered bosses -
+  exactly the ones that need it - never learned their position.
+- Position detection works in dungeons too, and sets the boss tier, which is
+  what lets the mini or boss build go on **before** the pull.
+- The catalogue moved to **account-wide** storage: where a boss is and whether
+  it is a mini does not depend on which character walked in. What one character
+  learns, all of them know. Existing per-character data is merged in, not
+  replaced, and the originals are left untouched.
+- Fix: the boss tier was read from `boss1` even in encounters where `boss1`
+  does not exist at all - CrutchAlerts documents this with Felms and Llothis,
+  which are both `boss2`. Reading a non-existent tag produced an invented tier
+  and picked the wrong mini/boss build, silently. It now reads from the first
+  tag that actually exists.
+
 ## 0.11.54
 
 - Fix: undress took **one** piece off and left the rest on. It was using
