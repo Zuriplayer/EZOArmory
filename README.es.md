@@ -3,7 +3,7 @@
 Gestor de loadouts, sets de equipo, Puntos de Campeon y habilidades para las
 trials y bosses de ESO. Forma parte de la familia de addons EZO.
 
-> Estado: **desarrollo (0.11.60)** — beta activa. El motor de gestion de
+> Estado: **desarrollo (0.11.61)** — beta activa. El motor de gestion de
 > builds esta en construccion; esta version sienta la base del addon, los datos
 > de referencia de trials/bosses y la integracion con EZOCore.
 

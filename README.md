@@ -3,7 +3,7 @@
 Loadout, gear-set, Champion Point and skill manager for ESO trials and bosses.
 Part of the EZO addon family.
 
-> Status: **development (0.11.60)** — active beta. The build-management engine is
+> Status: **development (0.11.61)** — active beta. The build-management engine is
 > under construction; this release lays down the addon skeleton, the trial/boss
 > reference data and the EZOCore integration.
 

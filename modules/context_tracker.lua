@@ -222,12 +222,13 @@ local function RefreshBoss()
                 -- nivel inventado.
                 local tier = Zones.GetBossTierForUnit(unitTag)
                 if Zones.DiscoverBoss(zoneKey, name, tier, Context.state.zoneId) then
-                    if EZOArmory.DebugLog then
-                        EZOArmory.DebugLog(string.format(
-                            "Boss discovered: zone=%s (%s) name=%s tier=%s",
-                            tostring(zoneKey), tostring(Context.state.zoneId),
-                            tostring(name), tostring(tier)))
-                    end
+                    -- Solo cuando es NUEVO de verdad, no en cada encuentro:
+                    -- descubrir un boss pasa pocas veces por sesion, asi que
+                    -- una linea avisa de que el catalogo funciona sin llegar
+                    -- a molestar.
+                    Zones.Announce(zo_strformat(GetString(EZOARM_MSG_BOSS_LEARNED),
+                        tostring(name), Zones.GetTierLabel(tier),
+                        Zones.GetZoneLabel(zoneKey, Context.state.zoneId)))
                 end
 
                 -- APRENDIZAJE AUTOMATICO DE LA SALA, para CUALQUIER boss y no

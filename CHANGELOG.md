@@ -2,6 +2,22 @@
 
 All notable changes to EZOArmory are documented here.
 
+## 0.11.61
+
+- The catalogue now **says what it learns**. Until now it worked in complete
+  silence: seventeen log entries, all of them going to LibDebugLogger, which
+  is off in a normal game. Nothing reached the player.
+- A boss learned for the first time prints one line: its name, whether it is a
+  mini or a boss, and the zone. Only when it is genuinely new, not on every
+  encounter, so it stays rare enough not to be noise.
+- A tier that disagrees with what was stored is now said out loud too, both
+  when it is noticed and when a second reading confirms it. That is exactly
+  the case worth hearing about, and it was the quietest one.
+- Add `/ezoarmorybosses`: dumps the catalogue to chat - zones, bosses, their
+  tier, and a mark on the ones whose room has been learned, which are the ones
+  that can be recognised before the pull. The saved file is only written on
+  reload or exit, so without this there was no way to check mid-session.
+
 ## 0.11.60
 
 - The **Infinite Archive** no longer gets catalogued, neither bosses nor rooms.

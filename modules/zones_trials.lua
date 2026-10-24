@@ -304,6 +304,30 @@ end
 Z.BOSS_TIER_MINI = "mini"
 Z.BOSS_TIER_BOSS = "boss"
 
+
+-- Aviso al jugador Y al log, en una sola llamada.
+--
+-- Vive aqui porque lo que el catalogo tiene que contar -- un boss nuevo, un
+-- nivel que ha cambiado -- pasa dentro de este modulo. Y va por CHAT, no solo
+-- al log: el modo depuracion esta apagado en una partida normal, asi que todo
+-- lo que se escriba solo alli no lo lee nadie. Ya paso con el diagnostico del
+-- desvestir en 0.11.52, que no midio nada por eso mismo.
+function Z.Announce(message)
+    if EZOArmory.Print then
+        EZOArmory.Print(message)
+    end
+    if EZOArmory.DebugLog then
+        EZOArmory.DebugLog(tostring(message))
+    end
+end
+-- Nombre legible del nivel de un boss, para mensajes e interfaz.
+function Z.GetTierLabel(tier)
+    if tier == Z.BOSS_TIER_MINI then
+        return GetString(EZOARM_TIER_MINI)
+    end
+    return GetString(EZOARM_TIER_BOSS)
+end
+
 function Z.GetBossTierForUnit(unitTag)
     if type(GetUnitDifficulty) ~= "function" then
         return Z.BOSS_TIER_BOSS
@@ -563,21 +587,13 @@ function Z.DiscoverBoss(zoneTag, unitName, tier, zoneId)
         -- por bueno cualquier dato raro.
         if tier and tier ~= existing.tier then
             if existing.pendingTier == tier then
-                if EZOArmory.DebugLog then
-                    EZOArmory.DebugLog(string.format(
-                        "Boss tier changed: %s/%s %s -> %s (confirmado)",
-                        tostring(zoneTag), tostring(unitName),
-                        tostring(existing.tier), tostring(tier)))
-                end
+                Z.Announce(zo_strformat(GetString(EZOARM_MSG_BOSS_TIER_CHANGED),
+                    tostring(unitName), Z.GetTierLabel(existing.tier), Z.GetTierLabel(tier)))
                 existing.tier = tier
                 existing.pendingTier = nil
             else
-                if EZOArmory.DebugLog then
-                    EZOArmory.DebugLog(string.format(
-                        "Boss tier discrepancy: %s/%s guardado=%s leido=%s (a la espera)",
-                        tostring(zoneTag), tostring(unitName),
-                        tostring(existing.tier), tostring(tier)))
-                end
+                Z.Announce(zo_strformat(GetString(EZOARM_MSG_BOSS_TIER_PENDING),
+                    tostring(unitName), Z.GetTierLabel(tier), Z.GetTierLabel(existing.tier)))
                 existing.pendingTier = tier
             end
         elseif tier then
@@ -732,6 +748,59 @@ function Z.GetDiscoveredZones()
 
     table.sort(zones, function(a, b) return a.name < b.name end)
     return zones
+end
+
+-- Vuelca el catalogo por chat: zonas, bosses, su nivel y si tienen sala
+-- aprendida. Para poder comprobar que ha aprendido sin recargar la interfaz,
+-- que es lo unico que escribe el fichero guardado.
+--
+-- Recorre tanto las zonas de la tabla (trials y arenas) como las descubiertas
+-- (mazmorras), porque desde fuera son lo mismo: sitios con bosses a los que
+-- asignar builds.
+function Z.DumpCatalogue()
+    local rooms = RoomStore(false) or {}
+    local lines = {}
+    local totalZones, totalBosses = 0, 0
+
+    local function AddZone(zoneTag, zoneName, bosses)
+        if #bosses == 0 then return end
+        totalZones = totalZones + 1
+        totalBosses = totalBosses + #bosses
+
+        local names = {}
+        for _, boss in ipairs(bosses) do
+            -- La marca de sala es lo que de verdad importa de un vistazo: sin
+            -- ella el boss solo se reconoce cuando ya ha empezado el combate.
+            local mark = (rooms[zoneTag] and rooms[zoneTag][boss.key])
+                and GetString(EZOARM_BOSSES_ROOM_MARK) or ""
+            names[#names + 1] = string.format("%s (%s)%s",
+                tostring(boss.name), Z.GetTierLabel(boss.tier), mark)
+        end
+        lines[#lines + 1] = zo_strformat(GetString(EZOARM_BOSSES_ZONE),
+            zoneName, #bosses)
+        lines[#lines + 1] = "   " .. table.concat(names, ", ")
+    end
+
+    for _, zone in ipairs(Z.TRIALS or {}) do
+        AddZone(zone.tag, zone.name, Z.GetZoneBosses(zone))
+    end
+    for _, zone in ipairs(Z.ARENAS or {}) do
+        AddZone(zone.tag, zone.name, Z.GetZoneBosses(zone))
+    end
+    for _, zone in ipairs(Z.GetDiscoveredZones() or {}) do
+        AddZone(zone.tag, zone.name, zone.bosses)
+    end
+
+    if totalZones == 0 then
+        Z.Announce(GetString(EZOARM_BOSSES_NONE))
+        return
+    end
+
+    Z.Announce(zo_strformat(GetString(EZOARM_BOSSES_HEADER), totalZones, totalBosses))
+    for _, line in ipairs(lines) do
+        Z.Announce(line)
+    end
+    Z.Announce(GetString(EZOARM_BOSSES_FOOTER))
 end
 
 -- Olvida una zona descubierta entera, con sus bosses y sus salas. Para poder

@@ -529,6 +529,15 @@ function EZOA:Initialize()
         end)
 
     end
+
+    -- Volcado del catalogo de bosses por chat. El fichero guardado solo se
+    -- escribe al recargar o salir, asi que sin esto no habia forma de ver en
+    -- mitad de una partida que ha aprendido el addon.
+    SLASH_COMMANDS["/ezoarmorybosses"] = function()
+        if EZOA.Zones and EZOA.Zones.DumpCatalogue then
+            EZOA.Zones.DumpCatalogue()
+        end
+    end
     Print(GetString(EZOARM_MSG_INIT))
 end
 
