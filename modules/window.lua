@@ -186,12 +186,12 @@ function Window.Create()
     -- forma permanente.
     header:SetMouseEnabled(true)
     header:SetHandler("OnMouseDown", function(_, button)
-        if button ~= MOUSE_BUTTON_INDEX_LEFT then return end
+        if button ~= MOUSE_BUTTON_INDEX_RIGHT then return end
         if EZOArmory.DebugLog then EZOArmory.DebugLog("Window header mousedown, starting move") end
         w:StartMoving()
     end)
     header:SetHandler("OnMouseUp", function(_, button)
-        if button ~= MOUSE_BUTTON_INDEX_LEFT then return end
+        if button ~= MOUSE_BUTTON_INDEX_RIGHT then return end
         w:StopMovingOrResizing()
         Window.SavePosition()
     end)
